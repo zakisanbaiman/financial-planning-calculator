@@ -1,0 +1,504 @@
+openapi: 3.0.0
+info:
+  title: 財務計画計算機 API
+  description: 将来の資産形成と老後の財務計画を可視化するアプリケーションのAPI
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@financial-planning.com
+
+servers:
+  - url: http://localhost:8080/api
+    description: 開発サーバー
+
+paths:
+  /health:
+    get:
+      summary: ヘルスチェック
+      description: APIサーバーの稼働状況を確認
+      responses:
+        '200':
+          description: サーバー正常稼働
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  message:
+                    type: string
+                    example: "財務計画計算機 API サーバーが正常に動作しています"
+
+  /financial-data:
+    post:
+      summary: 財務データ作成
+      description: ユーザーの財務情報を新規作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinancialDataRequest'
+      responses:
+        '201':
+          description: 財務データ作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancialDataResponse'
+        '400':
+          description: 入力データエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: 財務データ取得
+      description: ユーザーの財務情報を取得
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: ユーザーID
+      responses:
+        '200':
+          description: 財務データ取得成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancialDataResponse'
+        '404':
+          description: データが見つかりません
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /calculations/asset-projection:
+    post:
+      summary: 資産推移計算
+      description: 将来の資産推移を計算
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssetProjectionRequest'
+      responses:
+        '200':
+          description: 計算成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetProjectionResponse'
+        '400':
+          description: 計算パラメータエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /calculations/retirement:
+    post:
+      summary: 老後資金計算
+      description: 必要な老後資金を計算
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RetirementCalculationRequest'
+      responses:
+        '200':
+          description: 計算成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetirementCalculationResponse'
+
+  /calculations/emergency-fund:
+    post:
+      summary: 緊急資金計算
+      description: 必要な緊急資金を計算
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmergencyFundRequest'
+      responses:
+        '200':
+          description: 計算成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmergencyFundResponse'
+
+  /goals:
+    post:
+      summary: 目標作成
+      description: 新しい財務目標を作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoalRequest'
+      responses:
+        '201':
+          description: 目標作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoalResponse'
+
+    get:
+      summary: 目標一覧取得
+      description: ユーザーの目標一覧を取得
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: ユーザーID
+      responses:
+        '200':
+          description: 目標一覧取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GoalResponse'
+
+components:
+  schemas:
+    FinancialDataRequest:
+      type: object
+      required:
+        - user_id
+        - monthly_income
+        - monthly_expenses
+        - current_savings
+        - investment_return
+        - inflation_rate
+      properties:
+        user_id:
+          type: string
+          description: ユーザーID
+        monthly_income:
+          type: number
+          minimum: 0
+          description: 月収
+          example: 400000
+        monthly_expenses:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExpenseItem'
+          description: 月間支出
+        current_savings:
+          type: array
+          items:
+            $ref: '#/components/schemas/SavingsItem'
+          description: 現在の貯蓄
+        investment_return:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: 投資利回り（%）
+          example: 5.0
+        inflation_rate:
+          type: number
+          minimum: 0
+          maximum: 50
+          description: インフレ率（%）
+          example: 2.0
+
+    FinancialDataResponse:
+      allOf:
+        - $ref: '#/components/schemas/FinancialDataRequest'
+        - type: object
+          properties:
+            id:
+              type: string
+              description: データID
+            created_at:
+              type: string
+              format: date-time
+              description: 作成日時
+            updated_at:
+              type: string
+              format: date-time
+              description: 更新日時
+
+    ExpenseItem:
+      type: object
+      required:
+        - category
+        - amount
+      properties:
+        category:
+          type: string
+          description: 支出カテゴリ
+          example: "住居費"
+        amount:
+          type: number
+          minimum: 0
+          description: 金額
+          example: 120000
+        description:
+          type: string
+          description: 説明
+          example: "家賃・光熱費"
+
+    SavingsItem:
+      type: object
+      required:
+        - type
+        - amount
+      properties:
+        type:
+          type: string
+          enum: [deposit, investment, other]
+          description: 貯蓄種別
+          example: "deposit"
+        amount:
+          type: number
+          minimum: 0
+          description: 金額
+          example: 1000000
+        description:
+          type: string
+          description: 説明
+          example: "普通預金"
+
+    AssetProjectionRequest:
+      type: object
+      required:
+        - financial_data_id
+        - projection_years
+      properties:
+        financial_data_id:
+          type: string
+          description: 財務データID
+        projection_years:
+          type: integer
+          minimum: 1
+          maximum: 50
+          description: 予測年数
+          example: 30
+
+    AssetProjectionResponse:
+      type: object
+      properties:
+        projections:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssetProjection'
+          description: 年次資産推移
+
+    AssetProjection:
+      type: object
+      properties:
+        year:
+          type: integer
+          description: 年
+        total_assets:
+          type: number
+          description: 総資産
+        real_value:
+          type: number
+          description: 実質価値（インフレ調整後）
+        contributed_amount:
+          type: number
+          description: 積立元本
+        investment_gains:
+          type: number
+          description: 投資収益
+
+    RetirementCalculationRequest:
+      type: object
+      required:
+        - current_age
+        - retirement_age
+        - life_expectancy
+        - monthly_retirement_expenses
+        - pension_amount
+        - current_savings
+        - monthly_savings
+        - investment_return
+        - inflation_rate
+      properties:
+        current_age:
+          type: integer
+          minimum: 18
+          maximum: 100
+          description: 現在の年齢
+        retirement_age:
+          type: integer
+          minimum: 50
+          maximum: 100
+          description: 退職予定年齢
+        life_expectancy:
+          type: integer
+          minimum: 60
+          maximum: 120
+          description: 平均寿命
+        monthly_retirement_expenses:
+          type: number
+          minimum: 0
+          description: 老後の月間生活費
+        pension_amount:
+          type: number
+          minimum: 0
+          description: 年金受給額（月額）
+        current_savings:
+          type: number
+          minimum: 0
+          description: 現在の貯蓄額
+        monthly_savings:
+          type: number
+          minimum: 0
+          description: 月間貯蓄額
+        investment_return:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: 投資利回り（%）
+        inflation_rate:
+          type: number
+          minimum: 0
+          maximum: 50
+          description: インフレ率（%）
+
+    RetirementCalculationResponse:
+      type: object
+      properties:
+        required_amount:
+          type: number
+          description: 必要老後資金
+        projected_amount:
+          type: number
+          description: 予想達成額
+        shortfall:
+          type: number
+          description: 不足額
+        sufficiency_rate:
+          type: number
+          description: 充足率（%）
+        recommended_monthly_savings:
+          type: number
+          description: 推奨月間貯蓄額
+
+    EmergencyFundRequest:
+      type: object
+      required:
+        - monthly_expenses
+        - emergency_months
+        - current_emergency_fund
+      properties:
+        monthly_expenses:
+          type: number
+          minimum: 0
+          description: 月間支出
+        emergency_months:
+          type: integer
+          minimum: 1
+          maximum: 24
+          description: 緊急時対応月数
+        current_emergency_fund:
+          type: number
+          minimum: 0
+          description: 現在の緊急資金
+
+    EmergencyFundResponse:
+      type: object
+      properties:
+        required_amount:
+          type: number
+          description: 必要緊急資金
+        current_amount:
+          type: number
+          description: 現在の緊急資金
+        shortfall:
+          type: number
+          description: 不足額
+        months_to_target:
+          type: integer
+          description: 目標達成までの月数
+
+    GoalRequest:
+      type: object
+      required:
+        - user_id
+        - type
+        - title
+        - target_amount
+        - target_date
+        - monthly_contribution
+      properties:
+        user_id:
+          type: string
+          description: ユーザーID
+        type:
+          type: string
+          enum: [savings, retirement, emergency, custom]
+          description: 目標種別
+        title:
+          type: string
+          description: 目標タイトル
+        target_amount:
+          type: number
+          minimum: 0
+          description: 目標金額
+        target_date:
+          type: string
+          format: date
+          description: 目標達成日
+        current_amount:
+          type: number
+          minimum: 0
+          description: 現在の金額
+          default: 0
+        monthly_contribution:
+          type: number
+          minimum: 0
+          description: 月間積立額
+
+    GoalResponse:
+      allOf:
+        - $ref: '#/components/schemas/GoalRequest'
+        - type: object
+          properties:
+            id:
+              type: string
+              description: 目標ID
+            is_active:
+              type: boolean
+              description: アクティブ状態
+            created_at:
+              type: string
+              format: date-time
+              description: 作成日時
+            updated_at:
+              type: string
+              format: date-time
+              description: 更新日時
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: エラーメッセージ
+        details:
+          type: array
+          items:
+            type: string
+          description: 詳細エラー情報

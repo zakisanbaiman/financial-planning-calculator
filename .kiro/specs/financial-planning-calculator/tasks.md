@@ -1,6 +1,6 @@
 # 実装計画
 
-- [ ] 1. プロジェクト構造とコア設定の初期化
+- [x] 1. プロジェクト構造とコア設定の初期化
   - Next.jsプロジェクトの作成とTailwind CSS、TypeScriptの設定
   - Goプロジェクトの初期化とEcho、PostgreSQLドライバーの設定
   - OpenAPI仕様ファイルの作成とSwagger設定

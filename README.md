@@ -1,36 +1,103 @@
-# 財務計画計算アプリケーション
+# 財務計画計算機
 
 将来の資産形成と老後の財務計画を可視化するWebアプリケーション
 
 ## 概要
 
-このアプリケーションは、ユーザーの現在の財務状況から将来の資産推移、老後資金、緊急時資金を計算・可視化します。
+このアプリケーションは、ユーザーが現在の収入、支出、貯蓄状況を入力することで、将来の資産推移、老後資金、緊急時の備えを計算し、安心できる財務計画を立てられるようにします。
 
 ## 技術スタック
 
-- **フロントエンド**: Next.js + TypeScript
-- **バックエンド**: Go + Echo
-- **データベース**: PostgreSQL
-- **スタイリング**: Tailwind CSS
-- **チャート**: Recharts
+### フロントエンド
+- Next.js 14
+- TypeScript
+- Tailwind CSS
+- Chart.js
+- React Hook Form + Zod
 
-## 機能
+### バックエンド
+- Go
+- Echo Framework
+- PostgreSQL
+- OpenAPI/Swagger
 
-- 基本的な財務情報の入力・管理
-- 将来の資産推移シミュレーション
-- 老後資金の計算
-- 緊急時資金の計算
-- データの可視化とレポート機能
-- 目標設定と進捗管理
+## プロジェクト構造
 
-## 開発状況
-
-現在、要件定義・設計・実装計画が完了しています。
-詳細は `.kiro/specs/financial-planning-calculator/` フォルダを参照してください。
+```
+financial-planning-calculator/
+├── frontend/          # Next.jsフロントエンド
+│   ├── src/
+│   │   ├── app/       # App Router
+│   │   ├── components/
+│   │   ├── lib/
+│   │   └── types/
+│   ├── package.json
+│   ├── next.config.js
+│   └── tailwind.config.js
+├── backend/           # Goバックエンド
+│   ├── config/        # 設定
+│   ├── docs/          # OpenAPI仕様
+│   ├── go.mod
+│   └── main.go
+└── README.md
+```
 
 ## セットアップ
 
-実装開始時の手順は後日追加予定
+### 前提条件
+- Node.js 18+
+- Go 1.21+
+- PostgreSQL 13+
+
+### フロントエンド
+
+```bash
+cd frontend
+npm install
+cp .env.example .env.local
+npm run dev
+```
+
+フロントエンドは http://localhost:3000 で起動します。
+
+### バックエンド
+
+```bash
+cd backend
+go mod tidy
+cp .env.example .env
+go run main.go
+```
+
+バックエンドは http://localhost:8080 で起動します。
+
+### API仕様
+
+Swagger UIは http://localhost:8080/swagger/index.html で確認できます。
+
+## 開発
+
+### フロントエンド開発
+- `npm run dev` - 開発サーバー起動
+- `npm run build` - プロダクションビルド
+- `npm run lint` - ESLint実行
+- `npm run type-check` - TypeScript型チェック
+
+### バックエンド開発
+- `go run main.go` - サーバー起動
+- `go test ./...` - テスト実行
+- `go mod tidy` - 依存関係整理
+
+## 機能
+
+### 実装予定機能
+- [ ] 財務データ入力・管理
+- [ ] 資産推移シミュレーション
+- [ ] 老後資金計算
+- [ ] 緊急資金計算
+- [ ] 目標設定・進捗管理
+- [ ] データ可視化（グラフ・チャート）
+- [ ] PDFレポート生成
 
 ## ライセンス
 
