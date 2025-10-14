@@ -22,13 +22,15 @@ jobs:
         path: |
           ~/.cache/go-build
           ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        key: ${{ runner.os }}-go-${{ hashFiles('backend/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
     
     - name: Install dependencies
       working-directory: ./backend
-      run: go mod download
+      run: |
+        go mod download
+        go mod tidy
     
     - name: Run go vet
       working-directory: ./backend

@@ -27,14 +27,20 @@ jobs:
         path: |
           ~/.cache/go-build
           ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
+        key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('backend/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-${{ matrix.go-version }}-
           ${{ runner.os }}-go-
     
+    - name: Clean module cache
+      working-directory: ./backend
+      run: go clean -modcache || true
+    
     - name: Install dependencies
       working-directory: ./backend
-      run: go mod download
+      run: |
+        go mod download
+        go mod tidy
     
     - name: Verify dependencies
       working-directory: ./backend
