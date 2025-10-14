@@ -78,13 +78,21 @@ jobs:
       working-directory: ./frontend
       run: npm ci
     
+    - name: Check ESLint config exists
+      working-directory: ./frontend
+      run: |
+        if [ ! -f ".eslintrc.json" ]; then
+          echo "ESLint config not found, creating default config..."
+          echo '{"extends": ["next/core-web-vitals"]}' > .eslintrc.json
+        fi
+    
     - name: Type check
       working-directory: ./frontend
       run: npm run type-check
       
     - name: Lint
       working-directory: ./frontend
-      run: npm run lint
+      run: npm run lint -- --max-warnings 0
       
     - name: Build
       working-directory: ./frontend
