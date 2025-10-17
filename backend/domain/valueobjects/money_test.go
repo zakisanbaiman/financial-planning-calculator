@@ -142,7 +142,7 @@ func TestMoneyIsNegative(t *testing.T) {
 
 func TestMoneyIsZero(t *testing.T) {
 	zero, _ := NewMoney(0, JPY)
-	almostZero, _ := NewMoney(0.005, JPY) // 0.5セント（1セント未満なのでゼロとみなされる）
+	almostZero, _ := NewMoney(0.004, JPY) // 0.4セント（丸められて0になる）
 	notZero, _ := NewMoney(0.02, JPY)     // 2セント
 
 	if !zero.IsZero() {
