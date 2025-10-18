@@ -109,3 +109,58 @@ func TestPeriodString(t *testing.T) {
 		}
 	}
 }
+
+func TestNewPeriodFromMonths(t *testing.T) {
+	period, err := NewPeriodFromMonths(30) // 30ヶ月 = 2年6ヶ月
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+	if period.Years() != 2 {
+		t.Errorf("Expected 2 years, got %d", period.Years())
+	}
+	if period.Months() != 6 {
+		t.Errorf("Expected 6 months, got %d", period.Months())
+	}
+
+	// 負の月数
+	_, err = NewPeriodFromMonths(-5)
+	if err == nil {
+		t.Error("Expected error for negative months")
+	}
+}
+
+func TestPeriodSubtract(t *testing.T) {
+	period1, _ := NewPeriod(2, 8)
+	period2, _ := NewPeriod(1, 3)
+
+	result, err := period1.Subtract(period2)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	// 2年8ヶ月 - 1年3ヶ月 = 1年5ヶ月
+	if result.Years() != 1 {
+		t.Errorf("Expected 1 year, got %d", result.Years())
+	}
+	if result.Months() != 5 {
+		t.Errorf("Expected 5 months, got %d", result.Months())
+	}
+
+	// 負の結果になる場合
+	_, err = period2.Subtract(period1)
+	if err == nil {
+		t.Error("Expected error when result would be negative")
+	}
+}
+
+func TestPeriodIsZero(t *testing.T) {
+	zeroPeriod, _ := NewPeriod(0, 0)
+	nonZeroPeriod, _ := NewPeriod(1, 0)
+
+	if !zeroPeriod.IsZero() {
+		t.Error("Expected zero period to return true for IsZero()")
+	}
+	if nonZeroPeriod.IsZero() {
+		t.Error("Expected non-zero period to return false for IsZero()")
+	}
+}

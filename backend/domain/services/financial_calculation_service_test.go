@@ -251,3 +251,44 @@ func TestCalculateDebtPayoffTimeWithInsufficientPayment(t *testing.T) {
 		t.Error("返済不可能な場合は-1を返すはずです")
 	}
 }
+func TestFinancialCalculationServiceEdgeCases(t *testing.T) {
+	service := NewFinancialCalculationService()
+
+	// 非常に高い利率でのテスト
+	highRate, _ := valueobjects.NewRate(50.0) // 50%
+	principal, _ := valueobjects.NewMoneyJPY(1000000)
+
+	result, err := service.CalculateCompoundInterest(principal, highRate, 5)
+	if err != nil {
+		t.Fatalf("高利率での複利計算に失敗しました: %v", err)
+	}
+
+	// 最終金額は元本より大幅に大きくなるはず
+	if result.FinalAmount.Amount() <= principal.Amount()*2 {
+		t.Error("高利率では最終金額が大幅に増加するはずです")
+	}
+
+	// 非常に小さな金額でのテスト
+	smallAmount, _ := valueobjects.NewMoneyJPY(1.0) // 1円
+	rate, _ := valueobjects.NewRate(5.0)
+	smallResult, err := service.CalculateCompoundInterest(smallAmount, rate, 10)
+	if err != nil {
+		t.Fatalf("小額での複利計算に失敗しました: %v", err)
+	}
+
+	// 結果は正の値であるはず
+	if !smallResult.FinalAmount.IsPositive() {
+		t.Error("小額でも複利計算結果は正の値になるはずです")
+	}
+
+	// ゼロ期間でのテスト
+	zeroResult, err := service.CalculateCompoundInterest(principal, rate, 0)
+	if err != nil {
+		t.Fatalf("ゼロ期間での複利計算に失敗しました: %v", err)
+	}
+
+	// ゼロ期間では元本と同じになるはず
+	if zeroResult.FinalAmount.Amount() != principal.Amount() {
+		t.Error("ゼロ期間では最終金額は元本と同じになるはずです")
+	}
+}
