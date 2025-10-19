@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"financial-planning-calculator/domain/valueobjects"
+	"github.com/financial-planning-calculator/backend/domain/valueobjects"
 
 	"github.com/google/uuid"
 )

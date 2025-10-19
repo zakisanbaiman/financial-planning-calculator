@@ -8,7 +8,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	echoSwagger "github.com/swaggo/echo-swagger"
 
-	_ "financial-planning-calculator/docs"
+	_ "github.com/financial-planning-calculator/backend/docs"
 )
 
 // @title 財務計画計算機 API

@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"financial-planning-calculator/domain/entities"
-	"financial-planning-calculator/domain/valueobjects"
+	"github.com/financial-planning-calculator/backend/domain/entities"
+	"github.com/financial-planning-calculator/backend/domain/valueobjects"
 )
 
 func TestRecommendMonthlySavings(t *testing.T) {

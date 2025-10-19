@@ -3,7 +3,7 @@ package services
 import (
 	"testing"
 
-	"financial-planning-calculator/domain/valueobjects"
+	"github.com/financial-planning-calculator/backend/domain/valueobjects"
 )
 
 func TestCalculateCompoundInterest(t *testing.T) {
