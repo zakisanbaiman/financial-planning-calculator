@@ -1,0 +1,52 @@
+# Production overrides for Docker Compose
+
+# 本番環境用のオーバーライド設定
+
+services:
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_production_password}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    restart: always
+    command: >
+      postgres
+      -c shared_preload_libraries=pg_stat_statements
+      -c pg_stat_statements.track=all
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+
+  backend:
+    target: production
+    environment:
+      GIN_MODE: release
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-secure_production_password}
+    restart: always
+    volumes: []  # 本番では不要
+    command: ["./main"]
+
+  # Nginx リバースプロキシ（本番用）
+  nginx:
+    image: nginx:alpine
+    container_name: financial_planning_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - financial_planning_network
+    restart: always
+
+volumes:
+  postgres_prod_data:
+    driver: local

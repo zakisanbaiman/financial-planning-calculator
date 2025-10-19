@@ -1,9 +1,11 @@
-# Makefile for Financial Planning Calculator Backend
+# Makefile for Financial Planning Calculator Backend (Local Development)
 
 .PHONY: help build run test clean migrate-up migrate-down migrate-status seed
 
 # Default target
 help:
+	@echo "財務計画計算機バックエンド - ローカル開発用"
+	@echo "=========================================="
 	@echo "利用可能なコマンド:"
 	@echo "  build         - アプリケーションをビルド"
 	@echo "  run           - アプリケーションを実行"
@@ -15,6 +17,8 @@ help:
 	@echo "  migrate-status- マイグレーション状況を確認"
 	@echo "  seed          - サンプルデータを投入"
 	@echo "  db-reset      - データベースをリセット（全削除→マイグレーション→シード）"
+	@echo ""
+	@echo "Docker開発環境を使用する場合は、プロジェクトルートの Makefile を使用してください"
 
 # Build the application
 build:

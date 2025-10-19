@@ -1,0 +1,41 @@
+# Git関連
+.git
+.gitignore
+
+# ドキュメント
+README.md
+*.md
+docs/
+
+# テスト関連
+*_test.go
+coverage.out
+coverage.html
+testdata/
+
+# 開発用ファイル
+.env
+.env.local
+.air.toml
+tmp/
+
+# ビルド成果物
+bin/
+dist/
+build/
+
+# IDE設定
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS固有
+.DS_Store
+Thumbs.db
+
+# ログファイル
+*.log
+
+# 依存関係（Dockerで管理）
+vendor/
