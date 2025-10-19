@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"financial-planning-calculator/domain/valueobjects"
+	"github.com/financial-planning-calculator/backend/domain/valueobjects"
 )
 
 func TestFinancialProfile_Creation(t *testing.T) {

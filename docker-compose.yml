@@ -1,0 +1,117 @@
+# Docker Compose configuration for Financial Planning Calculator
+
+services:
+  # PostgreSQLデータベース
+  postgres:
+    image: postgres:15-alpine
+    container_name: financial_planning_db
+    environment:
+      POSTGRES_DB: financial_planning
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/infrastructure/database/init:/docker-entrypoint-initdb.d
+    networks:
+      - financial_planning_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d financial_planning"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # バックエンドAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: financial_planning_backend
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: financial_planning
+      DB_SSLMODE: disable
+      GIN_MODE: debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - financial_planning_network
+    volumes:
+      - ./backend:/app
+      - go_mod_cache:/go/pkg/mod
+    working_dir: /app
+    command: ["go", "run", "main.go"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # フロントエンド（将来用）
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: financial_planning_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+    depends_on:
+      - backend
+    networks:
+      - financial_planning_network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    profiles:
+      - frontend
+    restart: unless-stopped
+
+  # 開発用ツール（マイグレーション、シード）
+  db-tools:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: financial_planning_db_tools
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: financial_planning
+      DB_SSLMODE: disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - financial_planning_network
+    volumes:
+      - ./backend:/app
+    working_dir: /app
+    profiles:
+      - tools
+    command: ["tail", "-f", "/dev/null"]
+
+volumes:
+  postgres_data:
+    driver: local
+  go_mod_cache:
+    driver: local
+
+networks:
+  financial_planning_network:
+    driver: bridge

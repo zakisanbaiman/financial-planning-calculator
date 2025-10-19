@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math"
 
-	"financial-planning-calculator/domain/valueobjects"
+	"github.com/financial-planning-calculator/backend/domain/valueobjects"
 )
 
 // FinancialCalculationService は財務計算に関するドメインサービス
