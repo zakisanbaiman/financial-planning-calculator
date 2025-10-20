@@ -169,6 +169,61 @@ func NewGoal(
 	}, nil
 }
 
+// NewGoalWithID は指定されたIDで新しい目標を作成する（リポジトリでの復元用）
+func NewGoalWithID(
+	id GoalID,
+	userID UserID,
+	goalType GoalType,
+	title string,
+	targetAmount valueobjects.Money,
+	targetDate time.Time,
+	monthlyContribution valueobjects.Money,
+	createdAt, updatedAt time.Time,
+) (*Goal, error) {
+	if id == "" {
+		return nil, errors.New("目標IDは必須です")
+	}
+
+	if userID == "" {
+		return nil, errors.New("ユーザーIDは必須です")
+	}
+
+	if !goalType.IsValid() {
+		return nil, errors.New("無効な目標タイプです")
+	}
+
+	if title == "" {
+		return nil, errors.New("目標タイトルは必須です")
+	}
+
+	if !targetAmount.IsPositive() {
+		return nil, errors.New("目標金額は正の値である必要があります")
+	}
+
+	if monthlyContribution.IsNegative() {
+		return nil, errors.New("月間拠出額は負の値にできません")
+	}
+
+	currentAmount, err := valueobjects.NewMoneyJPY(0)
+	if err != nil {
+		return nil, fmt.Errorf("初期金額の設定に失敗しました: %w", err)
+	}
+
+	return &Goal{
+		id:                  id,
+		userID:              userID,
+		goalType:            goalType,
+		title:               title,
+		targetAmount:        targetAmount,
+		targetDate:          targetDate,
+		currentAmount:       currentAmount,
+		monthlyContribution: monthlyContribution,
+		isActive:            true,
+		createdAt:           createdAt,
+		updatedAt:           updatedAt,
+	}, nil
+}
+
 // ID は目標IDを返す
 func (g *Goal) ID() GoalID {
 	return g.id
