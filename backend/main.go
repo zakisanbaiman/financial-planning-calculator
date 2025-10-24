@@ -2,11 +2,10 @@ package main
 
 import (
 	"log"
-	"net/http"
 
+	"github.com/financial-planning-calculator/backend/config"
+	"github.com/financial-planning-calculator/backend/infrastructure/web"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-	echoSwagger "github.com/swaggo/echo-swagger"
 
 	_ "github.com/financial-planning-calculator/backend/docs"
 )
@@ -17,37 +16,31 @@ import (
 // @host localhost:8080
 // @BasePath /api
 func main() {
+	// 設定読み込み
+	cfg := config.LoadServerConfig()
+
+	// Echo インスタンス作成
 	e := echo.New()
 
+	// サーバー設定
+	e.HideBanner = true
+	e.Debug = cfg.Debug
+
+	// カスタムエラーハンドラー
+	e.HTTPErrorHandler = web.CustomHTTPErrorHandler
+
 	// ミドルウェア設定
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-	e.Use(middleware.CORS())
+	web.SetupMiddleware(e, cfg)
 
-	// Swagger UI
-	e.GET("/swagger/*", echoSwagger.WrapHandler)
+	// ルーティング設定
+	web.SetupRoutes(e)
 
-	// ヘルスチェック
-	e.GET("/health", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]string{
-			"status":  "ok",
-			"message": "財務計画計算機 API サーバーが正常に動作しています",
-		})
-	})
+	// サーバー起動
+	log.Printf("サーバーを開始します: http://localhost:%s", cfg.Port)
+	log.Printf("Swagger UI: http://localhost:%s/swagger/index.html", cfg.Port)
+	log.Printf("API Base URL: http://localhost:%s/api", cfg.Port)
+	log.Printf("Debug モード: %v", cfg.Debug)
+	log.Printf("許可されたオリジン: %v", cfg.AllowedOrigins)
 
-	// API ルートグループ
-	api := e.Group("/api")
-
-	// 基本的なエンドポイント（後で実装）
-	api.GET("/", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]string{
-			"message": "財務計画計算機 API v1.0",
-			"docs":    "/swagger/index.html",
-		})
-	})
-
-	log.Println("サーバーを開始します: http://localhost:8080")
-	log.Println("Swagger UI: http://localhost:8080/swagger/index.html")
-
-	e.Logger.Fatal(e.Start(":8080"))
+	e.Logger.Fatal(e.Start(":" + cfg.Port))
 }
