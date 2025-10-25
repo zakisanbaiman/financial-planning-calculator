@@ -35,35 +35,33 @@ func TestAPIInfoHandler(t *testing.T) {
 	assert.Contains(t, rec.Body.String(), "財務計画計算機 API v1.0")
 }
 
-func TestPlaceholderHandlers(t *testing.T) {
+func TestSetupRoutes(t *testing.T) {
 	e := echo.New()
 
-	testCases := []struct {
-		name    string
-		handler echo.HandlerFunc
-		message string
-	}{
-		{"CreateFinancialData", CreateFinancialDataHandler, "財務データ作成機能は実装予定です"},
-		{"GetFinancialData", GetFinancialDataHandler, "財務データ取得機能は実装予定です"},
-		{"AssetProjection", AssetProjectionHandler, "資産推移計算機能は実装予定です"},
-		{"RetirementCalculation", RetirementCalculationHandler, "老後資金計算機能は実装予定です"},
-		{"EmergencyFund", EmergencyFundHandler, "緊急資金計算機能は実装予定です"},
-		{"CreateGoal", CreateGoalHandler, "目標作成機能は実装予定です"},
-		{"GetGoals", GetGoalsHandler, "目標取得機能は実装予定です"},
-		{"GeneratePDFReport", GeneratePDFReportHandler, "PDFレポート生成機能は実装予定です"},
+	// Create mock controllers (nil for now since we're just testing route setup)
+	controllers := &Controllers{
+		FinancialData: nil,
+		Calculations:  nil,
+		Goals:         nil,
+		Reports:       nil,
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodPost, "/", nil)
-			rec := httptest.NewRecorder()
-			c := e.NewContext(req, rec)
+	// This should not panic
+	assert.NotPanics(t, func() {
+		SetupRoutes(e, controllers)
+	})
 
-			err := tc.handler(c)
+	// Verify that routes are registered
+	routes := e.Routes()
+	assert.NotEmpty(t, routes)
 
-			assert.NoError(t, err)
-			assert.Equal(t, http.StatusNotImplemented, rec.Code)
-			assert.Contains(t, rec.Body.String(), tc.message)
-		})
+	// Check for some key routes
+	routePaths := make([]string, len(routes))
+	for i, route := range routes {
+		routePaths[i] = route.Path
 	}
+
+	assert.Contains(t, routePaths, "/health")
+	assert.Contains(t, routePaths, "/api/")
+	assert.Contains(t, routePaths, "/swagger/*")
 }
