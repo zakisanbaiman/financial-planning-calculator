@@ -60,7 +60,7 @@
     - OpenAPI仕様に基づくルーティング設定
     - _要件: 全API機能_
 
-  - [ ] 5.2 コントローラーとハンドラーの実装
+  - [x] 5.2 コントローラーとハンドラーの実装
     - 財務データ管理API（POST, GET, PUT, DELETE /api/financial-data）
     - 計算API（POST /api/calculations/*）の実装
     - 目標管理API（POST, GET, PUT, DELETE /api/goals）の実装
