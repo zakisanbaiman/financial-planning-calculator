@@ -62,17 +62,30 @@ type GoalProjectionRequest struct {
 func (c *CalculationsController) CalculateAssetProjection(ctx echo.Context) error {
 	var req AssetProjectionRequest
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "リクエストの解析に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "リクエストの解析に失敗しました", err.Error()))
 	}
 
 	if err := ctx.Validate(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "入力値が無効です",
-			Details: err.Error(),
-		})
+		return err // Validator already returns proper error response
+	}
+
+	// Business logic validation for asset projection
+	if err := ValidateBusinessLogic(ctx,
+		func() *BusinessLogicError {
+			// 要件2.4: 年数の妥当性チェック
+			if req.Years < 1 || req.Years > 50 {
+				return CreateBusinessLogicError(
+					"INVALID_PROJECTION_YEARS",
+					"予測年数は1年から50年の範囲で入力してください",
+					"現実的な予測期間を入力してください",
+					req.Years,
+					"1-50年",
+				)
+			}
+			return nil
+		},
+	); err != nil {
+		return err
 	}
 
 	input := usecases.AssetProjectionInput{
@@ -82,10 +95,7 @@ func (c *CalculationsController) CalculateAssetProjection(ctx echo.Context) erro
 
 	output, err := c.useCase.CalculateAssetProjection(ctx.Request().Context(), input)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
-			Error:   "資産推移の計算に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
 	return ctx.JSON(http.StatusOK, output)
@@ -105,17 +115,11 @@ func (c *CalculationsController) CalculateAssetProjection(ctx echo.Context) erro
 func (c *CalculationsController) CalculateRetirementProjection(ctx echo.Context) error {
 	var req RetirementCalculationRequest
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "リクエストの解析に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "リクエストの解析に失敗しました", err.Error()))
 	}
 
 	if err := ctx.Validate(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "入力値が無効です",
-			Details: err.Error(),
-		})
+		return err // Validator already returns proper error response
 	}
 
 	input := usecases.RetirementProjectionInput{
@@ -124,10 +128,7 @@ func (c *CalculationsController) CalculateRetirementProjection(ctx echo.Context)
 
 	output, err := c.useCase.CalculateRetirementProjection(ctx.Request().Context(), input)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
-			Error:   "退職資金計算に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
 	return ctx.JSON(http.StatusOK, output)
@@ -147,17 +148,11 @@ func (c *CalculationsController) CalculateRetirementProjection(ctx echo.Context)
 func (c *CalculationsController) CalculateEmergencyFundProjection(ctx echo.Context) error {
 	var req EmergencyFundCalculationRequest
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "リクエストの解析に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "リクエストの解析に失敗しました", err.Error()))
 	}
 
 	if err := ctx.Validate(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "入力値が無効です",
-			Details: err.Error(),
-		})
+		return err // Validator already returns proper error response
 	}
 
 	input := usecases.EmergencyFundProjectionInput{
@@ -166,10 +161,7 @@ func (c *CalculationsController) CalculateEmergencyFundProjection(ctx echo.Conte
 
 	output, err := c.useCase.CalculateEmergencyFundProjection(ctx.Request().Context(), input)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
-			Error:   "緊急資金計算に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
 	return ctx.JSON(http.StatusOK, output)
@@ -189,17 +181,29 @@ func (c *CalculationsController) CalculateEmergencyFundProjection(ctx echo.Conte
 func (c *CalculationsController) CalculateComprehensiveProjection(ctx echo.Context) error {
 	var req ComprehensiveProjectionRequest
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "リクエストの解析に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "リクエストの解析に失敗しました", err.Error()))
 	}
 
 	if err := ctx.Validate(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "入力値が無効です",
-			Details: err.Error(),
-		})
+		return err // Validator already returns proper error response
+	}
+
+	// Business logic validation
+	if err := ValidateBusinessLogic(ctx,
+		func() *BusinessLogicError {
+			if req.Years < 1 || req.Years > 50 {
+				return CreateBusinessLogicError(
+					"INVALID_PROJECTION_YEARS",
+					"予測年数は1年から50年の範囲で入力してください",
+					"現実的な予測期間を入力してください",
+					req.Years,
+					"1-50年",
+				)
+			}
+			return nil
+		},
+	); err != nil {
+		return err
 	}
 
 	input := usecases.ComprehensiveProjectionInput{
@@ -209,10 +213,7 @@ func (c *CalculationsController) CalculateComprehensiveProjection(ctx echo.Conte
 
 	output, err := c.useCase.CalculateComprehensiveProjection(ctx.Request().Context(), input)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
-			Error:   "包括的財務予測の計算に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
 	return ctx.JSON(http.StatusOK, output)
@@ -232,17 +233,11 @@ func (c *CalculationsController) CalculateComprehensiveProjection(ctx echo.Conte
 func (c *CalculationsController) CalculateGoalProjection(ctx echo.Context) error {
 	var req GoalProjectionRequest
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "リクエストの解析に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "リクエストの解析に失敗しました", err.Error()))
 	}
 
 	if err := ctx.Validate(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "入力値が無効です",
-			Details: err.Error(),
-		})
+		return err // Validator already returns proper error response
 	}
 
 	input := usecases.GoalProjectionInput{
@@ -252,10 +247,7 @@ func (c *CalculationsController) CalculateGoalProjection(ctx echo.Context) error
 
 	output, err := c.useCase.CalculateGoalProjection(ctx.Request().Context(), input)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
-			Error:   "目標達成予測の計算に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
 	return ctx.JSON(http.StatusOK, output)

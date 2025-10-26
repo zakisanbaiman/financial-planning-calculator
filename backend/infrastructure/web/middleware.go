@@ -77,16 +77,30 @@ func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) {
 	}
 }
 
-// CustomHTTPErrorHandler provides consistent error responses
+// CustomHTTPErrorHandler provides consistent error responses using our unified error format
 func CustomHTTPErrorHandler(err error, c echo.Context) {
 	var (
 		code = http.StatusInternalServerError
-		msg  interface{}
+		msg  any
 	)
 
 	if he, ok := err.(*echo.HTTPError); ok {
 		code = he.Code
 		msg = he.Message
+
+		// Check if it's our custom validation error
+		if validationErr, ok := he.Message.(ValidationErrorResponse); ok {
+			// ログ出力
+			c.Logger().Warnf("Validation error: %+v", validationErr)
+
+			if !c.Response().Committed {
+				err = c.JSON(code, validationErr)
+				if err != nil {
+					c.Logger().Error(err)
+				}
+			}
+			return
+		}
 	} else {
 		msg = err.Error()
 	}
@@ -94,20 +108,58 @@ func CustomHTTPErrorHandler(err error, c echo.Context) {
 	// ログ出力
 	c.Logger().Error(err)
 
-	// エラーレスポンス
+	// 統一されたエラーレスポンス形式を使用
 	if !c.Response().Committed {
 		if c.Request().Method == http.MethodHead {
 			err = c.NoContent(code)
 		} else {
-			err = c.JSON(code, map[string]interface{}{
-				"error":      msg,
-				"status":     code,
-				"timestamp":  time.Now().Format(time.RFC3339),
+			errorResponse := map[string]any{
+				"error":      getErrorMessageFromStatus(code),
+				"details":    msg,
+				"timestamp":  time.Now().UTC().Format(time.RFC3339),
 				"request_id": c.Response().Header().Get(echo.HeaderXRequestID),
-			})
+				"code":       getErrorCodeFromStatus(code),
+			}
+			err = c.JSON(code, errorResponse)
 		}
 		if err != nil {
 			c.Logger().Error(err)
 		}
+	}
+}
+
+// getErrorCodeFromStatus returns appropriate error code based on HTTP status
+func getErrorCodeFromStatus(status int) string {
+	switch status {
+	case http.StatusBadRequest:
+		return "BAD_REQUEST"
+	case http.StatusUnauthorized:
+		return "UNAUTHORIZED"
+	case http.StatusForbidden:
+		return "FORBIDDEN"
+	case http.StatusNotFound:
+		return "NOT_FOUND"
+	case http.StatusInternalServerError:
+		return "INTERNAL_SERVER_ERROR"
+	default:
+		return "UNKNOWN_ERROR"
+	}
+}
+
+// getErrorMessageFromStatus returns appropriate error message based on HTTP status
+func getErrorMessageFromStatus(status int) string {
+	switch status {
+	case http.StatusBadRequest:
+		return "リクエストが無効です"
+	case http.StatusUnauthorized:
+		return "認証が必要です"
+	case http.StatusForbidden:
+		return "アクセスが拒否されました"
+	case http.StatusNotFound:
+		return "リソースが見つかりません"
+	case http.StatusInternalServerError:
+		return "内部サーバーエラーが発生しました"
+	default:
+		return "エラーが発生しました"
 	}
 }

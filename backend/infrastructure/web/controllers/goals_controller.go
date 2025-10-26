@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/financial-planning-calculator/backend/application/usecases"
@@ -69,17 +70,69 @@ type GetGoalsQueryParams struct {
 func (c *GoalsController) CreateGoal(ctx echo.Context) error {
 	var req CreateGoalRequest
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "リクエストの解析に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "リクエストの解析に失敗しました", err.Error()))
 	}
 
 	if err := ctx.Validate(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "入力値が無効です",
-			Details: err.Error(),
-		})
+		return err // Validator already returns proper error response
+	}
+
+	// Business logic validation for goals
+	if err := ValidateBusinessLogic(ctx,
+		func() *BusinessLogicError {
+			// 要件6.4: 目標金額の妥当性チェック
+			if req.TargetAmount <= 0 {
+				return CreateBusinessLogicError(
+					"INVALID_TARGET_AMOUNT",
+					"目標金額は0より大きい値を入力してください",
+					"達成したい具体的な金額を入力してください",
+					req.TargetAmount,
+					"正の数値",
+				)
+			}
+			return nil
+		},
+		func() *BusinessLogicError {
+			// 現在の金額の妥当性チェック
+			if req.CurrentAmount < 0 {
+				return CreateBusinessLogicError(
+					"INVALID_CURRENT_AMOUNT",
+					"現在の金額は0以上の値を入力してください",
+					"現在の達成状況を正確に入力してください",
+					req.CurrentAmount,
+					"0以上の数値",
+				)
+			}
+			return nil
+		},
+		func() *BusinessLogicError {
+			// 月間積立額の妥当性チェック
+			if req.MonthlyContribution < 0 {
+				return CreateBusinessLogicError(
+					"INVALID_MONTHLY_CONTRIBUTION",
+					"月間積立額は0以上の値を入力してください",
+					"毎月積み立て可能な金額を入力してください",
+					req.MonthlyContribution,
+					"0以上の数値",
+				)
+			}
+			return nil
+		},
+		func() *BusinessLogicError {
+			// 目標達成の実現可能性チェック
+			if req.CurrentAmount > req.TargetAmount {
+				return CreateBusinessLogicError(
+					"GOAL_ALREADY_ACHIEVED",
+					"現在の金額が目標金額を上回っています",
+					"目標金額を見直すか、新しい目標を設定してください",
+					req.CurrentAmount,
+					fmt.Sprintf("%.0f以下", req.TargetAmount),
+				)
+			}
+			return nil
+		},
+	); err != nil {
+		return err
 	}
 
 	input := usecases.CreateGoalInput{
@@ -95,10 +148,7 @@ func (c *GoalsController) CreateGoal(ctx echo.Context) error {
 
 	output, err := c.useCase.CreateGoal(ctx.Request().Context(), input)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
-			Error:   "目標の作成に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
 	return ctx.JSON(http.StatusCreated, output)
@@ -119,17 +169,11 @@ func (c *GoalsController) CreateGoal(ctx echo.Context) error {
 func (c *GoalsController) GetGoals(ctx echo.Context) error {
 	var params GetGoalsQueryParams
 	if err := ctx.Bind(&params); err != nil {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "クエリパラメータの解析に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "クエリパラメータの解析に失敗しました", err.Error()))
 	}
 
 	if err := ctx.Validate(&params); err != nil {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "入力値が無効です",
-			Details: err.Error(),
-		})
+		return err // Validator already returns proper error response
 	}
 
 	input := usecases.GetGoalsByUserInput{
@@ -143,18 +187,15 @@ func (c *GoalsController) GetGoals(ctx echo.Context) error {
 		if goalType.IsValid() {
 			input.GoalType = &goalType
 		} else {
-			return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-				Error: "無効な目標タイプです",
-			})
+			return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "無効な目標タイプです", map[string]string{
+				"valid_types": "savings, retirement, emergency, custom",
+			}))
 		}
 	}
 
 	output, err := c.useCase.GetGoalsByUser(ctx.Request().Context(), input)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
-			Error:   "目標一覧の取得に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
 	return ctx.JSON(http.StatusOK, output)
