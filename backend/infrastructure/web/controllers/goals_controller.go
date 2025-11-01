@@ -216,16 +216,12 @@ func (c *GoalsController) GetGoals(ctx echo.Context) error {
 func (c *GoalsController) GetGoal(ctx echo.Context) error {
 	goalID := ctx.Param("id")
 	if goalID == "" {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error: "目標IDは必須です",
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "目標IDは必須です", nil))
 	}
 
 	userID := ctx.QueryParam("user_id")
 	if userID == "" {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error: "ユーザーIDは必須です",
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "ユーザーIDは必須です", nil))
 	}
 
 	input := usecases.GetGoalInput{
@@ -235,10 +231,7 @@ func (c *GoalsController) GetGoal(ctx echo.Context) error {
 
 	output, err := c.useCase.GetGoal(ctx.Request().Context(), input)
 	if err != nil {
-		return ctx.JSON(http.StatusNotFound, ErrorResponse{
-			Error:   "目標が見つかりません",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusNotFound, NewNotFoundErrorResponse(ctx, "目標"))
 	}
 
 	return ctx.JSON(http.StatusOK, output)
@@ -261,31 +254,55 @@ func (c *GoalsController) GetGoal(ctx echo.Context) error {
 func (c *GoalsController) UpdateGoal(ctx echo.Context) error {
 	goalID := ctx.Param("id")
 	if goalID == "" {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error: "目標IDは必須です",
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "目標IDは必須です", nil))
 	}
 
 	userID := ctx.QueryParam("user_id")
 	if userID == "" {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error: "ユーザーIDは必須です",
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "ユーザーIDは必須です", nil))
 	}
 
 	var req UpdateGoalRequest
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "リクエストの解析に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "リクエストの解析に失敗しました", err.Error()))
 	}
 
 	if err := ctx.Validate(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "入力値が無効です",
-			Details: err.Error(),
-		})
+		return err // Validator already returns proper error response
+	}
+
+	// Business logic validation for goal updates
+	if err := ValidateBusinessLogic(ctx,
+		func() *BusinessLogicError {
+			// 目標金額の妥当性チェック
+			if req.TargetAmount != nil && *req.TargetAmount <= 0 {
+				return CreateBusinessLogicErrorWithField(
+					"INVALID_TARGET_AMOUNT",
+					"TargetAmount",
+					"目標金額は0より大きい値を入力してください",
+					"達成したい具体的な金額を入力してください",
+					*req.TargetAmount,
+					"正の数値",
+				)
+			}
+			return nil
+		},
+		func() *BusinessLogicError {
+			// 月間積立額の妥当性チェック
+			if req.MonthlyContribution != nil && *req.MonthlyContribution < 0 {
+				return CreateBusinessLogicErrorWithField(
+					"INVALID_MONTHLY_CONTRIBUTION",
+					"MonthlyContribution",
+					"月間積立額は0以上の値を入力してください",
+					"毎月積み立て可能な金額を入力してください",
+					*req.MonthlyContribution,
+					"0以上の数値",
+				)
+			}
+			return nil
+		},
+	); err != nil {
+		return err
 	}
 
 	input := usecases.UpdateGoalInput{
@@ -301,10 +318,7 @@ func (c *GoalsController) UpdateGoal(ctx echo.Context) error {
 
 	output, err := c.useCase.UpdateGoal(ctx.Request().Context(), input)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
-			Error:   "目標の更新に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
 	return ctx.JSON(http.StatusOK, output)
@@ -327,31 +341,41 @@ func (c *GoalsController) UpdateGoal(ctx echo.Context) error {
 func (c *GoalsController) UpdateGoalProgress(ctx echo.Context) error {
 	goalID := ctx.Param("id")
 	if goalID == "" {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error: "目標IDは必須です",
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "目標IDは必須です", nil))
 	}
 
 	userID := ctx.QueryParam("user_id")
 	if userID == "" {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error: "ユーザーIDは必須です",
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "ユーザーIDは必須です", nil))
 	}
 
 	var req UpdateGoalProgressRequest
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "リクエストの解析に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "リクエストの解析に失敗しました", err.Error()))
 	}
 
 	if err := ctx.Validate(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "入力値が無効です",
-			Details: err.Error(),
-		})
+		return err // Validator already returns proper error response
+	}
+
+	// Business logic validation for progress updates
+	if err := ValidateBusinessLogic(ctx,
+		func() *BusinessLogicError {
+			// 現在の金額の妥当性チェック
+			if req.CurrentAmount < 0 {
+				return CreateBusinessLogicErrorWithField(
+					"INVALID_CURRENT_AMOUNT",
+					"CurrentAmount",
+					"現在の金額は0以上の値を入力してください",
+					"現在の達成状況を正確に入力してください",
+					req.CurrentAmount,
+					"0以上の数値",
+				)
+			}
+			return nil
+		},
+	); err != nil {
+		return err
 	}
 
 	input := usecases.UpdateGoalProgressInput{
@@ -363,10 +387,7 @@ func (c *GoalsController) UpdateGoalProgress(ctx echo.Context) error {
 
 	output, err := c.useCase.UpdateGoalProgress(ctx.Request().Context(), input)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
-			Error:   "目標進捗の更新に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
 	return ctx.JSON(http.StatusOK, output)
@@ -386,16 +407,12 @@ func (c *GoalsController) UpdateGoalProgress(ctx echo.Context) error {
 func (c *GoalsController) DeleteGoal(ctx echo.Context) error {
 	goalID := ctx.Param("id")
 	if goalID == "" {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error: "目標IDは必須です",
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "目標IDは必須です", nil))
 	}
 
 	userID := ctx.QueryParam("user_id")
 	if userID == "" {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error: "ユーザーIDは必須です",
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "ユーザーIDは必須です", nil))
 	}
 
 	input := usecases.DeleteGoalInput{
@@ -405,10 +422,7 @@ func (c *GoalsController) DeleteGoal(ctx echo.Context) error {
 
 	err := c.useCase.DeleteGoal(ctx.Request().Context(), input)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
-			Error:   "目標の削除に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
 	return ctx.NoContent(http.StatusNoContent)
@@ -429,16 +443,12 @@ func (c *GoalsController) DeleteGoal(ctx echo.Context) error {
 func (c *GoalsController) GetGoalRecommendations(ctx echo.Context) error {
 	goalID := ctx.Param("id")
 	if goalID == "" {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error: "目標IDは必須です",
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "目標IDは必須です", nil))
 	}
 
 	userID := ctx.QueryParam("user_id")
 	if userID == "" {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error: "ユーザーIDは必須です",
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "ユーザーIDは必須です", nil))
 	}
 
 	input := usecases.GetGoalRecommendationsInput{
@@ -448,10 +458,7 @@ func (c *GoalsController) GetGoalRecommendations(ctx echo.Context) error {
 
 	output, err := c.useCase.GetGoalRecommendations(ctx.Request().Context(), input)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
-			Error:   "目標推奨事項の取得に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
 	return ctx.JSON(http.StatusOK, output)
@@ -472,16 +479,12 @@ func (c *GoalsController) GetGoalRecommendations(ctx echo.Context) error {
 func (c *GoalsController) AnalyzeGoalFeasibility(ctx echo.Context) error {
 	goalID := ctx.Param("id")
 	if goalID == "" {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error: "目標IDは必須です",
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "目標IDは必須です", nil))
 	}
 
 	userID := ctx.QueryParam("user_id")
 	if userID == "" {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error: "ユーザーIDは必須です",
-		})
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "ユーザーIDは必須です", nil))
 	}
 
 	input := usecases.AnalyzeGoalFeasibilityInput{
@@ -491,10 +494,7 @@ func (c *GoalsController) AnalyzeGoalFeasibility(ctx echo.Context) error {
 
 	output, err := c.useCase.AnalyzeGoalFeasibility(ctx.Request().Context(), input)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
-			Error:   "目標実現可能性の分析に失敗しました",
-			Details: err.Error(),
-		})
+		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
 	return ctx.JSON(http.StatusOK, output)
