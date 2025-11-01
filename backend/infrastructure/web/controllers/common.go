@@ -19,22 +19,32 @@ type ErrorResponse struct {
 type ErrorCode string
 
 const (
-	ErrorCodeValidation     ErrorCode = "VALIDATION_ERROR"
-	ErrorCodeNotFound       ErrorCode = "NOT_FOUND"
-	ErrorCodeInternalServer ErrorCode = "INTERNAL_SERVER_ERROR"
-	ErrorCodeBadRequest     ErrorCode = "BAD_REQUEST"
-	ErrorCodeBusinessLogic  ErrorCode = "BUSINESS_LOGIC_ERROR"
-	ErrorCodeUnauthorized   ErrorCode = "UNAUTHORIZED"
-	ErrorCodeForbidden      ErrorCode = "FORBIDDEN"
+	ErrorCodeValidation         ErrorCode = "VALIDATION_ERROR"
+	ErrorCodeNotFound           ErrorCode = "NOT_FOUND"
+	ErrorCodeInternalServer     ErrorCode = "INTERNAL_SERVER_ERROR"
+	ErrorCodeBadRequest         ErrorCode = "BAD_REQUEST"
+	ErrorCodeBusinessLogic      ErrorCode = "BUSINESS_LOGIC_ERROR"
+	ErrorCodeUnauthorized       ErrorCode = "UNAUTHORIZED"
+	ErrorCodeForbidden          ErrorCode = "FORBIDDEN"
+	ErrorCodeConflict           ErrorCode = "CONFLICT"
+	ErrorCodeTooManyRequests    ErrorCode = "TOO_MANY_REQUESTS"
+	ErrorCodeServiceUnavailable ErrorCode = "SERVICE_UNAVAILABLE"
+	ErrorCodeTimeout            ErrorCode = "TIMEOUT"
+	ErrorCodeDataIntegrity      ErrorCode = "DATA_INTEGRITY_ERROR"
+	ErrorCodeCalculation        ErrorCode = "CALCULATION_ERROR"
+	ErrorCodeInsufficientData   ErrorCode = "INSUFFICIENT_DATA"
 )
 
 // BusinessLogicError represents business logic validation errors
 type BusinessLogicError struct {
 	Type          string      `json:"type"`
+	Field         string      `json:"field,omitempty"`
 	Message       string      `json:"message"`
 	Suggestion    string      `json:"suggestion,omitempty"`
 	CurrentValue  interface{} `json:"current_value,omitempty"`
 	ExpectedValue interface{} `json:"expected_value,omitempty"`
+	Severity      string      `json:"severity,omitempty"` // "error", "warning", "info"
+	HelpURL       string      `json:"help_url,omitempty"`
 }
 
 // NewErrorResponse creates a new error response with timestamp and request ID
@@ -73,6 +83,29 @@ func NewInternalServerErrorResponse(ctx echo.Context, details string) ErrorRespo
 	return NewErrorResponse(ctx, ErrorCodeInternalServer, "内部サーバーエラーが発生しました", details)
 }
 
+// NewConflictErrorResponse creates a conflict error response
+func NewConflictErrorResponse(ctx echo.Context, resource string) ErrorResponse {
+	return NewErrorResponse(ctx, ErrorCodeConflict, resource+"が既に存在します", nil)
+}
+
+// NewCalculationErrorResponse creates a calculation error response
+func NewCalculationErrorResponse(ctx echo.Context, details string) ErrorResponse {
+	return NewErrorResponse(ctx, ErrorCodeCalculation, "計算処理でエラーが発生しました", details)
+}
+
+// NewInsufficientDataErrorResponse creates an insufficient data error response
+func NewInsufficientDataErrorResponse(ctx echo.Context, missingData string) ErrorResponse {
+	return NewErrorResponse(ctx, ErrorCodeInsufficientData, "計算に必要なデータが不足しています", map[string]string{
+		"missing_data": missingData,
+		"suggestion":   "必要なデータを入力してから再度お試しください",
+	})
+}
+
+// NewDataIntegrityErrorResponse creates a data integrity error response
+func NewDataIntegrityErrorResponse(ctx echo.Context, details string) ErrorResponse {
+	return NewErrorResponse(ctx, ErrorCodeDataIntegrity, "データの整合性エラーが発生しました", details)
+}
+
 // ValidateBusinessLogic validates business logic and returns errors if any
 func ValidateBusinessLogic(ctx echo.Context, validations ...func() *BusinessLogicError) error {
 	var errors []BusinessLogicError
@@ -99,5 +132,43 @@ func CreateBusinessLogicError(errorType, message, suggestion string, currentValu
 		Suggestion:    suggestion,
 		CurrentValue:  currentValue,
 		ExpectedValue: expectedValue,
+		Severity:      "error",
+	}
+}
+
+// CreateBusinessLogicErrorWithField creates a business logic error with field information
+func CreateBusinessLogicErrorWithField(errorType, field, message, suggestion string, currentValue, expectedValue interface{}) *BusinessLogicError {
+	return &BusinessLogicError{
+		Type:          errorType,
+		Field:         field,
+		Message:       message,
+		Suggestion:    suggestion,
+		CurrentValue:  currentValue,
+		ExpectedValue: expectedValue,
+		Severity:      "error",
+	}
+}
+
+// CreateBusinessLogicWarning creates a business logic warning
+func CreateBusinessLogicWarning(errorType, message, suggestion string, currentValue, expectedValue interface{}) *BusinessLogicError {
+	return &BusinessLogicError{
+		Type:          errorType,
+		Message:       message,
+		Suggestion:    suggestion,
+		CurrentValue:  currentValue,
+		ExpectedValue: expectedValue,
+		Severity:      "warning",
+	}
+}
+
+// CreateBusinessLogicInfo creates a business logic info message
+func CreateBusinessLogicInfo(errorType, message, suggestion string, currentValue, expectedValue interface{}) *BusinessLogicError {
+	return &BusinessLogicError{
+		Type:          errorType,
+		Message:       message,
+		Suggestion:    suggestion,
+		CurrentValue:  currentValue,
+		ExpectedValue: expectedValue,
+		Severity:      "info",
 	}
 }

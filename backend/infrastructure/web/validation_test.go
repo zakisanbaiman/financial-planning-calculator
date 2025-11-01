@@ -72,6 +72,27 @@ func TestCustomValidator(t *testing.T) {
 			expectedError:  true,
 			expectedFields: []string{"MonthlyIncome", "InvestmentReturn", "Email", "Category"},
 		},
+		{
+			name:           "Missing required fields",
+			requestBody:    `{"investment_return":5.0}`,
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  true,
+			expectedFields: []string{"MonthlyIncome", "Email", "Category"},
+		},
+		{
+			name:           "Zero monthly income",
+			requestBody:    `{"monthly_income":0,"investment_return":5.0,"email":"test@example.com","category":"food"}`,
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  true,
+			expectedFields: []string{"MonthlyIncome"},
+		},
+		{
+			name:           "Negative investment return",
+			requestBody:    `{"monthly_income":400000,"investment_return":-5.0,"email":"test@example.com","category":"food"}`,
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  true,
+			expectedFields: []string{"InvestmentReturn"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -136,6 +157,11 @@ func TestGetFieldDisplayName(t *testing.T) {
 		{"InvestmentReturn", "投資利回り"},
 		{"InflationRate", "インフレ率"},
 		{"RetirementAge", "退職年齢"},
+		{"TargetAmount", "目標金額"},
+		{"CurrentAmount", "現在の金額"},
+		{"MonthlyContribution", "月間積立額"},
+		{"EmergencyFundTargetMonths", "緊急資金目標月数"},
+		{"GoalType", "目標タイプ"},
 		{"UnknownField", "unknownfield"},
 	}
 
@@ -143,6 +169,83 @@ func TestGetFieldDisplayName(t *testing.T) {
 		t.Run(tt.field, func(t *testing.T) {
 			result := getFieldDisplayName(tt.field)
 			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+// TestCustomErrorMessages tests the custom error message generation
+func TestCustomErrorMessages(t *testing.T) {
+	validator := NewCustomValidator()
+
+	// Test struct with various validation rules
+	type TestStruct struct {
+		RequiredField string  `validate:"required"`
+		MinField      string  `validate:"min=5"`
+		MaxField      string  `validate:"max=10"`
+		NumericField  float64 `validate:"gt=0,lte=100"`
+		EmailField    string  `validate:"email"`
+		OneOfField    string  `validate:"oneof=option1 option2 option3"`
+	}
+
+	tests := []struct {
+		name          string
+		input         TestStruct
+		expectedError bool
+		expectedTags  []string
+	}{
+		{
+			name: "Valid input",
+			input: TestStruct{
+				RequiredField: "test",
+				MinField:      "12345",
+				MaxField:      "short",
+				NumericField:  50.0,
+				EmailField:    "test@example.com",
+				OneOfField:    "option1",
+			},
+			expectedError: false,
+		},
+		{
+			name: "Multiple validation errors",
+			input: TestStruct{
+				RequiredField: "",
+				MinField:      "123",
+				MaxField:      "this is too long",
+				NumericField:  -10.0,
+				EmailField:    "invalid-email",
+				OneOfField:    "invalid-option",
+			},
+			expectedError: true,
+			expectedTags:  []string{"required", "min", "max", "gt", "email", "oneof"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validator.Validate(tt.input)
+
+			if tt.expectedError {
+				assert.Error(t, err)
+
+				if httpErr, ok := err.(*echo.HTTPError); ok {
+					if validationErr, ok := httpErr.Message.(ValidationErrorResponse); ok {
+						assert.Equal(t, "入力値が無効です", validationErr.Error)
+						assert.NotEmpty(t, validationErr.Details)
+
+						// Check that all expected validation tags are present
+						foundTags := make(map[string]bool)
+						for _, detail := range validationErr.Details {
+							foundTags[detail.Tag] = true
+						}
+
+						for _, expectedTag := range tt.expectedTags {
+							assert.True(t, foundTags[expectedTag], "Expected validation tag %s not found", expectedTag)
+						}
+					}
+				}
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }

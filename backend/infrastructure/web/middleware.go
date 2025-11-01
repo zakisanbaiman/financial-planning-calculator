@@ -139,8 +139,18 @@ func getErrorCodeFromStatus(status int) string {
 		return "FORBIDDEN"
 	case http.StatusNotFound:
 		return "NOT_FOUND"
+	case http.StatusConflict:
+		return "CONFLICT"
+	case http.StatusTooManyRequests:
+		return "TOO_MANY_REQUESTS"
 	case http.StatusInternalServerError:
 		return "INTERNAL_SERVER_ERROR"
+	case http.StatusServiceUnavailable:
+		return "SERVICE_UNAVAILABLE"
+	case http.StatusRequestTimeout:
+		return "TIMEOUT"
+	case http.StatusUnprocessableEntity:
+		return "VALIDATION_ERROR"
 	default:
 		return "UNKNOWN_ERROR"
 	}
@@ -157,8 +167,18 @@ func getErrorMessageFromStatus(status int) string {
 		return "アクセスが拒否されました"
 	case http.StatusNotFound:
 		return "リソースが見つかりません"
+	case http.StatusConflict:
+		return "リソースが競合しています"
+	case http.StatusTooManyRequests:
+		return "リクエスト数が上限を超えています"
 	case http.StatusInternalServerError:
 		return "内部サーバーエラーが発生しました"
+	case http.StatusServiceUnavailable:
+		return "サービスが利用できません"
+	case http.StatusRequestTimeout:
+		return "リクエストがタイムアウトしました"
+	case http.StatusUnprocessableEntity:
+		return "入力データを処理できません"
 	default:
 		return "エラーが発生しました"
 	}
