@@ -1,0 +1,179 @@
+'use client';
+
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { financialDataAPI } from '@/lib/api-client';
+import type {
+  FinancialData,
+  FinancialProfile,
+  RetirementData,
+  EmergencyFund,
+} from '@/types/api';
+
+// コンテキスト型定義
+interface FinancialDataContextType {
+  financialData: FinancialData | null;
+  loading: boolean;
+  error: string | null;
+  fetchFinancialData: (userId: string) => Promise<void>;
+  createFinancialData: (data: FinancialData) => Promise<void>;
+  updateProfile: (userId: string, profile: FinancialProfile) => Promise<void>;
+  updateRetirement: (userId: string, retirement: RetirementData) => Promise<void>;
+  updateEmergencyFund: (userId: string, emergencyFund: EmergencyFund) => Promise<void>;
+  deleteFinancialData: (userId: string) => Promise<void>;
+  clearError: () => void;
+}
+
+// コンテキスト作成
+const FinancialDataContext = createContext<FinancialDataContextType | undefined>(
+  undefined
+);
+
+// プロバイダープロパティ
+interface FinancialDataProviderProps {
+  children: ReactNode;
+}
+
+// プロバイダーコンポーネント
+export function FinancialDataProvider({ children }: FinancialDataProviderProps) {
+  const [financialData, setFinancialData] = useState<FinancialData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // エラークリア
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  // 財務データ取得
+  const fetchFinancialData = useCallback(async (userId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await financialDataAPI.get(userId);
+      setFinancialData(data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '財務データの取得に失敗しました';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // 財務データ作成
+  const createFinancialData = useCallback(async (data: FinancialData) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const created = await financialDataAPI.create(data);
+      setFinancialData(created);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '財務データの作成に失敗しました';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // 財務プロファイル更新
+  const updateProfile = useCallback(
+    async (userId: string, profile: FinancialProfile) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const updated = await financialDataAPI.updateProfile(userId, profile);
+        setFinancialData(updated);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'プロファイルの更新に失敗しました';
+        setError(errorMessage);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  // 退職データ更新
+  const updateRetirement = useCallback(
+    async (userId: string, retirement: RetirementData) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const updated = await financialDataAPI.updateRetirement(userId, retirement);
+        setFinancialData(updated);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : '退職データの更新に失敗しました';
+        setError(errorMessage);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  // 緊急資金更新
+  const updateEmergencyFund = useCallback(
+    async (userId: string, emergencyFund: EmergencyFund) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const updated = await financialDataAPI.updateEmergencyFund(userId, emergencyFund);
+        setFinancialData(updated);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : '緊急資金の更新に失敗しました';
+        setError(errorMessage);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  // 財務データ削除
+  const deleteFinancialData = useCallback(async (userId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await financialDataAPI.delete(userId);
+      setFinancialData(null);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '財務データの削除に失敗しました';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const value: FinancialDataContextType = {
+    financialData,
+    loading,
+    error,
+    fetchFinancialData,
+    createFinancialData,
+    updateProfile,
+    updateRetirement,
+    updateEmergencyFund,
+    deleteFinancialData,
+    clearError,
+  };
+
+  return (
+    <FinancialDataContext.Provider value={value}>
+      {children}
+    </FinancialDataContext.Provider>
+  );
+}
+
+// カスタムフック
+export function useFinancialData() {
+  const context = useContext(FinancialDataContext);
+  if (context === undefined) {
+    throw new Error('useFinancialData must be used within a FinancialDataProvider');
+  }
+  return context;
+}
