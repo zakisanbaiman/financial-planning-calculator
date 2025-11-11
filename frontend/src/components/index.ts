@@ -12,3 +12,10 @@ export { default as LoadingSpinner } from './LoadingSpinner';
 export type { LoadingSpinnerProps, SpinnerSize, SpinnerColor } from './LoadingSpinner';
 
 export { default as Navigation } from './Navigation';
+
+// Form Components
+export { default as FinancialInputForm } from './FinancialInputForm';
+export type { FinancialInputFormProps } from './FinancialInputForm';
+
+export { default as InvestmentSettingsForm } from './InvestmentSettingsForm';
+export type { InvestmentSettingsFormProps, InvestmentSettings } from './InvestmentSettingsForm';
