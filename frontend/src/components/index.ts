@@ -19,3 +19,9 @@ export type { FinancialInputFormProps } from './FinancialInputForm';
 
 export { default as InvestmentSettingsForm } from './InvestmentSettingsForm';
 export type { InvestmentSettingsFormProps, InvestmentSettings } from './InvestmentSettingsForm';
+
+// Calculation Components
+export { default as AssetProjectionChart } from './AssetProjectionChart';
+export { default as AssetProjectionCalculator } from './AssetProjectionCalculator';
+export { default as RetirementCalculator } from './RetirementCalculator';
+export { default as EmergencyFundCalculator } from './EmergencyFundCalculator';

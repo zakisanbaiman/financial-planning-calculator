@@ -1,4 +1,72 @@
+'use client';
+
+import { useState } from 'react';
+import {
+  AssetProjectionCalculator,
+  RetirementCalculator,
+  EmergencyFundCalculator,
+} from '@/components';
+
+type CalculatorView = 'menu' | 'asset-projection' | 'retirement' | 'emergency';
+
 export default function CalculationsPage() {
+  const [activeView, setActiveView] = useState<CalculatorView>('menu');
+  const userId = 'user-001'; // TODO: 実際のユーザーIDを取得
+
+  if (activeView === 'asset-projection') {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <button
+            onClick={() => setActiveView('menu')}
+            className="text-blue-600 hover:text-blue-700 flex items-center gap-2 mb-4"
+          >
+            ← メニューに戻る
+          </button>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">資産推移シミュレーション</h1>
+          <p className="text-gray-600">現在の貯蓄ペースで将来どれだけ資産が増えるかを計算します</p>
+        </div>
+        <AssetProjectionCalculator userId={userId} />
+      </div>
+    );
+  }
+
+  if (activeView === 'retirement') {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <button
+            onClick={() => setActiveView('menu')}
+            className="text-blue-600 hover:text-blue-700 flex items-center gap-2 mb-4"
+          >
+            ← メニューに戻る
+          </button>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">老後資金計算</h1>
+          <p className="text-gray-600">退職後に必要な資金と年金額を考慮した計算を行います</p>
+        </div>
+        <RetirementCalculator userId={userId} />
+      </div>
+    );
+  }
+
+  if (activeView === 'emergency') {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <button
+            onClick={() => setActiveView('menu')}
+            className="text-blue-600 hover:text-blue-700 flex items-center gap-2 mb-4"
+          >
+            ← メニューに戻る
+          </button>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">緊急資金計算</h1>
+          <p className="text-gray-600">万が一の時に必要な緊急資金を計算します</p>
+        </div>
+        <EmergencyFundCalculator userId={userId} />
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -15,7 +83,12 @@ export default function CalculationsPage() {
             <p className="text-gray-600 text-sm mb-4">
               現在の貯蓄ペースで将来どれだけ資産が増えるかを計算
             </p>
-            <button className="btn-primary w-full">計算開始</button>
+            <button
+              onClick={() => setActiveView('asset-projection')}
+              className="btn-primary w-full"
+            >
+              計算開始
+            </button>
           </div>
         </div>
 
@@ -26,7 +99,12 @@ export default function CalculationsPage() {
             <p className="text-gray-600 text-sm mb-4">
               退職後に必要な資金と年金額を考慮した計算
             </p>
-            <button className="btn-primary w-full">計算開始</button>
+            <button
+              onClick={() => setActiveView('retirement')}
+              className="btn-primary w-full"
+            >
+              計算開始
+            </button>
           </div>
         </div>
 
@@ -37,7 +115,12 @@ export default function CalculationsPage() {
             <p className="text-gray-600 text-sm mb-4">
               万が一の時に必要な緊急資金を計算
             </p>
-            <button className="btn-primary w-full">計算開始</button>
+            <button
+              onClick={() => setActiveView('emergency')}
+              className="btn-primary w-full"
+            >
+              計算開始
+            </button>
           </div>
         </div>
       </div>
