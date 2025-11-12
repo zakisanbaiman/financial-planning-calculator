@@ -1,6 +1,35 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useGoals } from '@/lib/contexts/GoalsContext';
+import { useUser } from '@/lib/hooks/useUser';
+import GoalProgressTracker from '@/components/GoalProgressTracker';
+import GoalsSummaryChart from '@/components/GoalsSummaryChart';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import type { Goal } from '@/types/api';
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const { userId } = useUser();
+  const { goals, loading, fetchGoals } = useGoals();
+  const [chartType, setChartType] = useState<'bar' | 'doughnut'>('bar');
+
+  useEffect(() => {
+    if (userId) {
+      fetchGoals(userId);
+    }
+  }, [userId, fetchGoals]);
+
+  const handleGoalClick = (goal: Goal) => {
+    router.push('/goals');
+  };
+
+  const activeGoals = goals.filter((g) => g.is_active);
+  const totalTarget = activeGoals.reduce((sum, g) => sum + g.target_amount, 0);
+  const totalCurrent = activeGoals.reduce((sum, g) => sum + g.current_amount, 0);
+  const overallProgress = totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
@@ -115,40 +144,60 @@ export default function DashboardPage() {
                 管理 →
               </Link>
             </div>
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-900">緊急資金</span>
-                  <span className="text-sm text-gray-600">100%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-success-500 h-2 rounded-full" style={{ width: '100%' }}></div>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">¥600,000 / ¥600,000</p>
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <LoadingSpinner />
               </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-900">老後資金</span>
-                  <span className="text-sm text-gray-600">65%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-primary-500 h-2 rounded-full" style={{ width: '65%' }}></div>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">¥19,500,000 / ¥30,000,000</p>
+            ) : activeGoals.length > 0 ? (
+              <div className="space-y-4">
+                {activeGoals.slice(0, 3).map((goal) => {
+                  const progress = (goal.current_amount / goal.target_amount) * 100;
+                  return (
+                    <div key={goal.id}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-900">{goal.title}</span>
+                        <span className="text-sm text-gray-600">{progress.toFixed(0)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full ${
+                            progress >= 100
+                              ? 'bg-success-500'
+                              : progress >= 75
+                              ? 'bg-primary-500'
+                              : progress >= 50
+                              ? 'bg-warning-500'
+                              : 'bg-orange-500'
+                          }`}
+                          style={{ width: `${Math.min(progress, 100)}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        ¥{goal.current_amount.toLocaleString()} / ¥{goal.target_amount.toLocaleString()}
+                      </p>
+                    </div>
+                  );
+                })}
+                {activeGoals.length > 3 && (
+                  <Link
+                    href="/goals"
+                    className="block text-center text-sm text-primary-600 hover:text-primary-700 font-medium mt-3"
+                  >
+                    他{activeGoals.length - 3}件の目標を表示 →
+                  </Link>
+                )}
               </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-900">マイホーム資金</span>
-                  <span className="text-sm text-gray-600">25%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-warning-500 h-2 rounded-full" style={{ width: '25%' }}></div>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">¥1,250,000 / ¥5,000,000</p>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-gray-500 text-sm mb-3">目標が設定されていません</p>
+                <Link
+                  href="/goals"
+                  className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                >
+                  最初の目標を作成 →
+                </Link>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Quick Actions */}
@@ -213,6 +262,50 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Goals Dashboard Section */}
+      {activeGoals.length > 0 && (
+        <div className="mt-8">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">目標進捗ダッシュボード</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setChartType('bar')}
+                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                  chartType === 'bar'
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                棒グラフ
+              </button>
+              <button
+                onClick={() => setChartType('doughnut')}
+                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                  chartType === 'doughnut'
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                円グラフ
+              </button>
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Progress Tracker */}
+            <div className="lg:col-span-1">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">目標一覧</h3>
+              <GoalProgressTracker goals={goals} onGoalClick={handleGoalClick} />
+            </div>
+
+            {/* Summary Chart */}
+            <div className="lg:col-span-2">
+              <GoalsSummaryChart goals={goals} chartType={chartType} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
