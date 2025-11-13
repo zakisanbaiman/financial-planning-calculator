@@ -445,7 +445,22 @@ func (g *HTMLGenerator) generateRetirementPlanHTML(report *usecases.RetirementPl
 // ヘルパー関数
 
 func (g *HTMLGenerator) formatNumber(num float64) string {
-	return fmt.Sprintf("%,.0f", num)
+	// カンマ区切りで数値をフォーマット
+	str := fmt.Sprintf("%.0f", num)
+
+	// 3桁ごとにカンマを挿入
+	if len(str) <= 3 {
+		return str
+	}
+
+	var result string
+	for i, c := range str {
+		if i > 0 && (len(str)-i)%3 == 0 {
+			result += ","
+		}
+		result += string(c)
+	}
+	return result
 }
 
 func (g *HTMLGenerator) formatMetricValue(value float64, unit string) string {
