@@ -50,6 +50,14 @@ jobs:
       working-directory: ./backend
       run: go build -v ./...
     
+    - name: Run golangci-lint
+      if: matrix.go-version == '1.21'
+      uses: golangci/golangci-lint-action@v4
+      with:
+        version: latest
+        working-directory: ./backend
+        args: --timeout=5m
+    
     - name: Run tests
       working-directory: ./backend
       run: go test -v -race -timeout 30s ./...
