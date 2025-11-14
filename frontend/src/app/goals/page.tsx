@@ -48,7 +48,7 @@ export default function GoalsPage() {
   };
 
   const handleUpdateGoal = async (goal: Goal) => {
-    if (!editingGoal?.id) return;
+    if (!editingGoal?.id || !userId) return;
     try {
       await updateGoal(editingGoal.id, userId, goal);
       setEditingGoal(null);
@@ -58,6 +58,7 @@ export default function GoalsPage() {
   };
 
   const handleDeleteGoal = async (goalId: string) => {
+    if (!userId) return;
     try {
       await deleteGoal(goalId, userId);
       setDeletingGoalId(null);
@@ -369,27 +370,29 @@ export default function GoalsPage() {
 
       {/* 作成モーダル */}
       <Modal
-        isOpen={isCreateModalOpen}
+        isOpen={isCreateModalOpen && !!userId}
         onClose={() => setIsCreateModalOpen(false)}
         title="新しい目標を作成"
         size="lg"
       >
-        <GoalForm
-          userId={userId}
-          onSubmit={handleCreateGoal}
-          onCancel={() => setIsCreateModalOpen(false)}
-          loading={loading}
-        />
+        {userId && (
+          <GoalForm
+            userId={userId}
+            onSubmit={handleCreateGoal}
+            onCancel={() => setIsCreateModalOpen(false)}
+            loading={loading}
+          />
+        )}
       </Modal>
 
       {/* 編集モーダル */}
       <Modal
-        isOpen={!!editingGoal}
+        isOpen={!!editingGoal && !!userId}
         onClose={() => setEditingGoal(null)}
         title="目標を編集"
         size="lg"
       >
-        {editingGoal && (
+        {editingGoal && userId && (
           <GoalForm
             initialData={editingGoal}
             userId={userId}

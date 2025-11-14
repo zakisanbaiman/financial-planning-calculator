@@ -46,7 +46,7 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({ goals, onGoal
     return 'behind';
   };
 
-  const statusConfig = {
+  const statusConfig: Record<string, { label: string; color: string; icon: string }> = {
     completed: { label: '達成', color: 'text-success-600', icon: '✓' },
     overdue: { label: '期限切れ', color: 'text-error-600', icon: '!' },
     urgent: { label: '緊急', color: 'text-warning-600', icon: '⚠' },
