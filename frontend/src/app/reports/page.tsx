@@ -1,10 +1,146 @@
+'use client';
+
+import { useState } from 'react';
+import { LoadingSpinner } from '@/components';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+
 export default function ReportsPage() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [reportSettings, setReportSettings] = useState({
+    years: 10,
+    includeFinancialSummary: true,
+    includeAssetProjection: true,
+    includeGoalsProgress: true,
+    includeDetails: false,
+    includeRecommendations: true,
+    format: 'pdf',
+  });
+
+  const handleGenerateReport = async (reportType: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const userId = 'user-001'; // 実際の実装ではログインユーザーIDを使用
+
+      let endpoint = '';
+      let requestBody: any = { user_id: userId };
+
+      switch (reportType) {
+        case 'comprehensive':
+          endpoint = '/reports/comprehensive';
+          requestBody.years = reportSettings.years;
+          break;
+        case 'financial_summary':
+          endpoint = '/reports/financial-summary';
+          break;
+        case 'goals_progress':
+          endpoint = '/reports/goals-progress';
+          break;
+        case 'asset_projection':
+          endpoint = '/reports/asset-projection';
+          requestBody.years = reportSettings.years;
+          break;
+        default:
+          throw new Error('サポートされていないレポートタイプです');
+      }
+
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'レポートの生成に失敗しました');
+      }
+
+      const data = await response.json();
+
+      // レポートデータを取得したら、PDFエクスポートを実行
+      if (data && data.report) {
+        const exportResponse = await fetch(`${API_BASE_URL}/reports/export`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            report_type: reportType,
+            format: reportSettings.format,
+            report_data: data.report,
+          }),
+        });
+
+        if (!exportResponse.ok) {
+          throw new Error('PDFエクスポートに失敗しました');
+        }
+
+        const exportData = await exportResponse.json();
+        if (exportData && exportData.download_url) {
+          // ダウンロードURLを開く（実際の実装では実ファイルをダウンロード）
+          alert(`レポートが生成されました: ${exportData.file_name}\nダウンロードURL: ${exportData.download_url}`);
+        }
+      }
+    } catch (err: any) {
+      console.error('レポート生成エラー:', err);
+      setError(err.message || 'レポートの生成に失敗しました');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuickDownload = async (reportType: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const userId = 'user-001';
+      const url = `${API_BASE_URL}/reports/pdf?user_id=${userId}&report_type=${reportType}&years=${reportSettings.years}`;
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'レポートのダウンロードに失敗しました');
+      }
+
+      const data = await response.json();
+      if (data && data.download_url) {
+        alert(`レポートが生成されました: ${data.file_name}\nダウンロードURL: ${data.download_url}`);
+      }
+    } catch (err: any) {
+      console.error('レポートダウンロードエラー:', err);
+      setError(err.message || 'レポートのダウンロードに失敗しました');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">レポート生成</h1>
         <p className="text-gray-600">財務状況をまとめたレポートをPDF形式で生成・印刷できます</p>
       </div>
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-800">{error}</p>
+        </div>
+      )}
+
+      {loading && (
+        <div className="mb-6 flex items-center justify-center p-8">
+          <LoadingSpinner />
+          <span className="ml-3 text-gray-600">レポートを生成中...</span>
+        </div>
+      )}
 
       {/* Report Generation Options */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -15,7 +151,13 @@ export default function ReportsPage() {
             <p className="text-gray-600 text-sm mb-4">
               現在の財務状況と将来予測を含む包括的なレポート
             </p>
-            <button className="btn-primary w-full">PDF生成</button>
+            <button 
+              className="btn-primary w-full"
+              onClick={() => handleGenerateReport('comprehensive')}
+              disabled={loading}
+            >
+              {loading ? '生成中...' : 'PDF生成'}
+            </button>
           </div>
         </div>
 
@@ -26,7 +168,13 @@ export default function ReportsPage() {
             <p className="text-gray-600 text-sm mb-4">
               設定した目標の進捗状況と達成予測
             </p>
-            <button className="btn-primary w-full">PDF生成</button>
+            <button 
+              className="btn-primary w-full"
+              onClick={() => handleGenerateReport('goals_progress')}
+              disabled={loading}
+            >
+              {loading ? '生成中...' : 'PDF生成'}
+            </button>
           </div>
         </div>
 
@@ -37,7 +185,13 @@ export default function ReportsPage() {
             <p className="text-gray-600 text-sm mb-4">
               資産の推移予測とシナリオ分析
             </p>
-            <button className="btn-primary w-full">PDF生成</button>
+            <button 
+              className="btn-primary w-full"
+              onClick={() => handleGenerateReport('asset_projection')}
+              disabled={loading}
+            >
+              {loading ? '生成中...' : 'PDF生成'}
+            </button>
           </div>
         </div>
       </div>
@@ -50,8 +204,13 @@ export default function ReportsPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900">レポートプレビュー</h2>
               <div className="flex space-x-2">
-                <button className="btn-secondary text-sm">編集</button>
-                <button className="btn-primary text-sm">PDF出力</button>
+                <button 
+                  className="btn-primary text-sm"
+                  onClick={() => handleQuickDownload('comprehensive')}
+                  disabled={loading}
+                >
+                  PDF出力
+                </button>
               </div>
             </div>
             
@@ -121,14 +280,16 @@ export default function ReportsPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  レポート期間
+                  予測期間（年）
                 </label>
-                <select className="input-field">
-                  <option>過去1年間</option>
-                  <option>過去6ヶ月</option>
-                  <option>過去3ヶ月</option>
-                  <option>カスタム期間</option>
-                </select>
+                <input
+                  type="number"
+                  className="input-field"
+                  value={reportSettings.years}
+                  onChange={(e) => setReportSettings({ ...reportSettings, years: parseInt(e.target.value) || 10 })}
+                  min="1"
+                  max="50"
+                />
               </div>
 
               <div>
@@ -137,23 +298,48 @@ export default function ReportsPage() {
                 </label>
                 <div className="space-y-2">
                   <label className="flex items-center">
-                    <input type="checkbox" className="mr-2" defaultChecked />
+                    <input 
+                      type="checkbox" 
+                      className="mr-2" 
+                      checked={reportSettings.includeFinancialSummary}
+                      onChange={(e) => setReportSettings({ ...reportSettings, includeFinancialSummary: e.target.checked })}
+                    />
                     <span className="text-sm">現在の財務状況</span>
                   </label>
                   <label className="flex items-center">
-                    <input type="checkbox" className="mr-2" defaultChecked />
+                    <input 
+                      type="checkbox" 
+                      className="mr-2" 
+                      checked={reportSettings.includeAssetProjection}
+                      onChange={(e) => setReportSettings({ ...reportSettings, includeAssetProjection: e.target.checked })}
+                    />
                     <span className="text-sm">資産推移予測</span>
                   </label>
                   <label className="flex items-center">
-                    <input type="checkbox" className="mr-2" defaultChecked />
+                    <input 
+                      type="checkbox" 
+                      className="mr-2" 
+                      checked={reportSettings.includeGoalsProgress}
+                      onChange={(e) => setReportSettings({ ...reportSettings, includeGoalsProgress: e.target.checked })}
+                    />
                     <span className="text-sm">目標進捗状況</span>
                   </label>
                   <label className="flex items-center">
-                    <input type="checkbox" className="mr-2" />
+                    <input 
+                      type="checkbox" 
+                      className="mr-2"
+                      checked={reportSettings.includeDetails}
+                      onChange={(e) => setReportSettings({ ...reportSettings, includeDetails: e.target.checked })}
+                    />
                     <span className="text-sm">詳細な計算過程</span>
                   </label>
                   <label className="flex items-center">
-                    <input type="checkbox" className="mr-2" />
+                    <input 
+                      type="checkbox" 
+                      className="mr-2"
+                      checked={reportSettings.includeRecommendations}
+                      onChange={(e) => setReportSettings({ ...reportSettings, includeRecommendations: e.target.checked })}
+                    />
                     <span className="text-sm">推奨事項</span>
                   </label>
                 </div>
@@ -163,58 +349,83 @@ export default function ReportsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   出力形式
                 </label>
-                <select className="input-field">
-                  <option>PDF (推奨)</option>
-                  <option>Excel</option>
-                  <option>CSV</option>
+                <select 
+                  className="input-field"
+                  value={reportSettings.format}
+                  onChange={(e) => setReportSettings({ ...reportSettings, format: e.target.value })}
+                >
+                  <option value="pdf">PDF (推奨)</option>
+                  <option value="json">JSON</option>
                 </select>
               </div>
             </div>
           </div>
 
           <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">レポート履歴</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">クイックアクション</h3>
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">総合財務レポート</p>
-                  <p className="text-xs text-gray-600">2024/11/01</p>
-                </div>
-                <button className="text-primary-600 hover:text-primary-700 text-sm">
-                  ダウンロード
-                </button>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">目標進捗レポート</p>
-                  <p className="text-xs text-gray-600">2024/10/15</p>
-                </div>
-                <button className="text-primary-600 hover:text-primary-700 text-sm">
-                  ダウンロード
-                </button>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">資産推移レポート</p>
-                  <p className="text-xs text-gray-600">2024/10/01</p>
-                </div>
-                <button className="text-primary-600 hover:text-primary-700 text-sm">
-                  ダウンロード
-                </button>
-              </div>
+              <button
+                className="w-full p-3 bg-gray-50 hover:bg-gray-100 rounded text-left transition-colors"
+                onClick={() => handleQuickDownload('comprehensive')}
+                disabled={loading}
+              >
+                <p className="text-sm font-medium text-gray-900">📊 総合レポート</p>
+                <p className="text-xs text-gray-600">すべての情報を含む包括的レポート</p>
+              </button>
+              <button
+                className="w-full p-3 bg-gray-50 hover:bg-gray-100 rounded text-left transition-colors"
+                onClick={() => handleQuickDownload('financial_summary')}
+                disabled={loading}
+              >
+                <p className="text-sm font-medium text-gray-900">💰 財務サマリー</p>
+                <p className="text-xs text-gray-600">現在の財務状況の概要</p>
+              </button>
+              <button
+                className="w-full p-3 bg-gray-50 hover:bg-gray-100 rounded text-left transition-colors"
+                onClick={() => handleGenerateReport('asset_projection')}
+                disabled={loading}
+              >
+                <p className="text-sm font-medium text-gray-900">📈 資産推移</p>
+                <p className="text-xs text-gray-600">将来の資産予測レポート</p>
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Report Generation Placeholder */}
+      {/* Report Information */}
       <div className="mt-8">
         <div className="card">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">PDF生成機能</h2>
-          <div className="text-center py-8 text-gray-500">
-            <div className="text-4xl mb-2">📋</div>
-            <p>PDF生成とダウンロード機能</p>
-            <p className="text-sm">(タスク10.1で実装予定)</p>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">レポートについて</h2>
+          <div className="space-y-4 text-gray-600">
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-2">📊 総合財務レポート</h3>
+              <p className="text-sm">
+                現在の財務状況、資産推移予測、目標進捗、アクションプランを含む包括的なレポートです。
+                財務計画の全体像を把握するのに最適です。
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-2">💰 財務サマリーレポート</h3>
+              <p className="text-sm">
+                現在の財務健全性スコア、主要指標、推奨事項をまとめたレポートです。
+                定期的な財務状況のチェックに便利です。
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-2">🎯 目標進捗レポート</h3>
+              <p className="text-sm">
+                設定した目標の進捗状況、達成予測、推奨アクションを確認できます。
+                目標管理とモチベーション維持に役立ちます。
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-2">📈 資産推移レポート</h3>
+              <p className="text-sm">
+                将来の資産推移予測、シナリオ分析、投資戦略の洞察を提供します。
+                長期的な資産形成計画の策定に活用できます。
+              </p>
+            </div>
           </div>
         </div>
       </div>

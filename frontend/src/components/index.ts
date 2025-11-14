@@ -20,6 +20,18 @@ export type { FinancialInputFormProps } from './FinancialInputForm';
 export { default as InvestmentSettingsForm } from './InvestmentSettingsForm';
 export type { InvestmentSettingsFormProps, InvestmentSettings } from './InvestmentSettingsForm';
 
+export { default as GoalForm } from './GoalForm';
+export type { GoalFormProps } from './GoalForm';
+
+export { default as GoalProgressTracker } from './GoalProgressTracker';
+export type { GoalProgressTrackerProps } from './GoalProgressTracker';
+
+export { default as GoalsSummaryChart } from './GoalsSummaryChart';
+export type { GoalsSummaryChartProps } from './GoalsSummaryChart';
+
+export { default as GoalRecommendations } from './GoalRecommendations';
+export type { GoalRecommendationsProps } from './GoalRecommendations';
+
 // Calculation Components
 export { default as AssetProjectionChart } from './AssetProjectionChart';
 export { default as AssetProjectionCalculator } from './AssetProjectionCalculator';
