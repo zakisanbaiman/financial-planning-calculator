@@ -660,7 +660,7 @@ func TestGoal_IsAchievable(t *testing.T) {
 	profile := createTestFinancialProfile(t)
 
 	// 達成可能性の判定
-	achievable, err := goal.IsAchievable(profile)
+	_, err := goal.IsAchievable(profile)
 	if err != nil {
 		t.Errorf("Failed to check achievability: %v", err)
 	}
@@ -685,7 +685,7 @@ func TestGoal_IsAchievable(t *testing.T) {
 	inflationRate, _ := valueobjects.NewRate(2.0)
 
 	unhealthyProfile, _ := NewFinancialProfile(userID, monthlyIncome, expenses, savings, investmentReturn, inflationRate)
-	achievable, err = goal.IsAchievable(unhealthyProfile)
+	achievable, err := goal.IsAchievable(unhealthyProfile)
 	if err != nil {
 		t.Errorf("Failed to check achievability with unhealthy profile: %v", err)
 	}

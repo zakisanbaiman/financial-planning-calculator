@@ -1,58 +1,33 @@
-version: 2
-
 run:
   timeout: 5m
   tests: true
-  skip-dirs:
-    - bin
-    - vendor
-    - docs
 
 linters:
   enable:
-    - errcheck      # エラーチェック漏れを検出
-    - govet         # go vetの問題を検出
-    - ineffassign   # 無効な代入を検出
-    - staticcheck   # 静的解析
-    - unused        # 未使用のコードを検出
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
 
 linters-settings:
   errcheck:
     check-type-assertions: false
     check-blank: false
-  
-  govet:
-    enable-all: false
-    enable:
-      - assign
-      - atomic
-      - bools
-      - buildtag
-      - composites
-      - copylocks
-      - errorsas
-      - httpresponse
-      - loopclosure
-      - lostcancel
-      - nilfunc
-      - printf
-      - shift
-      - stdmethods
-      - structtag
-      - tests
-      - unmarshal
-      - unreachable
-      - unsafeptr
-      - unusedresult
 
 issues:
+  exclude-dirs:
+    - bin
+    - vendor
+    - docs
+  
   exclude-rules:
-    # deferでのClose()のエラーチェックは除外（リソースクリーンアップ）
+    # deferでのClose()のエラーチェックは除外
     - text: "Error return value of `(.*\\.)?Close` is not checked"
       linters:
         - errcheck
     
-    # deferでのRollback()は無視（トランザクション処理の一般的なパターン）
+    # deferでのRollback()は無視
     - text: "Error return value of `(.*\\.)?Rollback` is not checked"
       linters:
         - errcheck
@@ -63,14 +38,5 @@ issues:
         - errcheck
         - ineffassign
   
-  # 既存のコードベースなので、エラーを警告として扱う
   max-issues-per-linter: 0
   max-same-issues: 0
-  new-from-rev: HEAD
-
-output:
-  format: colored-line-number
-  print-issued-lines: true
-  print-linter-name: true
-  uniq-by-line: true
-  sort-results: true
