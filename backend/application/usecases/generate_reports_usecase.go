@@ -560,10 +560,7 @@ func (uc *generateReportsUseCaseImpl) GenerateComprehensiveReport(
 		return nil, fmt.Errorf("財務サマリーレポートの生成に失敗しました: %w", err)
 	}
 
-	assetProjection, err := uc.GenerateAssetProjectionReport(ctx, AssetProjectionReportInput{
-		UserID: input.UserID,
-		Years:  input.Years,
-	})
+	assetProjection, err := uc.GenerateAssetProjectionReport(ctx, AssetProjectionReportInput(input))
 	if err != nil {
 		return nil, fmt.Errorf("資産推移レポートの生成に失敗しました: %w", err)
 	}

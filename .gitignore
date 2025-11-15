@@ -42,6 +42,8 @@ Thumbs.db
 *.dylib
 server
 main
+bin/
+backend/bin/
 
 # Test binary, built with `go test -c`
 *.test
