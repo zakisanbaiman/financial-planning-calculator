@@ -52,11 +52,10 @@ FROM golang:1.24-alpine AS development
 RUN apk add --no-cache git ca-certificates tzdata make curl
 
 # Air（ホットリロード）をインストール - Go 1.24互換バージョン
-RUN go install github.com/cosmtrek/air@v1.52.3
+RUN go install github.com/air-verse/air@v1.52.3
 
 # golangci-lintをインストール
-RUN wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.64.0
-RUN mv ./bin/golangci-lint /usr/local/bin/
+RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.0
 
 # 作業ディレクトリを設定
 WORKDIR /app

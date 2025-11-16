@@ -18,6 +18,7 @@ help:
 	@echo "  reset     - データベースをリセット"
 	@echo "  test      - テストを実行"
 	@echo "  lint      - Lintを実行"
+	@echo "  lint-verbose - Lintを実行（詳細ログ）"
 	@echo "  go-build  - Goアプリケーションをビルド"
 	@echo "  go-fmt    - コードをフォーマット"
 	@echo "  go-run    - Goコマンドを実行（例: make go-run CMD='go version'）"
@@ -153,7 +154,12 @@ update-deps:
 # Lintを実行
 lint:
 	@echo "Lintを実行中..."
-	docker-compose run --rm backend golangci-lint run
+	docker-compose run --rm backend golangci-lint run -v
+
+# Lintを実行（詳細ログ付き）
+lint-verbose:
+	@echo "Lintを実行中（詳細ログ）..."
+	docker-compose run --rm backend golangci-lint run -v --print-issued-lines --print-linter-name
 
 # Goコマンドを実行（例: make go-run CMD="go version"）
 go-run:
