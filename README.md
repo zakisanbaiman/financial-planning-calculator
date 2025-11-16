@@ -45,12 +45,63 @@ financial-planning-calculator/
 ## セットアップ
 
 ### 前提条件
-- Node.js 18+
-- Go 1.21+
+- Node.js 18.20.0+
+- Go 1.24.0+
 - PostgreSQL 13+
+- golangci-lint 1.64+ (開発時)
 
-### フロントエンド
+### バージョン管理
 
+このプロジェクトでは以下のバージョン管理ツールをサポートしています：
+
+**goenv（Go）**
+```bash
+# .go-versionファイルが自動的に読み込まれます
+cd backend
+goenv install 1.24.0
+```
+
+**asdf（Go + Node.js）**
+```bash
+# .tool-versionsファイルが自動的に読み込まれます
+asdf plugin add golang
+asdf plugin add nodejs
+asdf install
+```
+
+**手動インストール**
+```bash
+# Homebrewの場合
+brew install go@1.24
+brew install node@18
+```
+
+### Docker開発環境（推奨）
+
+```bash
+# 初回セットアップ（ビルド + DB起動 + マイグレーション + シード）
+make dev-setup
+
+# 2回目以降の起動
+make up
+
+# 停止
+make down
+
+# その他のコマンド
+make help
+```
+
+**Docker環境で使えるコマンド:**
+- `make test` - テスト実行
+- `make lint` - Lint実行
+- `make shell-api` - バックエンドコンテナに接続
+- `make shell-db` - データベースに接続
+- `make logs` - ログ表示
+
+### ローカル開発環境
+
+**フロントエンド**
 ```bash
 cd frontend
 npm install
@@ -58,18 +109,13 @@ cp .env.example .env.local
 npm run dev
 ```
 
-フロントエンドは http://localhost:3000 で起動します。
-
-### バックエンド
-
+**バックエンド**
 ```bash
 cd backend
 go mod tidy
 cp .env.example .env
 go run main.go
 ```
-
-バックエンドは http://localhost:8080 で起動します。
 
 ### API仕様
 

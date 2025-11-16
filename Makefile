@@ -17,6 +17,10 @@ help:
 	@echo "  seed      - サンプルデータを投入"
 	@echo "  reset     - データベースをリセット"
 	@echo "  test      - テストを実行"
+	@echo "  lint      - Lintを実行"
+	@echo "  go-build  - Goアプリケーションをビルド"
+	@echo "  go-fmt    - コードをフォーマット"
+	@echo "  go-run    - Goコマンドを実行（例: make go-run CMD='go version'）"
 	@echo "  shell-db  - データベースに接続"
 	@echo "  shell-api - バックエンドコンテナに接続"
 
@@ -145,3 +149,22 @@ update-deps:
 	@echo "依存関係を更新中..."
 	docker-compose run --rm backend go mod tidy
 	docker-compose run --rm backend go mod download
+
+# Lintを実行
+lint:
+	@echo "Lintを実行中..."
+	docker-compose run --rm backend golangci-lint run
+
+# Goコマンドを実行（例: make go-run CMD="go version"）
+go-run:
+	docker-compose run --rm backend $(CMD)
+
+# ビルドを実行
+go-build:
+	@echo "ビルドを実行中..."
+	docker-compose run --rm backend go build -o bin/server ./main.go
+
+# フォーマットを実行
+go-fmt:
+	@echo "コードをフォーマット中..."
+	docker-compose run --rm backend go fmt ./...
