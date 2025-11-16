@@ -54,6 +54,23 @@ financial-planning-calculator/
 
 このプロジェクトでは以下のバージョン管理ツールをサポートしています：
 
+**direnv（推奨）- Docker版Goを自動使用**
+```bash
+# direnvをインストール
+brew install direnv
+
+# シェルに統合（.zshrcまたは.bashrcに追加）
+eval "$(direnv hook zsh)"  # zshの場合
+eval "$(direnv hook bash)" # bashの場合
+
+# プロジェクトディレクトリで許可
+cd financial-planning-calculator
+direnv allow
+
+# これで'go'コマンドが自動的にDocker内で実行されます！
+go version  # 🐳 Docker内のGo 1.24.10を使用
+```
+
 **goenv（Go）**
 ```bash
 # .go-versionファイルが自動的に読み込まれます
