@@ -1,5 +1,5 @@
 # マルチステージビルド
-FROM golang:1.21-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 # 必要なパッケージをインストール
 RUN apk add --no-cache git ca-certificates tzdata
@@ -46,13 +46,16 @@ EXPOSE 8080
 CMD ["./main"]
 
 # 開発用イメージ
-FROM golang:1.21-alpine AS development
+FROM golang:1.24-alpine AS development
 
 # 必要なパッケージをインストール
 RUN apk add --no-cache git ca-certificates tzdata make curl
 
-# Air（ホットリロード）をインストール - Go 1.21互換バージョン
-RUN go install github.com/cosmtrek/air@v1.49.0
+# Air（ホットリロード）をインストール - Go 1.24互換バージョン
+RUN go install github.com/air-verse/air@v1.52.3
+
+# golangci-lintをインストール
+RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.0
 
 # 作業ディレクトリを設定
 WORKDIR /app

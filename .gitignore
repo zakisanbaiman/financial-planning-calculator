@@ -45,6 +45,10 @@ main
 bin/
 backend/bin/
 
+# direnv
+.envrc.local
+.direnv/
+
 # Test binary, built with `go test -c`
 *.test
 
