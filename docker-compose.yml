@@ -32,6 +32,7 @@ services:
     container_name: financial_planning_backend
     ports:
       - "8080:8080"
+      - "6060:6060"  # pprof用ポート
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -40,6 +41,8 @@ services:
       DB_NAME: financial_planning
       DB_SSLMODE: disable
       GIN_MODE: debug
+      ENABLE_PPROF: "true"  # 開発環境でpprofを有効化
+      PPROF_PORT: "6060"
     depends_on:
       postgres:
         condition: service_healthy

@@ -19,6 +19,8 @@ type ServerConfig struct {
 	GzipLevel           int
 	LogFormat           string
 	EnableSecureHeaders bool
+	EnablePprof         bool
+	PprofPort           string
 }
 
 // LoadServerConfig loads server configuration from environment variables
@@ -34,6 +36,8 @@ func LoadServerConfig() *ServerConfig {
 		GzipLevel:           getEnvInt("GZIP_LEVEL", 5),
 		LogFormat:           getEnv("LOG_FORMAT", "${time_rfc3339} ${method} ${uri} ${status} ${latency_human} ${bytes_in}B/${bytes_out}B ${error}\n"),
 		EnableSecureHeaders: getEnvBool("ENABLE_SECURE_HEADERS", true),
+		EnablePprof:         getEnvBool("ENABLE_PPROF", false),
+		PprofPort:           getEnv("PPROF_PORT", "6060"),
 	}
 
 	return config
