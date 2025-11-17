@@ -138,6 +138,47 @@ go run main.go
 
 Swagger UIは http://localhost:8080/swagger/index.html で確認できます。
 
+### パフォーマンスプロファイリング（pprof）
+
+開発環境ではpprofが有効化されており、パフォーマンス分析が可能です。
+
+**pprofの使い方:**
+
+当プロジェクトディレクトリ内のGoはDocker内のものを利用するため、pprofを実行する場合は他ディレクトリにで実行する。
+
+```bash
+# ブラウザでプロファイル一覧を確認
+open http://localhost:6060/debug/pprof/
+
+# CPU プロファイル（30秒間）
+go tool pprof 'http://localhost:6060/debug/pprof/profile?seconds=30'
+
+# メモリプロファイル
+go tool pprof 'http://localhost:6060/debug/pprof/heap'
+
+# ゴルーチン
+go tool pprof 'http://localhost:6060/debug/pprof/goroutine'
+
+# インタラクティブモードで分析
+# pprofコマンド内で使えるコマンド:
+# - top: 上位の関数を表示
+# - list <関数名>: 関数の詳細を表示
+# - web: グラフをブラウザで表示（graphviz必要）
+```
+
+**可視化ツール:**
+```bash
+# graphvizをインストール（グラフ表示用）
+brew install graphviz
+
+# CPUプロファイルをグラフで表示
+go tool pprof -http=:8081 'http://localhost:6060/debug/pprof/profile?seconds=30'
+```
+
+**本番環境での注意:**
+- pprofは開発環境のみで有効（`ENABLE_PPROF=true`）
+- 本番環境では必ず無効化すること（セキュリティリスク）
+
 ## 開発
 
 ### フロントエンド開発

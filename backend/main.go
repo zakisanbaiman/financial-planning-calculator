@@ -3,6 +3,8 @@ package main
 import (
 	"database/sql"
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 
 	"github.com/financial-planning-calculator/backend/config"
 	"github.com/financial-planning-calculator/backend/domain/services"
@@ -46,6 +48,19 @@ func main() {
 
 	// ルーティング設定
 	web.SetupRoutes(e, controllers)
+
+	// pprofサーバーの起動（開発環境のみ）
+	if cfg.EnablePprof {
+		go func() {
+			log.Printf("🔍 pprof サーバーを起動: http://localhost:%s/debug/pprof/", cfg.PprofPort)
+			log.Printf("   - CPU プロファイル: http://localhost:%s/debug/pprof/profile", cfg.PprofPort)
+			log.Printf("   - メモリプロファイル: http://localhost:%s/debug/pprof/heap", cfg.PprofPort)
+			log.Printf("   - ゴルーチン: http://localhost:%s/debug/pprof/goroutine", cfg.PprofPort)
+			if err := http.ListenAndServe(":"+cfg.PprofPort, nil); err != nil {
+				log.Printf("⚠️  pprof サーバーエラー: %v", err)
+			}
+		}()
+	}
 
 	// サーバー起動
 	log.Printf("サーバーを開始します: http://localhost:%s", cfg.Port)
