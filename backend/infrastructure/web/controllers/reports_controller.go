@@ -427,3 +427,33 @@ func (c *ReportsController) DownloadReport(ctx echo.Context) error {
 		Error: "ダウンロード機能は実装中です",
 	})
 }
+
+// DownloadReport はトークンを使ってレポートをダウンロードする
+// @Summary レポートのダウンロード
+// @Description 署名付きトークンを使用してレポートファイルをダウンロードします
+// @Tags reports
+// @Accept json
+// @Produce application/pdf
+// @Param token path string true "ダウンロードトークン"
+// @Success 200 {file} binary "PDFファイル"
+// @Failure 400 {object} map[string]interface{} "無効なリクエスト"
+// @Failure 404 {object} map[string]interface{} "ファイルが見つかりません"
+// @Failure 410 {object} map[string]interface{} "ファイルの有効期限が切れています"
+// @Router /reports/download/{token} [get]
+func (ctrl *ReportsController) DownloadReport(c echo.Context) error {
+	token := c.Param("token")
+	if token == "" {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"error":   "invalid_request",
+			"message": "トークンが指定されていません",
+		})
+	}
+
+	// TODO: 実際の実装では、TemporaryFileStorageからファイルを取得
+	// ここでは簡易的なレスポンスを返す
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"message": "ダウンロード機能は実装中です",
+		"token":   token,
+		"note":    "実際の実装では、PDFファイルがダウンロードされます",
+	})
+}

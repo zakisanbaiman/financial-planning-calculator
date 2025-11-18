@@ -92,6 +92,7 @@ func setupReportRoutes(api *echo.Group, controller *controllers.ReportsControlle
 	reports.POST("/comprehensive", controller.GenerateComprehensiveReport)        // POST /api/reports/comprehensive
 	reports.POST("/export", controller.ExportReportToPDF)                         // POST /api/reports/export
 	reports.GET("/pdf", controller.GetReportPDF)                                  // GET /api/reports/pdf
+	reports.GET("/download/:token", controller.DownloadReport)                    // GET /api/reports/download/:token
 }
 
 // Handler functions (placeholder implementations)
