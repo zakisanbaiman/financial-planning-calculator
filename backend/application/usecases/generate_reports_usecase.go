@@ -612,37 +612,6 @@ func (uc *generateReportsUseCaseImpl) GenerateComprehensiveReport(
 	}, nil
 }
 
-// ExportReportToPDF はレポートをPDF形式でエクスポートする
-func (uc *generateReportsUseCaseImpl) ExportReportToPDF(
-	ctx context.Context,
-	input ExportReportInput,
-) (*ExportReportOutput, error) {
-	fileName := fmt.Sprintf("%s_%s_%s.%s",
-		input.ReportType,
-		input.UserID,
-		time.Now().Format("20060102_150405"),
-		input.Format)
-
-	// レポートデータをJSON文字列に変換してサイズを推定
-	reportJSON := fmt.Sprintf("%v", input.ReportData)
-
-	// ファイルサイズを推定（実際のPDF生成後のサイズ）
-	fileSize := int64(len(reportJSON))
-	if input.Format == "pdf" {
-		fileSize = fileSize * 2 // PDFは通常JSONより大きい
-	}
-
-	downloadURL := fmt.Sprintf("/api/reports/download/%s", fileName)
-	expiresAt := time.Now().Add(24 * time.Hour).Format("2006-01-02T15:04:05Z07:00")
-
-	return &ExportReportOutput{
-		FileName:    fileName,
-		FileSize:    fileSize,
-		DownloadURL: downloadURL,
-		ExpiresAt:   expiresAt,
-	}, nil
-}
-
 // calculateFinancialHealth は財務健全性を計算する
 func (uc *generateReportsUseCaseImpl) calculateFinancialHealth(plan *aggregates.FinancialPlan) (*FinancialHealth, error) {
 	// 貯蓄率を計算

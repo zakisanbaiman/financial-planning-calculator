@@ -95,7 +95,7 @@ func (s *TemporaryFileStorage) GetFile(token string) ([]byte, *FileMetadata, err
 
 	// 期限切れチェック（現在時刻が有効期限より前でない = 期限切れ）
 	if !time.Now().Before(metadata.ExpiresAt) {
-		s.deleteFile(token)
+		_ = s.deleteFile(token) // 削除エラーは無視（既に削除されている可能性がある）
 		return nil, nil, fmt.Errorf("ファイルの有効期限が切れています")
 	}
 

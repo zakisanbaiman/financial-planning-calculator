@@ -407,27 +407,6 @@ func (c *ReportsController) GetReportPDF(ctx echo.Context) error {
 // @Summary レポートダウンロード
 // @Description 生成されたレポートファイルをダウンロードします
 // @Tags reports
-// @Produce application/pdf
-// @Produce application/json
-// @Param filename path string true "ファイル名"
-// @Success 200 {file} binary
-// @Failure 404 {object} ErrorResponse
-// @Router /reports/download/{filename} [get]
-func (c *ReportsController) DownloadReport(ctx echo.Context) error {
-	filename := ctx.Param("filename")
-	if filename == "" {
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Error: "ファイル名は必須です",
-		})
-	}
-
-	// 実際の実装では、ファイルストレージからファイルを取得
-	// ここでは簡略化のため、エラーを返す
-	return ctx.JSON(http.StatusNotImplemented, ErrorResponse{
-		Error: "ダウンロード機能は実装中です",
-	})
-}
-
 // DownloadReport はトークンを使ってレポートをダウンロードする
 // @Summary レポートのダウンロード
 // @Description 署名付きトークンを使用してレポートファイルをダウンロードします
