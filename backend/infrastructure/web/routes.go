@@ -18,15 +18,25 @@ type Controllers struct {
 }
 
 // SetupRoutes configures all routes based on OpenAPI specification
-func SetupRoutes(e *echo.Echo, controllers *Controllers) {
+func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencies) {
 	// Swagger UI
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	// ヘルスチェック
 	e.GET("/health", HealthCheckHandler)
+	e.GET("/health/detailed", IntegrationHealthCheckHandler(deps))
+	e.GET("/ready", APIReadinessHandler(deps))
+
+	// CORS preflight
+	e.OPTIONS("/*", CORSPreflightHandler)
 
 	// API ルートグループ
 	api := e.Group("/api")
+	
+	// Apply integration middleware
+	api.Use(ErrorRecoveryMiddleware)
+	api.Use(RequestValidationMiddleware)
+	api.Use(ResponseEnhancementMiddleware)
 
 	// API情報エンドポイント
 	api.GET("/", APIInfoHandler)

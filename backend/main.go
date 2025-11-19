@@ -47,7 +47,7 @@ func main() {
 	controllers := web.NewControllers(deps)
 
 	// ルーティング設定
-	web.SetupRoutes(e, controllers)
+	web.SetupRoutes(e, controllers, deps)
 
 	// pprofサーバーの起動（開発環境のみ）
 	if cfg.EnablePprof {
