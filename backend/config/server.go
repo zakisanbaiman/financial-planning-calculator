@@ -21,6 +21,9 @@ type ServerConfig struct {
 	EnableSecureHeaders bool
 	EnablePprof         bool
 	PprofPort           string
+	TempFileDir         string
+	TempFileSecret      string
+	TempFileExpiry      time.Duration
 }
 
 // LoadServerConfig loads server configuration from environment variables
@@ -38,6 +41,9 @@ func LoadServerConfig() *ServerConfig {
 		EnableSecureHeaders: getEnvBool("ENABLE_SECURE_HEADERS", true),
 		EnablePprof:         getEnvBool("ENABLE_PPROF", false),
 		PprofPort:           getEnv("PPROF_PORT", "6060"),
+		TempFileDir:         getEnv("TEMP_FILE_DIR", "/tmp/financial-planning-reports"),
+		TempFileSecret:      getEnv("TEMP_FILE_SECRET", "change-this-secret-in-production"),
+		TempFileExpiry:      getEnvDuration("TEMP_FILE_EXPIRY", 24*time.Hour),
 	}
 
 	return config
