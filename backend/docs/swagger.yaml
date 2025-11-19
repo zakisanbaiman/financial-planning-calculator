@@ -1,504 +1,2057 @@
-openapi: 3.0.0
+basePath: /api
+definitions:
+  aggregates.EmergencyFundStatus:
+    properties:
+      current_amount:
+        $ref: '#/definitions/valueobjects.Money'
+      months_to_target:
+        type: integer
+      required_amount:
+        $ref: '#/definitions/valueobjects.Money'
+      shortfall:
+        $ref: '#/definitions/valueobjects.Money'
+    type: object
+  aggregates.FinancialPlan:
+    type: object
+  aggregates.GoalProgress:
+    properties:
+      goal:
+        $ref: '#/definitions/entities.Goal'
+      message:
+        type: string
+      on_track:
+        type: boolean
+      progress:
+        $ref: '#/definitions/entities.ProgressRate'
+    type: object
+  aggregates.PlanProjection:
+    properties:
+      asset_projections:
+        items:
+          $ref: '#/definitions/entities.AssetProjection'
+        type: array
+      emergency_fund_status:
+        $ref: '#/definitions/aggregates.EmergencyFundStatus'
+      goal_progress:
+        items:
+          $ref: '#/definitions/aggregates.GoalProgress'
+        type: array
+      retirement_calculation:
+        $ref: '#/definitions/entities.RetirementCalculation'
+    type: object
+  controllers.AssetProjectionReportRequest:
+    properties:
+      user_id:
+        type: string
+      years:
+        maximum: 50
+        minimum: 1
+        type: integer
+    required:
+    - user_id
+    - years
+    type: object
+  controllers.AssetProjectionRequest:
+    properties:
+      user_id:
+        type: string
+      years:
+        maximum: 50
+        minimum: 1
+        type: integer
+    required:
+    - user_id
+    - years
+    type: object
+  controllers.ComprehensiveProjectionRequest:
+    properties:
+      user_id:
+        type: string
+      years:
+        maximum: 50
+        minimum: 1
+        type: integer
+    required:
+    - user_id
+    - years
+    type: object
+  controllers.ComprehensiveReportRequest:
+    properties:
+      user_id:
+        type: string
+      years:
+        maximum: 50
+        minimum: 1
+        type: integer
+    required:
+    - user_id
+    - years
+    type: object
+  controllers.CreateFinancialDataRequest:
+    properties:
+      current_savings:
+        items:
+          $ref: '#/definitions/controllers.SavingsItemRequest'
+        type: array
+      emergency_fund_current_amount:
+        minimum: 0
+        type: number
+      emergency_fund_target_months:
+        maximum: 24
+        minimum: 1
+        type: integer
+      inflation_rate:
+        maximum: 50
+        minimum: 0
+        type: number
+      investment_return:
+        maximum: 100
+        minimum: 0
+        type: number
+      monthly_expenses:
+        items:
+          $ref: '#/definitions/controllers.ExpenseItemRequest'
+        type: array
+      monthly_income:
+        type: number
+      monthly_retirement_expenses:
+        type: number
+      pension_amount:
+        minimum: 0
+        type: number
+      retirement_age:
+        maximum: 100
+        minimum: 50
+        type: integer
+      user_id:
+        type: string
+    required:
+    - current_savings
+    - inflation_rate
+    - investment_return
+    - monthly_expenses
+    - monthly_income
+    - user_id
+    type: object
+  controllers.CreateGoalRequest:
+    properties:
+      current_amount:
+        minimum: 0
+        type: number
+      description:
+        type: string
+      goal_type:
+        enum:
+        - savings
+        - retirement
+        - emergency
+        - custom
+        type: string
+      monthly_contribution:
+        minimum: 0
+        type: number
+      target_amount:
+        type: number
+      target_date:
+        description: RFC3339 format
+        type: string
+      title:
+        maxLength: 100
+        minLength: 1
+        type: string
+      user_id:
+        type: string
+    required:
+    - goal_type
+    - target_amount
+    - target_date
+    - title
+    - user_id
+    type: object
+  controllers.EmergencyFundCalculationRequest:
+    properties:
+      user_id:
+        type: string
+    required:
+    - user_id
+    type: object
+  controllers.ErrorResponse:
+    properties:
+      code:
+        type: string
+      details: {}
+      error:
+        type: string
+      request_id:
+        type: string
+      timestamp:
+        type: string
+    type: object
+  controllers.ExpenseItemRequest:
+    properties:
+      amount:
+        type: number
+      category:
+        minLength: 1
+        type: string
+      description:
+        type: string
+    required:
+    - amount
+    - category
+    type: object
+  controllers.ExportReportRequest:
+    properties:
+      format:
+        enum:
+        - pdf
+        - excel
+        - csv
+        type: string
+      report_data: {}
+      report_type:
+        enum:
+        - financial_summary
+        - asset_projection
+        - goals_progress
+        - retirement_plan
+        - comprehensive
+        type: string
+      user_id:
+        type: string
+    required:
+    - format
+    - report_data
+    - report_type
+    - user_id
+    type: object
+  controllers.FinancialSummaryReportRequest:
+    properties:
+      user_id:
+        type: string
+    required:
+    - user_id
+    type: object
+  controllers.GoalProjectionRequest:
+    properties:
+      goal_id:
+        type: string
+      user_id:
+        type: string
+    required:
+    - goal_id
+    - user_id
+    type: object
+  controllers.GoalsProgressReportRequest:
+    properties:
+      user_id:
+        type: string
+    required:
+    - user_id
+    type: object
+  controllers.RetirementCalculationRequest:
+    properties:
+      user_id:
+        type: string
+    required:
+    - user_id
+    type: object
+  controllers.RetirementPlanReportRequest:
+    properties:
+      user_id:
+        type: string
+    required:
+    - user_id
+    type: object
+  controllers.SavingsItemRequest:
+    properties:
+      amount:
+        minimum: 0
+        type: number
+      description:
+        type: string
+      type:
+        enum:
+        - deposit
+        - investment
+        - other
+        type: string
+    required:
+    - amount
+    - type
+    type: object
+  controllers.UpdateEmergencyFundRequest:
+    properties:
+      current_amount:
+        minimum: 0
+        type: number
+      target_months:
+        maximum: 24
+        minimum: 1
+        type: integer
+    required:
+    - current_amount
+    - target_months
+    type: object
+  controllers.UpdateFinancialProfileRequest:
+    properties:
+      current_savings:
+        items:
+          $ref: '#/definitions/controllers.SavingsItemRequest'
+        type: array
+      inflation_rate:
+        maximum: 50
+        minimum: 0
+        type: number
+      investment_return:
+        maximum: 100
+        minimum: 0
+        type: number
+      monthly_expenses:
+        items:
+          $ref: '#/definitions/controllers.ExpenseItemRequest'
+        type: array
+      monthly_income:
+        type: number
+    required:
+    - current_savings
+    - inflation_rate
+    - investment_return
+    - monthly_expenses
+    - monthly_income
+    type: object
+  controllers.UpdateGoalProgressRequest:
+    properties:
+      current_amount:
+        minimum: 0
+        type: number
+      note:
+        type: string
+    required:
+    - current_amount
+    type: object
+  controllers.UpdateGoalRequest:
+    properties:
+      description:
+        type: string
+      is_active:
+        type: boolean
+      monthly_contribution:
+        minimum: 0
+        type: number
+      target_amount:
+        type: number
+      target_date:
+        description: RFC3339 format
+        type: string
+      title:
+        maxLength: 100
+        minLength: 1
+        type: string
+    type: object
+  controllers.UpdateRetirementDataRequest:
+    properties:
+      monthly_retirement_expenses:
+        type: number
+      pension_amount:
+        minimum: 0
+        type: number
+      retirement_age:
+        maximum: 100
+        minimum: 50
+        type: integer
+    required:
+    - monthly_retirement_expenses
+    - pension_amount
+    - retirement_age
+    type: object
+  entities.AssetProjection:
+    properties:
+      contributed_amount:
+        $ref: '#/definitions/valueobjects.Money'
+      investment_gains:
+        $ref: '#/definitions/valueobjects.Money'
+      real_value:
+        $ref: '#/definitions/valueobjects.Money'
+      total_assets:
+        $ref: '#/definitions/valueobjects.Money'
+      year:
+        type: integer
+    type: object
+  entities.Goal:
+    type: object
+  entities.ProgressRate:
+    type: object
+  entities.RetirementCalculation:
+    properties:
+      projected_amount:
+        allOf:
+        - $ref: '#/definitions/valueobjects.Money'
+        description: 予想達成額
+      recommended_monthly_savings:
+        allOf:
+        - $ref: '#/definitions/valueobjects.Money'
+        description: 推奨月間貯蓄額
+      required_amount:
+        allOf:
+        - $ref: '#/definitions/valueobjects.Money'
+        description: 必要老後資金
+      shortfall:
+        allOf:
+        - $ref: '#/definitions/valueobjects.Money'
+        description: 不足額
+      sufficiency_rate:
+        allOf:
+        - $ref: '#/definitions/valueobjects.Rate'
+        description: 充足率 (%)
+    type: object
+  entities.RetirementData:
+    type: object
+  services.GoalRecommendation:
+    properties:
+      description:
+        description: 詳細説明
+        type: string
+      impact:
+        description: 期待される効果
+        type: string
+      new_value:
+        description: 推奨する新しい値
+      priority:
+        allOf:
+        - $ref: '#/definitions/services.RecommendationPriority'
+        description: 優先度
+      reason:
+        description: 推奨理由
+        type: string
+      title:
+        description: 推奨事項のタイトル
+        type: string
+      type:
+        description: '"increase_savings", "extend_deadline", "reduce_target"'
+        type: string
+    type: object
+  services.RecommendationPriority:
+    enum:
+    - high
+    - medium
+    - low
+    type: string
+    x-enum-comments:
+      PriorityHigh: 高優先度
+      PriorityLow: 低優先度
+      PriorityMedium: 中優先度
+    x-enum-varnames:
+    - PriorityHigh
+    - PriorityMedium
+    - PriorityLow
+  services.SavingsRecommendation:
+    properties:
+      achievability:
+        description: 達成可能性の評価
+        type: string
+      current_gap:
+        allOf:
+        - $ref: '#/definitions/valueobjects.Money'
+        description: 現在の不足額
+      priority:
+        allOf:
+        - $ref: '#/definitions/services.RecommendationPriority'
+        description: 優先度
+      rationale:
+        description: 根拠
+        type: string
+      recommended_amount:
+        allOf:
+        - $ref: '#/definitions/valueobjects.Money'
+        description: 推奨月間貯蓄額
+    type: object
+  usecases.Achievement:
+    properties:
+      date:
+        type: string
+      description:
+        type: string
+      impact:
+        type: string
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  usecases.ActionItem:
+    properties:
+      description:
+        type: string
+      effort:
+        type: string
+      impact:
+        type: string
+      priority:
+        description: '"high", "medium", "low"'
+        type: string
+      timeline:
+        type: string
+      title:
+        type: string
+    type: object
+  usecases.ActionPlan:
+    properties:
+      long_term:
+        description: 1年以上
+        items:
+          $ref: '#/definitions/usecases.ActionItem'
+        type: array
+      medium_term:
+        description: 1年以内
+        items:
+          $ref: '#/definitions/usecases.ActionItem'
+        type: array
+      short_term:
+        description: 3ヶ月以内
+        items:
+          $ref: '#/definitions/usecases.ActionItem'
+        type: array
+    type: object
+  usecases.AnalyzeGoalFeasibilityOutput:
+    properties:
+      achievable:
+        type: boolean
+      feasibility:
+        additionalProperties: true
+        type: object
+      insights:
+        items:
+          $ref: '#/definitions/usecases.FeasibilityInsight'
+        type: array
+      risk_level:
+        type: string
+    type: object
+  usecases.AssetProjectionOutput:
+    properties:
+      projections:
+        items:
+          $ref: '#/definitions/entities.AssetProjection'
+        type: array
+      summary:
+        $ref: '#/definitions/usecases.ProjectionSummary'
+    type: object
+  usecases.AssetProjectionReport:
+    properties:
+      insights:
+        items:
+          type: string
+        type: array
+      projection_years:
+        type: integer
+      projections:
+        items:
+          $ref: '#/definitions/entities.AssetProjection'
+        type: array
+      scenarios:
+        items:
+          $ref: '#/definitions/usecases.ScenarioAnalysis'
+        type: array
+      summary:
+        $ref: '#/definitions/usecases.ProjectionSummary'
+      user_id:
+        type: string
+    type: object
+  usecases.AssetProjectionReportOutput:
+    properties:
+      generated_at:
+        type: string
+      report:
+        $ref: '#/definitions/usecases.AssetProjectionReport'
+    type: object
+  usecases.ComprehensiveProjectionOutput:
+    properties:
+      insights:
+        items:
+          $ref: '#/definitions/usecases.FinancialInsight'
+        type: array
+      opportunities:
+        items:
+          $ref: '#/definitions/usecases.FinancialOpportunity'
+        type: array
+      plan_projection:
+        $ref: '#/definitions/aggregates.PlanProjection'
+      warnings:
+        items:
+          $ref: '#/definitions/usecases.FinancialWarning'
+        type: array
+    type: object
+  usecases.ComprehensiveReport:
+    properties:
+      action_plan:
+        $ref: '#/definitions/usecases.ActionPlan'
+      asset_projection:
+        $ref: '#/definitions/usecases.AssetProjectionReport'
+      executive_summary:
+        $ref: '#/definitions/usecases.ExecutiveSummary'
+      financial_summary:
+        $ref: '#/definitions/usecases.FinancialSummaryReport'
+      goals_progress:
+        $ref: '#/definitions/usecases.GoalsProgressReport'
+      retirement_plan:
+        $ref: '#/definitions/usecases.RetirementPlanReport'
+      user_id:
+        type: string
+    type: object
+  usecases.ComprehensiveReportOutput:
+    properties:
+      generated_at:
+        type: string
+      report:
+        $ref: '#/definitions/usecases.ComprehensiveReport'
+    type: object
+  usecases.CreateFinancialPlanOutput:
+    properties:
+      created_at:
+        type: string
+      plan_id:
+        type: string
+      user_id:
+        type: string
+    type: object
+  usecases.CreateGoalOutput:
+    properties:
+      created_at:
+        type: string
+      goal_id:
+        type: string
+      user_id:
+        type: string
+    type: object
+  usecases.CurrentSituation:
+    properties:
+      inflation_rate:
+        type: number
+      investment_return:
+        type: number
+      monthly_expenses:
+        type: number
+      monthly_income:
+        type: number
+      net_savings:
+        type: number
+      total_assets:
+        type: number
+    type: object
+  usecases.EmergencyFundProjectionOutput:
+    properties:
+      priority:
+        type: string
+      recommendations:
+        items:
+          type: string
+        type: array
+      status:
+        $ref: '#/definitions/aggregates.EmergencyFundStatus'
+      timeline:
+        $ref: '#/definitions/usecases.EmergencyFundTimeline'
+    type: object
+  usecases.EmergencyFundTimeline:
+    properties:
+      milestones:
+        items:
+          $ref: '#/definitions/usecases.Milestone'
+        type: array
+      monthly_savings_goal:
+        type: number
+      months_to_target:
+        type: integer
+    type: object
+  usecases.ExecutiveSummary:
+    properties:
+      critical_actions:
+        items:
+          type: string
+        type: array
+      financial_health_score:
+        type: integer
+      key_highlights:
+        items:
+          type: string
+        type: array
+      opportunity_areas:
+        items:
+          type: string
+        type: array
+      overall_status:
+        type: string
+    type: object
+  usecases.ExportReportOutput:
+    properties:
+      download_url:
+        type: string
+      expires_at:
+        type: string
+      file_name:
+        type: string
+      file_size:
+        type: integer
+    type: object
+  usecases.FeasibilityInsight:
+    properties:
+      description:
+        type: string
+      impact:
+        type: string
+      severity:
+        description: '"info", "warning", "error"'
+        type: string
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  usecases.FinancialHealth:
+    properties:
+      debt_to_income_ratio:
+        description: '%'
+        type: number
+      emergency_fund_ratio:
+        description: months
+        type: number
+      overall_score:
+        description: 0-100
+        type: integer
+      savings_rate:
+        description: '%'
+        type: number
+      score_level:
+        description: '"excellent", "good", "fair", "poor"'
+        type: string
+    type: object
+  usecases.FinancialInsight:
+    properties:
+      description:
+        type: string
+      impact:
+        type: string
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  usecases.FinancialOpportunity:
+    properties:
+      benefit:
+        type: string
+      description:
+        type: string
+      effort:
+        description: '"low", "medium", "high"'
+        type: string
+      impact:
+        type: number
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  usecases.FinancialSummaryReport:
+    properties:
+      current_situation:
+        $ref: '#/definitions/usecases.CurrentSituation'
+      financial_health:
+        $ref: '#/definitions/usecases.FinancialHealth'
+      key_metrics:
+        items:
+          $ref: '#/definitions/usecases.KeyMetric'
+        type: array
+      recommendations:
+        items:
+          type: string
+        type: array
+      report_date:
+        type: string
+      user_id:
+        type: string
+      warnings:
+        items:
+          type: string
+        type: array
+    type: object
+  usecases.FinancialSummaryReportOutput:
+    properties:
+      generated_at:
+        type: string
+      report:
+        $ref: '#/definitions/usecases.FinancialSummaryReport'
+    type: object
+  usecases.FinancialWarning:
+    properties:
+      action:
+        type: string
+      description:
+        type: string
+      severity:
+        description: '"low", "medium", "high"'
+        type: string
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  usecases.GetFinancialPlanOutput:
+    properties:
+      plan:
+        $ref: '#/definitions/aggregates.FinancialPlan'
+    type: object
+  usecases.GetGoalOutput:
+    properties:
+      goal:
+        $ref: '#/definitions/entities.Goal'
+      progress:
+        $ref: '#/definitions/entities.ProgressRate'
+      status:
+        $ref: '#/definitions/usecases.GoalStatus'
+    type: object
+  usecases.GetGoalRecommendationsOutput:
+    properties:
+      recommendations:
+        items:
+          $ref: '#/definitions/services.GoalRecommendation'
+        type: array
+      savings_advice:
+        $ref: '#/definitions/services.SavingsRecommendation'
+    type: object
+  usecases.GetGoalsByUserOutput:
+    properties:
+      goals:
+        items:
+          $ref: '#/definitions/usecases.GoalWithStatus'
+        type: array
+      summary:
+        $ref: '#/definitions/usecases.GoalsSummary'
+    type: object
+  usecases.GoalProgress:
+    properties:
+      days_remaining:
+        type: integer
+      goal:
+        $ref: '#/definitions/entities.Goal'
+      on_track:
+        type: boolean
+      progress:
+        $ref: '#/definitions/entities.ProgressRate'
+      recommendations:
+        items:
+          type: string
+        type: array
+      status:
+        type: string
+    type: object
+  usecases.GoalProgressProjection:
+    properties:
+      month:
+        type: integer
+      on_track:
+        type: boolean
+      progress_rate:
+        type: number
+      projected_amount:
+        type: number
+    type: object
+  usecases.GoalProjectionOutput:
+    properties:
+      feasibility:
+        additionalProperties: true
+        type: object
+      goal:
+        $ref: '#/definitions/entities.Goal'
+      progress:
+        $ref: '#/definitions/entities.ProgressRate'
+      projection:
+        items:
+          $ref: '#/definitions/usecases.GoalProgressProjection'
+        type: array
+      recommendations:
+        items:
+          $ref: '#/definitions/services.GoalRecommendation'
+        type: array
+    type: object
+  usecases.GoalStatus:
+    properties:
+      days_left:
+        type: integer
+      is_active:
+        type: boolean
+      is_completed:
+        type: boolean
+      is_overdue:
+        type: boolean
+      message:
+        type: string
+    type: object
+  usecases.GoalWithStatus:
+    properties:
+      goal:
+        $ref: '#/definitions/entities.Goal'
+      progress:
+        $ref: '#/definitions/entities.ProgressRate'
+      status:
+        $ref: '#/definitions/usecases.GoalStatus'
+    type: object
+  usecases.GoalsProgressReport:
+    properties:
+      achievements:
+        items:
+          $ref: '#/definitions/usecases.Achievement'
+        type: array
+      goals:
+        items:
+          $ref: '#/definitions/usecases.GoalProgress'
+        type: array
+      next_steps:
+        items:
+          type: string
+        type: array
+      summary:
+        $ref: '#/definitions/usecases.GoalsSummary'
+      user_id:
+        type: string
+    type: object
+  usecases.GoalsProgressReportOutput:
+    properties:
+      generated_at:
+        type: string
+      report:
+        $ref: '#/definitions/usecases.GoalsProgressReport'
+    type: object
+  usecases.GoalsSummary:
+    properties:
+      active_goals:
+        type: integer
+      completed_goals:
+        type: integer
+      overall_progress:
+        type: number
+      overdue_goals:
+        type: integer
+      total_current:
+        type: number
+      total_goals:
+        type: integer
+      total_target:
+        type: number
+    type: object
+  usecases.KeyMetric:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      trend:
+        description: '"up", "down", "stable"'
+        type: string
+      unit:
+        type: string
+      value:
+        type: number
+    type: object
+  usecases.Milestone:
+    properties:
+      amount:
+        type: number
+      description:
+        type: string
+      month:
+        type: integer
+    type: object
+  usecases.ProjectionSummary:
+    properties:
+      average_return:
+        type: number
+      final_amount:
+        type: number
+      growth_percentage:
+        type: number
+      initial_amount:
+        type: number
+      total_growth:
+        type: number
+    type: object
+  usecases.RequiredAdjustment:
+    properties:
+      amount:
+        type: number
+      description:
+        type: string
+      impact_on_retirement:
+        type: string
+      type:
+        description: '"increase_savings", "extend_retirement", "reduce_expenses"'
+        type: string
+    type: object
+  usecases.RetirementPlanReport:
+    properties:
+      calculation:
+        $ref: '#/definitions/entities.RetirementCalculation'
+      projections:
+        items:
+          $ref: '#/definitions/usecases.RetirementProjection'
+        type: array
+      recommendations:
+        items:
+          type: string
+        type: array
+      retirement_data:
+        $ref: '#/definitions/entities.RetirementData'
+      risk_assessment:
+        $ref: '#/definitions/usecases.RiskAssessment'
+      strategies:
+        items:
+          $ref: '#/definitions/usecases.RetirementStrategy'
+        type: array
+      user_id:
+        type: string
+    type: object
+  usecases.RetirementPlanReportOutput:
+    properties:
+      generated_at:
+        type: string
+      report:
+        $ref: '#/definitions/usecases.RetirementPlanReport'
+    type: object
+  usecases.RetirementProjection:
+    properties:
+      age:
+        type: integer
+      monthly_shortfall:
+        type: number
+      projected_assets:
+        type: number
+      required_assets:
+        type: number
+      sufficiency_rate:
+        type: number
+      years_to_retirement:
+        type: integer
+    type: object
+  usecases.RetirementProjectionOutput:
+    properties:
+      calculation:
+        $ref: '#/definitions/entities.RetirementCalculation'
+      recommendations:
+        items:
+          type: string
+        type: array
+      required_adjustment:
+        $ref: '#/definitions/usecases.RequiredAdjustment'
+      sufficiency_level:
+        type: string
+    type: object
+  usecases.RetirementStrategy:
+    properties:
+      description:
+        type: string
+      effort:
+        description: '"low", "medium", "high"'
+        type: string
+      impact:
+        type: number
+      name:
+        type: string
+      timeline:
+        type: string
+    type: object
+  usecases.RiskAssessment:
+    properties:
+      mitigations:
+        items:
+          type: string
+        type: array
+      overall_risk:
+        description: '"low", "medium", "high"'
+        type: string
+      risk_factors:
+        items:
+          $ref: '#/definitions/usecases.RiskFactor'
+        type: array
+    type: object
+  usecases.RiskFactor:
+    properties:
+      description:
+        type: string
+      impact:
+        description: '"low", "medium", "high"'
+        type: string
+      probability:
+        description: '"low", "medium", "high"'
+        type: string
+      type:
+        type: string
+    type: object
+  usecases.ScenarioAnalysis:
+    properties:
+      description:
+        type: string
+      final_amount:
+        type: number
+      impact:
+        type: string
+      inflation_rate:
+        type: number
+      investment_return:
+        type: number
+      name:
+        type: string
+      real_value:
+        type: number
+    type: object
+  usecases.UpdateEmergencyFundOutput:
+    properties:
+      success:
+        type: boolean
+      updated_at:
+        type: string
+    type: object
+  usecases.UpdateFinancialProfileOutput:
+    properties:
+      success:
+        type: boolean
+      updated_at:
+        type: string
+    type: object
+  usecases.UpdateGoalOutput:
+    properties:
+      success:
+        type: boolean
+      updated_at:
+        type: string
+    type: object
+  usecases.UpdateGoalProgressOutput:
+    properties:
+      is_completed:
+        type: boolean
+      new_progress:
+        $ref: '#/definitions/entities.ProgressRate'
+      success:
+        type: boolean
+      updated_at:
+        type: string
+    type: object
+  usecases.UpdateRetirementDataOutput:
+    properties:
+      success:
+        type: boolean
+      updated_at:
+        type: string
+    type: object
+  valueobjects.Money:
+    type: object
+  valueobjects.Rate:
+    type: object
+host: localhost:8080
 info:
-  title: 財務計画計算機 API
+  contact: {}
   description: 将来の資産形成と老後の財務計画を可視化するアプリケーションのAPI
-  version: 1.0.0
-  contact:
-    name: API Support
-    email: support@financial-planning.com
-
-servers:
-  - url: http://localhost:8080/api
-    description: 開発サーバー
-
+  title: 財務計画計算機 API
+  version: "1.0"
 paths:
-  /health:
-    get:
-      summary: ヘルスチェック
-      description: APIサーバーの稼働状況を確認
-      responses:
-        '200':
-          description: サーバー正常稼働
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "ok"
-                  message:
-                    type: string
-                    example: "財務計画計算機 API サーバーが正常に動作しています"
-
-  /financial-data:
-    post:
-      summary: 財務データ作成
-      description: ユーザーの財務情報を新規作成
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FinancialDataRequest'
-      responses:
-        '201':
-          description: 財務データ作成成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FinancialDataResponse'
-        '400':
-          description: 入力データエラー
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-    get:
-      summary: 財務データ取得
-      description: ユーザーの財務情報を取得
-      parameters:
-        - name: user_id
-          in: query
-          required: true
-          schema:
-            type: string
-          description: ユーザーID
-      responses:
-        '200':
-          description: 財務データ取得成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FinancialDataResponse'
-        '404':
-          description: データが見つかりません
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
   /calculations/asset-projection:
     post:
+      consumes:
+      - application/json
+      description: 指定年数の資産推移を計算します
+      parameters:
+      - description: 資産推移計算リクエスト
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.AssetProjectionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.AssetProjectionOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
       summary: 資産推移計算
-      description: 将来の資産推移を計算
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AssetProjectionRequest'
-      responses:
-        '200':
-          description: 計算成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AssetProjectionResponse'
-        '400':
-          description: 計算パラメータエラー
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /calculations/retirement:
+      tags:
+      - calculations
+  /calculations/comprehensive:
     post:
-      summary: 老後資金計算
-      description: 必要な老後資金を計算
-      requestBody:
+      consumes:
+      - application/json
+      description: 包括的な財務予測を計算します
+      parameters:
+      - description: 包括的予測計算リクエスト
+        in: body
+        name: request
         required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RetirementCalculationRequest'
+        schema:
+          $ref: '#/definitions/controllers.ComprehensiveProjectionRequest'
+      produces:
+      - application/json
       responses:
-        '200':
-          description: 計算成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RetirementCalculationResponse'
-
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.ComprehensiveProjectionOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 包括的財務予測計算
+      tags:
+      - calculations
   /calculations/emergency-fund:
     post:
-      summary: 緊急資金計算
-      description: 必要な緊急資金を計算
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EmergencyFundRequest'
-      responses:
-        '200':
-          description: 計算成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EmergencyFundResponse'
-
-  /goals:
-    post:
-      summary: 目標作成
-      description: 新しい財務目標を作成
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GoalRequest'
-      responses:
-        '201':
-          description: 目標作成成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GoalResponse'
-
-    get:
-      summary: 目標一覧取得
-      description: ユーザーの目標一覧を取得
+      consumes:
+      - application/json
+      description: 緊急資金の予測を計算します
       parameters:
-        - name: user_id
-          in: query
-          required: true
-          schema:
-            type: string
-          description: ユーザーID
+      - description: 緊急資金計算リクエスト
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.EmergencyFundCalculationRequest'
+      produces:
+      - application/json
       responses:
-        '200':
-          description: 目標一覧取得成功
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/GoalResponse'
-
-components:
-  schemas:
-    FinancialDataRequest:
-      type: object
-      required:
-        - user_id
-        - monthly_income
-        - monthly_expenses
-        - current_savings
-        - investment_return
-        - inflation_rate
-      properties:
-        user_id:
-          type: string
-          description: ユーザーID
-        monthly_income:
-          type: number
-          minimum: 0
-          description: 月収
-          example: 400000
-        monthly_expenses:
-          type: array
-          items:
-            $ref: '#/components/schemas/ExpenseItem'
-          description: 月間支出
-        current_savings:
-          type: array
-          items:
-            $ref: '#/components/schemas/SavingsItem'
-          description: 現在の貯蓄
-        investment_return:
-          type: number
-          minimum: 0
-          maximum: 100
-          description: 投資利回り（%）
-          example: 5.0
-        inflation_rate:
-          type: number
-          minimum: 0
-          maximum: 50
-          description: インフレ率（%）
-          example: 2.0
-
-    FinancialDataResponse:
-      allOf:
-        - $ref: '#/components/schemas/FinancialDataRequest'
-        - type: object
-          properties:
-            id:
-              type: string
-              description: データID
-            created_at:
-              type: string
-              format: date-time
-              description: 作成日時
-            updated_at:
-              type: string
-              format: date-time
-              description: 更新日時
-
-    ExpenseItem:
-      type: object
-      required:
-        - category
-        - amount
-      properties:
-        category:
-          type: string
-          description: 支出カテゴリ
-          example: "住居費"
-        amount:
-          type: number
-          minimum: 0
-          description: 金額
-          example: 120000
-        description:
-          type: string
-          description: 説明
-          example: "家賃・光熱費"
-
-    SavingsItem:
-      type: object
-      required:
-        - type
-        - amount
-      properties:
-        type:
-          type: string
-          enum: [deposit, investment, other]
-          description: 貯蓄種別
-          example: "deposit"
-        amount:
-          type: number
-          minimum: 0
-          description: 金額
-          example: 1000000
-        description:
-          type: string
-          description: 説明
-          example: "普通預金"
-
-    AssetProjectionRequest:
-      type: object
-      required:
-        - financial_data_id
-        - projection_years
-      properties:
-        financial_data_id:
-          type: string
-          description: 財務データID
-        projection_years:
-          type: integer
-          minimum: 1
-          maximum: 50
-          description: 予測年数
-          example: 30
-
-    AssetProjectionResponse:
-      type: object
-      properties:
-        projections:
-          type: array
-          items:
-            $ref: '#/components/schemas/AssetProjection'
-          description: 年次資産推移
-
-    AssetProjection:
-      type: object
-      properties:
-        year:
-          type: integer
-          description: 年
-        total_assets:
-          type: number
-          description: 総資産
-        real_value:
-          type: number
-          description: 実質価値（インフレ調整後）
-        contributed_amount:
-          type: number
-          description: 積立元本
-        investment_gains:
-          type: number
-          description: 投資収益
-
-    RetirementCalculationRequest:
-      type: object
-      required:
-        - current_age
-        - retirement_age
-        - life_expectancy
-        - monthly_retirement_expenses
-        - pension_amount
-        - current_savings
-        - monthly_savings
-        - investment_return
-        - inflation_rate
-      properties:
-        current_age:
-          type: integer
-          minimum: 18
-          maximum: 100
-          description: 現在の年齢
-        retirement_age:
-          type: integer
-          minimum: 50
-          maximum: 100
-          description: 退職予定年齢
-        life_expectancy:
-          type: integer
-          minimum: 60
-          maximum: 120
-          description: 平均寿命
-        monthly_retirement_expenses:
-          type: number
-          minimum: 0
-          description: 老後の月間生活費
-        pension_amount:
-          type: number
-          minimum: 0
-          description: 年金受給額（月額）
-        current_savings:
-          type: number
-          minimum: 0
-          description: 現在の貯蓄額
-        monthly_savings:
-          type: number
-          minimum: 0
-          description: 月間貯蓄額
-        investment_return:
-          type: number
-          minimum: 0
-          maximum: 100
-          description: 投資利回り（%）
-        inflation_rate:
-          type: number
-          minimum: 0
-          maximum: 50
-          description: インフレ率（%）
-
-    RetirementCalculationResponse:
-      type: object
-      properties:
-        required_amount:
-          type: number
-          description: 必要老後資金
-        projected_amount:
-          type: number
-          description: 予想達成額
-        shortfall:
-          type: number
-          description: 不足額
-        sufficiency_rate:
-          type: number
-          description: 充足率（%）
-        recommended_monthly_savings:
-          type: number
-          description: 推奨月間貯蓄額
-
-    EmergencyFundRequest:
-      type: object
-      required:
-        - monthly_expenses
-        - emergency_months
-        - current_emergency_fund
-      properties:
-        monthly_expenses:
-          type: number
-          minimum: 0
-          description: 月間支出
-        emergency_months:
-          type: integer
-          minimum: 1
-          maximum: 24
-          description: 緊急時対応月数
-        current_emergency_fund:
-          type: number
-          minimum: 0
-          description: 現在の緊急資金
-
-    EmergencyFundResponse:
-      type: object
-      properties:
-        required_amount:
-          type: number
-          description: 必要緊急資金
-        current_amount:
-          type: number
-          description: 現在の緊急資金
-        shortfall:
-          type: number
-          description: 不足額
-        months_to_target:
-          type: integer
-          description: 目標達成までの月数
-
-    GoalRequest:
-      type: object
-      required:
-        - user_id
-        - type
-        - title
-        - target_amount
-        - target_date
-        - monthly_contribution
-      properties:
-        user_id:
-          type: string
-          description: ユーザーID
-        type:
-          type: string
-          enum: [savings, retirement, emergency, custom]
-          description: 目標種別
-        title:
-          type: string
-          description: 目標タイトル
-        target_amount:
-          type: number
-          minimum: 0
-          description: 目標金額
-        target_date:
-          type: string
-          format: date
-          description: 目標達成日
-        current_amount:
-          type: number
-          minimum: 0
-          description: 現在の金額
-          default: 0
-        monthly_contribution:
-          type: number
-          minimum: 0
-          description: 月間積立額
-
-    GoalResponse:
-      allOf:
-        - $ref: '#/components/schemas/GoalRequest'
-        - type: object
-          properties:
-            id:
-              type: string
-              description: 目標ID
-            is_active:
-              type: boolean
-              description: アクティブ状態
-            created_at:
-              type: string
-              format: date-time
-              description: 作成日時
-            updated_at:
-              type: string
-              format: date-time
-              description: 更新日時
-
-    ErrorResponse:
-      type: object
-      properties:
-        error:
-          type: string
-          description: エラーメッセージ
-        details:
-          type: array
-          items:
-            type: string
-          description: 詳細エラー情報
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.EmergencyFundProjectionOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 緊急資金計算
+      tags:
+      - calculations
+  /calculations/goal-projection:
+    post:
+      consumes:
+      - application/json
+      description: 目標達成の予測を計算します
+      parameters:
+      - description: 目標達成予測計算リクエスト
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.GoalProjectionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.GoalProjectionOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 目標達成予測計算
+      tags:
+      - calculations
+  /calculations/retirement:
+    post:
+      consumes:
+      - application/json
+      description: 退職資金の予測を計算します
+      parameters:
+      - description: 退職資金計算リクエスト
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.RetirementCalculationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.RetirementProjectionOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 退職資金計算
+      tags:
+      - calculations
+  /financial-data:
+    get:
+      description: ユーザーの財務計画を取得します
+      parameters:
+      - description: ユーザーID
+        in: query
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.GetFinancialPlanOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 財務データ取得
+      tags:
+      - financial-data
+    post:
+      consumes:
+      - application/json
+      description: 新しい財務計画を作成します
+      parameters:
+      - description: 財務データ作成リクエスト
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.CreateFinancialDataRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/usecases.CreateFinancialPlanOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 財務データ作成
+      tags:
+      - financial-data
+  /financial-data/{user_id}:
+    delete:
+      description: 財務計画を削除します
+      parameters:
+      - description: ユーザーID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 財務データ削除
+      tags:
+      - financial-data
+  /financial-data/{user_id}/emergency-fund:
+    put:
+      consumes:
+      - application/json
+      description: 緊急資金設定を更新します
+      parameters:
+      - description: ユーザーID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - description: 緊急資金設定更新リクエスト
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.UpdateEmergencyFundRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.UpdateEmergencyFundOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 緊急資金設定更新
+      tags:
+      - financial-data
+  /financial-data/{user_id}/profile:
+    put:
+      consumes:
+      - application/json
+      description: 財務プロファイルを更新します
+      parameters:
+      - description: ユーザーID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - description: 財務プロファイル更新リクエスト
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.UpdateFinancialProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.UpdateFinancialProfileOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 財務プロファイル更新
+      tags:
+      - financial-data
+  /financial-data/{user_id}/retirement:
+    put:
+      consumes:
+      - application/json
+      description: 退職データを更新します
+      parameters:
+      - description: ユーザーID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - description: 退職データ更新リクエスト
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.UpdateRetirementDataRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.UpdateRetirementDataOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 退職データ更新
+      tags:
+      - financial-data
+  /goals:
+    get:
+      description: ユーザーの目標一覧を取得します
+      parameters:
+      - description: ユーザーID
+        in: query
+        name: user_id
+        required: true
+        type: string
+      - description: 目標タイプ
+        in: query
+        name: goal_type
+        type: string
+      - description: アクティブな目標のみ
+        in: query
+        name: active_only
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.GetGoalsByUserOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 目標一覧取得
+      tags:
+      - goals
+    post:
+      consumes:
+      - application/json
+      description: 新しい財務目標を作成します
+      parameters:
+      - description: 目標作成リクエスト
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.CreateGoalRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/usecases.CreateGoalOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 目標作成
+      tags:
+      - goals
+  /goals/{id}:
+    delete:
+      description: 目標を削除します
+      parameters:
+      - description: 目標ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: ユーザーID
+        in: query
+        name: user_id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 目標削除
+      tags:
+      - goals
+    get:
+      description: 特定の目標を取得します
+      parameters:
+      - description: 目標ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: ユーザーID
+        in: query
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.GetGoalOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 目標取得
+      tags:
+      - goals
+    put:
+      consumes:
+      - application/json
+      description: 目標を更新します
+      parameters:
+      - description: 目標ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: ユーザーID
+        in: query
+        name: user_id
+        required: true
+        type: string
+      - description: 目標更新リクエスト
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.UpdateGoalRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.UpdateGoalOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 目標更新
+      tags:
+      - goals
+  /goals/{id}/feasibility:
+    get:
+      description: 目標の実現可能性を分析します
+      parameters:
+      - description: 目標ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: ユーザーID
+        in: query
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.AnalyzeGoalFeasibilityOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 目標実現可能性分析
+      tags:
+      - goals
+  /goals/{id}/progress:
+    put:
+      consumes:
+      - application/json
+      description: 目標の進捗を更新します
+      parameters:
+      - description: 目標ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: ユーザーID
+        in: query
+        name: user_id
+        required: true
+        type: string
+      - description: 目標進捗更新リクエスト
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.UpdateGoalProgressRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.UpdateGoalProgressOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 目標進捗更新
+      tags:
+      - goals
+  /goals/{id}/recommendations:
+    get:
+      description: 目標の推奨事項を取得します
+      parameters:
+      - description: 目標ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: ユーザーID
+        in: query
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.GetGoalRecommendationsOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 目標推奨事項取得
+      tags:
+      - goals
+  /reports/asset-projection:
+    post:
+      consumes:
+      - application/json
+      description: 資産推移レポートを生成します
+      parameters:
+      - description: 資産推移レポート生成リクエスト
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.AssetProjectionReportRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.AssetProjectionReportOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 資産推移レポート生成
+      tags:
+      - reports
+  /reports/comprehensive:
+    post:
+      consumes:
+      - application/json
+      description: 包括的レポートを生成します
+      parameters:
+      - description: 包括的レポート生成リクエスト
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.ComprehensiveReportRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.ComprehensiveReportOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 包括的レポート生成
+      tags:
+      - reports
+  /reports/download/{token}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        生成されたレポートファイルをダウンロードします
+        署名付きトークンを使用してレポートファイルをダウンロードします
+      parameters:
+      - description: ダウンロードトークン
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/pdf
+      responses:
+        "200":
+          description: PDFファイル
+          schema:
+            type: file
+        "400":
+          description: 無効なリクエスト
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: ファイルが見つかりません
+          schema:
+            additionalProperties: true
+            type: object
+        "410":
+          description: ファイルの有効期限が切れています
+          schema:
+            additionalProperties: true
+            type: object
+      summary: レポートのダウンロード
+      tags:
+      - reports
+      - reports
+  /reports/export:
+    post:
+      consumes:
+      - application/json
+      description: レポートをPDF形式でエクスポートします
+      parameters:
+      - description: レポートエクスポートリクエスト
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.ExportReportRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.ExportReportOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: レポートPDFエクスポート
+      tags:
+      - reports
+  /reports/financial-summary:
+    post:
+      consumes:
+      - application/json
+      description: 財務サマリーレポートを生成します
+      parameters:
+      - description: 財務サマリーレポート生成リクエスト
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.FinancialSummaryReportRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.FinancialSummaryReportOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 財務サマリーレポート生成
+      tags:
+      - reports
+  /reports/goals-progress:
+    post:
+      consumes:
+      - application/json
+      description: 目標進捗レポートを生成します
+      parameters:
+      - description: 目標進捗レポート生成リクエスト
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.GoalsProgressReportRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.GoalsProgressReportOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 目標進捗レポート生成
+      tags:
+      - reports
+  /reports/pdf:
+    get:
+      description: PDFレポートを取得します
+      parameters:
+      - description: ユーザーID
+        in: query
+        name: user_id
+        required: true
+        type: string
+      - description: レポートタイプ
+        enum:
+        - financial_summary
+        - comprehensive
+        in: query
+        name: report_type
+        type: string
+      - default: 10
+        description: 予測年数
+        in: query
+        name: years
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.ExportReportOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: PDFレポート取得
+      tags:
+      - reports
+  /reports/retirement-plan:
+    post:
+      consumes:
+      - application/json
+      description: 退職計画レポートを生成します
+      parameters:
+      - description: 退職計画レポート生成リクエスト
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.RetirementPlanReportRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.RetirementPlanReportOutput'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controllers.ErrorResponse'
+      summary: 退職計画レポート生成
+      tags:
+      - reports
+swagger: "2.0"
