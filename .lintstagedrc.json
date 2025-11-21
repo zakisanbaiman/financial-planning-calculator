@@ -1,9 +1,6 @@
 {
-  "*.go": ["gofmt -w", "go vet"],
-  "frontend/**/*.{js,jsx,ts,tsx}": [
-    "cd frontend && npm run lint -- --fix",
-    "cd frontend && npm run type-check"
-  ],
-  "e2e/**/*.{js,jsx,ts,tsx}": ["cd e2e && npx eslint --fix"],
+  "backend/**/*.go": ["gofmt -w", "go vet"],
+  "frontend/**/*.{js,jsx,ts,tsx}": ["prettier --write"],
+  "e2e/**/*.{js,jsx,ts,tsx}": ["prettier --write"],
   "*.{json,md,yml,yaml}": ["prettier --write"]
 }

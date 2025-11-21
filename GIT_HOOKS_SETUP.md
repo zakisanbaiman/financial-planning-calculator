@@ -42,30 +42,23 @@ make setup
 
 ### コミット前（pre-commit）
 
-#### Goファイル（\*.go）
+#### すべてのステージされたファイル
 
 ```bash
-gofmt -w    # フォーマット
-go vet      # 静的解析
+prettier --write    # フォーマット（JSON/YAML/Markdown/TS/JS）
 ```
 
-#### フロントエンド（frontend/\*_/_.{ts,tsx,js,jsx}）
+#### Goファイル（変更がある場合のみ）
 
 ```bash
-npm run lint -- --fix    # ESLint自動修正
-npm run type-check       # TypeScript型チェック
+go fmt ./...    # フォーマット
+go vet ./...    # 静的解析
 ```
 
-#### E2Eテスト（e2e/\*_/_.{ts,tsx,js,jsx}）
+#### フロントエンド（変更がある場合のみ）
 
 ```bash
-npx eslint --fix    # ESLint自動修正
-```
-
-#### その他（\*.{json,md,yml,yaml}）
-
-```bash
-prettier --write    # フォーマット
+npm run type-check    # TypeScript型チェック
 ```
 
 ### コミットメッセージ（commit-msg）

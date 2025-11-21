@@ -31,16 +31,15 @@ make dev
 
 コミット前に自動的に以下を実行：
 
-1. **Goコード**
-   - `gofmt -w` でフォーマット
+1. **すべてのファイル**
+   - Prettierでフォーマット
+
+2. **Goコード**（変更がある場合のみ）
+   - `go fmt` でフォーマット
    - `go vet` でチェック
 
-2. **TypeScript/JavaScript**
-   - ESLintで自動修正
-   - 型チェック
-
-3. **JSON/YAML/Markdown**
-   - Prettierでフォーマット
+3. **フロントエンド**（変更がある場合のみ）
+   - TypeScript型チェック
 
 ### commit-msg（コミットメッセージ）
 
