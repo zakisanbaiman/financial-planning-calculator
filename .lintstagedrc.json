@@ -1,0 +1,9 @@
+{
+  "*.go": ["gofmt -w", "go vet"],
+  "frontend/**/*.{js,jsx,ts,tsx}": [
+    "cd frontend && npm run lint -- --fix",
+    "cd frontend && npm run type-check"
+  ],
+  "e2e/**/*.{js,jsx,ts,tsx}": ["cd e2e && npx eslint --fix"],
+  "*.{json,md,yml,yaml}": ["prettier --write"]
+}
