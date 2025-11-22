@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+*.min.js
+*.min.css
+
+# Generated files
+coverage/
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Go
+*.exe
+*.test
+*.out
+server
+
+# Test results
+test-results/
+playwright-report/
+
+# Lock files (don't format)
+package-lock.json
+go.sum
+
+# Markdown in node_modules
+**/node_modules/**/*.md
