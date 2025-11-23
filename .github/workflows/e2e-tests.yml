@@ -2,9 +2,9 @@ name: E2E Tests
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   workflow_dispatch:
 
 jobs:
@@ -45,8 +45,9 @@ jobs:
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: |
+          npm cache clean --force || true
           if [ -f package-lock.json ]; then
-            npm ci
+            npm ci || npm install
           else
             npm install
           fi
@@ -54,8 +55,9 @@ jobs:
       - name: Install E2E test dependencies
         working-directory: ./e2e
         run: |
+          npm cache clean --force || true
           if [ -f package-lock.json ]; then
-            npm ci
+            npm ci || npm install
           else
             npm install
           fi
@@ -165,7 +167,7 @@ jobs:
           script: |
             const fs = require('fs');
             const resultsPath = 'e2e/test-results/results.json';
-            
+
             if (fs.existsSync(resultsPath)) {
               const results = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
               const { stats } = results;
