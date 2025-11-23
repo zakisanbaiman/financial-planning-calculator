@@ -234,12 +234,12 @@ func (wp *WorkerPool) Close() {
 
 // PerformanceMetrics tracks API performance metrics
 type PerformanceMetrics struct {
-	mu              sync.RWMutex
-	requestCount    int64
-	totalDuration   time.Duration
-	slowestRequest  time.Duration
-	fastestRequest  time.Duration
-	errorCount      int64
+	mu             sync.RWMutex
+	requestCount   int64
+	totalDuration  time.Duration
+	slowestRequest time.Duration
+	fastestRequest time.Duration
+	errorCount     int64
 }
 
 // NewPerformanceMetrics creates a new performance metrics tracker
@@ -325,7 +325,7 @@ type CompressionConfig struct {
 // GetOptimalCompressionConfig returns optimal compression settings
 func GetOptimalCompressionConfig() CompressionConfig {
 	return CompressionConfig{
-		Level:     5, // Balance between speed and compression ratio
+		Level:     5,    // Balance between speed and compression ratio
 		MinLength: 1024, // Only compress responses larger than 1KB
 	}
 }

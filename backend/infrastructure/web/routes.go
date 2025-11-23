@@ -32,7 +32,7 @@ func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencie
 
 	// API ルートグループ
 	api := e.Group("/api")
-	
+
 	// Apply integration middleware
 	api.Use(ErrorRecoveryMiddleware)
 	api.Use(RequestValidationMiddleware)

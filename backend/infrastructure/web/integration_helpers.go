@@ -11,11 +11,11 @@ import (
 
 // IntegrationHealthCheck performs comprehensive health checks for all system components
 type IntegrationHealthCheck struct {
-	Status     string                 `json:"status"`
-	Timestamp  string                 `json:"timestamp"`
-	Version    string                 `json:"version"`
+	Status     string                     `json:"status"`
+	Timestamp  string                     `json:"timestamp"`
+	Version    string                     `json:"version"`
 	Components map[string]ComponentHealth `json:"components"`
-	Uptime     string                 `json:"uptime"`
+	Uptime     string                     `json:"uptime"`
 }
 
 // ComponentHealth represents the health status of a single component
@@ -80,7 +80,7 @@ func IntegrationHealthCheckHandler(deps *ServerDependencies) echo.HandlerFunc {
 // checkDatabaseHealth checks database connectivity
 func checkDatabaseHealth(ctx context.Context, deps *ServerDependencies) ComponentHealth {
 	start := time.Now()
-	
+
 	// Try to ping database through repository
 	// Note: This is a simplified check - in production, you'd want actual DB ping
 	if deps.FinancialPlanRepo == nil {
@@ -162,9 +162,9 @@ func ErrorRecoveryMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 				if !ok {
 					err = fmt.Errorf("%v", r)
 				}
-				
+
 				c.Logger().Errorf("Panic recovered: %v", err)
-				
+
 				// Return user-friendly error
 				c.JSON(http.StatusInternalServerError, map[string]interface{}{
 					"error":      "内部サーバーエラーが発生しました",
@@ -174,7 +174,7 @@ func ErrorRecoveryMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 				})
 			}
 		}()
-		
+
 		return next(c)
 	}
 }
@@ -196,8 +196,8 @@ func RequestValidationMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		// Validate content type for POST/PUT requests
 		if c.Request().Method == http.MethodPost || c.Request().Method == http.MethodPut {
 			contentType := c.Request().Header.Get(echo.HeaderContentType)
-			if contentType != "" && contentType != echo.MIMEApplicationJSON && 
-			   contentType != echo.MIMEApplicationJSONCharsetUTF8 {
+			if contentType != "" && contentType != echo.MIMEApplicationJSON &&
+				contentType != echo.MIMEApplicationJSONCharsetUTF8 {
 				return echo.NewHTTPError(http.StatusUnsupportedMediaType, map[string]interface{}{
 					"error":   "サポートされていないコンテンツタイプです",
 					"code":    "UNSUPPORTED_MEDIA_TYPE",
@@ -217,10 +217,10 @@ func ResponseEnhancementMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		c.Response().Header().Set("X-Content-Type-Options", "nosniff")
 		c.Response().Header().Set("X-Frame-Options", "DENY")
 		c.Response().Header().Set("X-XSS-Protection", "1; mode=block")
-		
+
 		// Add API version header
 		c.Response().Header().Set("X-API-Version", "1.0.0")
-		
+
 		return next(c)
 	}
 }
