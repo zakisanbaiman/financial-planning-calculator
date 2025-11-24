@@ -46,9 +46,17 @@ func TestSetupRoutes(t *testing.T) {
 		Reports:       nil,
 	}
 
+	// Create minimal ServerDependencies for testing (all nils are acceptable here)
+	deps := &ServerDependencies{
+		FinancialPlanRepo:    nil,
+		GoalRepo:             nil,
+		CalculationService:   nil,
+		RecommendationService: nil,
+	}
+
 	// This should not panic
 	assert.NotPanics(t, func() {
-		SetupRoutes(e, controllers)
+		SetupRoutes(e, controllers, deps)
 	})
 
 	// Verify that routes are registered
