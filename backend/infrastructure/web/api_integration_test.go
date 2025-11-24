@@ -252,8 +252,16 @@ func setupTestServer() (*echo.Echo, *MockManageFinancialDataUseCase, *MockCalcul
 		Reports:       controllers.NewReportsController(mockReportsUseCase),
 	}
 
+	// Create minimal ServerDependencies for testing
+	deps := &ServerDependencies{
+		FinancialPlanRepo:    nil,
+		GoalRepo:             nil,
+		CalculationService:   nil,
+		RecommendationService: nil,
+	}
+
 	// Setup routes
-	SetupRoutes(e, controllers)
+	SetupRoutes(e, controllers, deps)
 
 	return e, mockFinancialUseCase, mockCalculationUseCase, mockGoalsUseCase, mockReportsUseCase
 }
