@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -47,7 +46,7 @@ func main() {
 	controllers := web.NewControllers(deps)
 
 	// ルーティング設定
-	web.SetupRoutes(e, controllers)
+	web.SetupRoutes(e, controllers, deps)
 
 	// pprofサーバーの起動（開発環境のみ）
 	if cfg.EnablePprof {
@@ -74,10 +73,14 @@ func main() {
 
 // initializeDependencies initializes all dependencies for the application
 func initializeDependencies() *web.ServerDependencies {
+	// Initialize database connection
+	dbConfig := config.NewDatabaseConfig()
+	db, err := config.NewDatabaseConnection(dbConfig)
+	if err != nil {
+		log.Fatalf("データベース接続の初期化に失敗しました: %v", err)
+	}
+
 	// Initialize repositories
-	// Note: For now using nil database connection - this should be replaced with actual DB connection
-	// The repository factory will handle the database connection
-	var db *sql.DB // This should be initialized with actual database connection
 	repoFactory := repositories.NewRepositoryFactory(db)
 
 	financialPlanRepo := repoFactory.NewFinancialPlanRepository()

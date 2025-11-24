@@ -1,176 +1,205 @@
-# Docker環境用Makefile
-
-.PHONY: help build up down logs clean migrate seed reset test
+.PHONY: help install setup lint format test clean dev build
 
 # デフォルトターゲット
 help:
-	@echo "財務計画計算機 - Docker開発環境"
-	@echo "================================"
-	@echo "利用可能なコマンド:"
-	@echo "  build     - Dockerイメージをビルド"
-	@echo "  up        - 開発環境を起動（バックエンド + DB）"
-	@echo "  up-full   - 全サービスを起動（フロントエンド含む）"
-	@echo "  down      - 環境を停止"
-	@echo "  logs      - ログを表示"
-	@echo "  clean     - 全てのコンテナとボリュームを削除"
-	@echo "  migrate   - データベースマイグレーションを実行"
-	@echo "  seed      - サンプルデータを投入"
-	@echo "  reset     - データベースをリセット"
-	@echo "  test      - テストを実行"
-	@echo "  lint      - Lintを実行"
-	@echo "  lint-verbose - Lintを実行（詳細ログ）"
-	@echo "  go-build  - Goアプリケーションをビルド"
-	@echo "  go-fmt    - コードをフォーマット"
-	@echo "  go-run    - Goコマンドを実行（例: make go-run CMD='go version'）"
-	@echo "  shell-db  - データベースに接続"
-	@echo "  shell-api - バックエンドコンテナに接続"
-
-# Dockerイメージをビルド
-build:
-	@echo "Dockerイメージをビルド中..."
-	docker-compose build
-
-# 開発環境を起動（バックエンド + DB）
-up:
-	@echo "開発環境を起動中..."
-	docker-compose up -d postgres backend
-	@echo "起動完了！"
-	@echo "API: http://localhost:8080"
-	@echo "Swagger: http://localhost:8080/swagger/index.html"
-
-# 全サービスを起動（フロントエンド含む）
-up-full:
-	@echo "全サービスを起動中..."
-	docker-compose --profile frontend up -d
-	@echo "起動完了！"
-	@echo "フロントエンド: http://localhost:3000"
-	@echo "API: http://localhost:8080"
-
-# 環境を停止
-down:
-	@echo "環境を停止中..."
-	docker-compose down
-
-# ログを表示
-logs:
-	docker-compose logs -f
-
-# 特定サービスのログを表示
-logs-api:
-	docker-compose logs -f backend
-
-logs-db:
-	docker-compose logs -f postgres
-
-# 全てのコンテナとボリュームを削除
-clean:
-	@echo "全てのコンテナとボリュームを削除中..."
-	docker-compose down -v --remove-orphans
-	docker system prune -f
-
-# データベースマイグレーションを実行
-migrate:
-	@echo "マイグレーションを実行中..."
-	docker-compose run --rm db-tools go run ./cmd/migrate/main.go -command=up
-
-# マイグレーション状況を確認
-migrate-status:
-	@echo "マイグレーション状況を確認中..."
-	docker-compose run --rm db-tools go run ./cmd/migrate/main.go -command=status
-
-# マイグレーションをロールバック
-migrate-down:
-	@echo "マイグレーションをロールバック中..."
-	docker-compose run --rm db-tools go run ./cmd/migrate/main.go -command=down
-
-# サンプルデータを投入
-seed:
-	@echo "サンプルデータを投入中..."
-	docker-compose run --rm db-tools go run ./cmd/seed/main.go
-
-# データベースをリセット（マイグレーション + シード）
-reset: migrate seed
-	@echo "データベースのリセットが完了しました"
-
-# テストを実行
-test:
-	@echo "テストを実行中..."
-	docker-compose run --rm backend go test ./... -v
-
-# テスト（カバレッジ付き）
-test-coverage:
-	@echo "カバレッジ付きでテストを実行中..."
-	docker-compose run --rm backend go test ./... -v -coverprofile=coverage.out
-	docker-compose run --rm backend go tool cover -html=coverage.out -o coverage.html
-
-# データベースに接続
-shell-db:
-	@echo "PostgreSQLに接続中..."
-	docker-compose exec postgres psql -U postgres -d financial_planning
-
-# バックエンドコンテナに接続
-shell-api:
-	@echo "バックエンドコンテナに接続中..."
-	docker-compose exec backend sh
-
-# 開発環境のセットアップ
-dev-setup: build up wait-for-services migrate seed
-	@echo "開発環境のセットアップが完了しました！"
+	@echo "Financial Planning Calculator - Make Commands"
 	@echo ""
-	@echo "🎉 セットアップ完了！"
-	@echo "API: http://localhost:8080"
-	@echo "Swagger: http://localhost:8080/swagger/index.html"
-	@echo "データベース: localhost:5432"
+	@echo "Setup:"
+	@echo "  make install    - Install all dependencies"
+	@echo "  make setup      - Setup Git hooks and tools"
+	@echo ""
+	@echo "Development:"
+	@echo "  make dev        - Start development servers"
+	@echo "  make lint       - Run linters"
+	@echo "  make format     - Format code"
+	@echo "  make test       - Run all tests"
+	@echo ""
+	@echo "CI (Local):"
+	@echo "  make ci         - Run all CI checks (lint + test + pr-check)"
+	@echo "  make ci-lint    - Run lint workflow (backend + frontend)"
+	@echo "  make ci-test    - Run test workflow (backend + frontend)"
+	@echo "  make ci-pr-check - Run PR check workflow (quick tests)"
+	@echo "  make ci-e2e     - Run E2E tests (requires DB and servers)"
+	@echo "  make ci-all     - Run all CI workflows (except E2E)"
+	@echo "  make ci-quick   - Run quick CI checks (lint + pr-check)"
+	@echo "  ./scripts/run-ci-local.sh [workflow] - Run specific workflow"
+	@echo ""
+	@echo "Build:"
+	@echo "  make build      - Build all projects"
+	@echo "  make clean      - Clean build artifacts"
 
-# サービスの起動を待機
-wait-for-services:
-	@echo "サービスの起動を待機中..."
-	@timeout=60; \
-	while [ $$timeout -gt 0 ]; do \
-		if docker-compose exec -T postgres pg_isready -U postgres -d financial_planning >/dev/null 2>&1; then \
-			echo "✅ PostgreSQLが起動しました"; \
-			break; \
-		fi; \
-		echo "PostgreSQLの起動を待機中... (残り$${timeout}秒)"; \
-		sleep 2; \
-		timeout=$$((timeout-2)); \
-	done; \
-	if [ $$timeout -le 0 ]; then \
-		echo "❌ PostgreSQLの起動がタイムアウトしました"; \
-		exit 1; \
-	fi
+# 依存関係のインストール
+install:
+	@echo "Installing root dependencies..."
+	npm install
+	@echo "Installing frontend dependencies..."
+	cd frontend && npm install
+	@echo "Installing e2e dependencies..."
+	cd e2e && npm install
+	@echo "Installing backend dependencies..."
+	cd backend && go mod download
 
-# 本番用ビルド
-build-prod:
-	@echo "本番用イメージをビルド中..."
-	docker-compose -f docker-compose.yml -f docker-compose.prod.yml build
+# Git hooksのセットアップ
+setup:
+	@echo "Setting up Git hooks..."
+	npm run prepare
+	@echo "Git hooks installed!"
+
+# Lintの実行
+lint:
+	@echo "Running linters..."
+	npm run lint
+
+# コードフォーマット
+format:
+	@echo "Formatting code..."
+	npm run format
+	@echo "Formatting YAML files..."
+	npx prettier --write "**/*.{yml,yaml,json,md}"
+
+# テストの実行
+test:
+	@echo "Running tests..."
+	npm run test
+
+# E2Eテストの実行
+test-e2e:
+	@echo "Running E2E tests..."
+	npm run test:e2e
+
+# 統合テストの実行
+test-integration:
+	@echo "Running integration tests..."
+	./scripts/test-integration.sh
+
+# 開発サーバーの起動
+dev:
+	@echo "Starting development servers..."
+	@echo "Backend: http://localhost:8080"
+	@echo "Frontend: http://localhost:3000"
+	@echo ""
+	@echo "Press Ctrl+C to stop"
+	@make -j2 dev-backend dev-frontend
+
+dev-backend:
+	cd backend && go run main.go
+
+dev-frontend:
+	cd frontend && npm run dev
+
+# ビルド
+build:
+	@echo "Building projects..."
+	npm run build:backend
+	npm run build:frontend
+
+# クリーンアップ
+clean:
+	@echo "Cleaning build artifacts..."
+	rm -rf frontend/.next
+	rm -rf frontend/out
+	rm -rf backend/server
+	rm -rf e2e/test-results
+	rm -rf e2e/playwright-report
+	@echo "Clean complete!"
+
+# バックエンドのみ起動
+backend:
+	cd backend && go run main.go
+
+# フロントエンドのみ起動
+frontend:
+	cd frontend && npm run dev
+
+# データベースのセットアップ（将来用）
+db-setup:
+	@echo "Setting up database..."
+	# TODO: Add database setup commands
 
 # 依存関係の更新
-update-deps:
-	@echo "依存関係を更新中..."
-	docker-compose run --rm backend go mod tidy
-	docker-compose run --rm backend go mod download
+update:
+	@echo "Updating dependencies..."
+	cd frontend && npm update
+	cd e2e && npm update
+	cd backend && go get -u ./...
+	cd backend && go mod tidy
 
-# Lintを実行
-lint:
-	@echo "Lintを実行中..."
-	docker-compose run --rm backend golangci-lint run -v
+# セキュリティチェック
+security:
+	@echo "Running security checks..."
+	cd frontend && npm audit
+	cd e2e && npm audit
+	cd backend && go list -json -m all | nancy sleuth
 
-# Lintを実行（詳細ログ付き）
-lint-verbose:
-	@echo "Lintを実行中（詳細ログ）..."
-	docker-compose run --rm backend golangci-lint run -v --print-issued-lines --print-linter-name
+# CIワークフローをローカルで実行
+ci: ci-lint ci-test ci-pr-check
+	@echo "✅ All CI checks passed!"
 
-# Goコマンドを実行（例: make go-run CMD="go version"）
-go-run:
-	docker-compose run --rm backend $(CMD)
+# Lintワークフロー（.github/workflows/lint.yml相当）
+ci-lint: ci-lint-backend ci-lint-frontend
+	@echo "✅ Lint checks passed!"
 
-# ビルドを実行
-go-build:
-	@echo "ビルドを実行中..."
-	docker-compose run --rm backend go build -o bin/server ./main.go
+ci-lint-backend:
+	@echo "🔍 Running Go lint checks..."
+	@cd backend && \
+		go mod download && \
+		go mod tidy && \
+		go mod verify && \
+		(which golangci-lint > /dev/null && golangci-lint run --timeout=5m --verbose || echo "⚠️  golangci-lint not installed, skipping...") && \
+		go fmt ./... && \
+		go vet ./...
 
-# フォーマットを実行
-go-fmt:
-	@echo "コードをフォーマット中..."
-	docker-compose run --rm backend go fmt ./...
+ci-lint-frontend:
+	@echo "🔍 Running Frontend lint checks..."
+	@cd frontend && \
+		(npm ci || npm install) && \
+		([ -f .eslintrc.json ] || echo '{"extends": ["next/core-web-vitals"]}' > .eslintrc.json) && \
+		npm run type-check && \
+		npm run lint -- --max-warnings 0
+
+# Testワークフロー（.github/workflows/test.yml相当）
+ci-test: ci-test-backend ci-test-frontend
+	@echo "✅ Test checks passed!"
+
+ci-test-backend:
+	@echo "🧪 Running Backend tests..."
+	@cd backend && \
+		go mod download && \
+		go mod tidy && \
+		go mod verify && \
+		go build -v ./... && \
+		go test -v -race -timeout 30s ./... && \
+		go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+
+ci-test-frontend:
+	@echo "🧪 Running Frontend build..."
+	@cd frontend && \
+		(npm ci || npm install) && \
+		npm run build
+
+# PR Checkワークフロー（.github/workflows/pr-check.yml相当）
+ci-pr-check:
+	@echo "🔍 Running PR check (quick tests)..."
+	@cd backend && \
+		go mod download && \
+		go mod tidy && \
+		go vet ./... && \
+		go test -v -short ./...
+
+# E2Eテストワークフロー（.github/workflows/e2e-tests.yml相当）
+# 注意: データベースとサーバーが必要です
+ci-e2e:
+	@echo "🧪 Running E2E tests..."
+	@echo "⚠️  Make sure database and servers are running!"
+	@cd e2e && \
+		(npm ci || npm install) && \
+		npx playwright install --with-deps && \
+		npm test
+
+# すべてのCIワークフローを実行（E2E除く）
+ci-all: ci-lint ci-test ci-pr-check
+	@echo "✅ All CI checks (except E2E) passed!"
+
+# クイックチェック（lint + クイックテスト）
+ci-quick: ci-lint-backend ci-pr-check
+	@echo "✅ Quick CI checks passed!"

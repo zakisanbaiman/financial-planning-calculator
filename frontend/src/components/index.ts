@@ -37,3 +37,9 @@ export { default as AssetProjectionChart } from './AssetProjectionChart';
 export { default as AssetProjectionCalculator } from './AssetProjectionCalculator';
 export { default as RetirementCalculator } from './RetirementCalculator';
 export { default as EmergencyFundCalculator } from './EmergencyFundCalculator';
+
+// Error Handling Components
+export { ErrorBoundary, APIErrorDisplay } from './ErrorBoundary';
+
+// Connection Status Components
+export { ConnectionStatus, InlineConnectionStatus } from './ConnectionStatus';

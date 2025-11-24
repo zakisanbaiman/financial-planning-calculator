@@ -1,0 +1,6 @@
+{
+  "backend/**/*.go": ["gofmt -w", "go vet"],
+  "frontend/**/*.{js,jsx,ts,tsx}": ["prettier --write"],
+  "e2e/**/*.{js,jsx,ts,tsx}": ["prettier --write"],
+  "*.{json,md,yml,yaml}": ["prettier --write"]
+}
