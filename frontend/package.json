@@ -13,7 +13,7 @@
     "next": "14.2.33",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "critters": "^2.2.3",
+    "critters": "^0.0.25",
     "chart.js": "^4.4.0",
     "react-chartjs-2": "^5.2.0",
     "zod": "^3.22.4",
