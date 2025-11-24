@@ -72,6 +72,19 @@ jobs:
         working-directory: ./backend
         run: go mod download
 
+      - name: Ensure go.mod/go.sum are tidy
+        working-directory: ./backend
+        run: |
+          set -euo pipefail
+          echo "Running go mod tidy to verify dependency files"
+          go mod tidy
+          # If go mod tidy changed files, fail and show diff so author can commit go.sum/go.mod
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "ERROR: 'go mod tidy' modified tracked files. Please run 'go mod tidy' locally and commit the updated go.mod/go.sum."
+            git --no-pager --no-color diff || true
+            exit 1
+          fi
+
       - name: Setup database
         working-directory: ./backend
         env:
