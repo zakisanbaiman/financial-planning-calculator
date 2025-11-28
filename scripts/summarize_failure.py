@@ -9,11 +9,12 @@ GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 REPO_OWNER = os.environ["REPO_OWNER"]
 REPO_NAME = os.environ["REPO_NAME"]
 WORKFLOW_RUN_ID = os.environ["WORKFLOW_RUN_ID"]
+HEAD_SHA = os.environ["HEAD_SHA"]
 API_URL = "https://api.github.com"
 
 # --- Main Logic ---
 
-def get_pr_for_workflow_run(client: httpx.Client, run_id: str) -> dict | None:
+def get_pr_for_workflow_run(client: httpx.Client, run_id: str, head_sha: str) -> dict | None:
     """Fetches the pull request associated with a workflow run."""
     print(f"Fetching workflow run {run_id}...")
     response = client.get(
@@ -22,12 +23,28 @@ def get_pr_for_workflow_run(client: httpx.Client, run_id: str) -> dict | None:
     response.raise_for_status()
     run_data = response.json()
 
-    if not run_data.get("pull_requests"):
-        print("No pull requests associated with this workflow run.")
-        return None
+    # Method 1: Check the pull_requests array in the workflow_run event
+    if run_data.get("pull_requests"):
+        print("Found PR via workflow_run.pull_requests array.")
+        return run_data["pull_requests"][0]
     
-    # Return the first PR found
-    return run_data["pull_requests"][0]
+    # Method 2: If the above is empty, find PR associated with the head SHA
+    print(f"Could not find PR in workflow_run event. Trying to find PR for SHA: {head_sha}")
+    # This API is in preview, so we need to provide a custom media type.
+    headers = {"Accept": "application/vnd.github.groot-preview+json"}
+    response = client.get(
+        f"/repos/{REPO_OWNER}/{REPO_NAME}/commits/{head_sha}/pulls",
+        headers=headers
+    )
+    response.raise_for_status()
+    prs_data = response.json()
+
+    if not prs_data:
+        print(f"No pull requests found for SHA {head_sha}.")
+        return None
+
+    print(f"Found {len(prs_data)} PR(s) for SHA {head_sha}. Using the first one.")
+    return prs_data[0]
 
 
 def get_failed_jobs(client: httpx.Client, run_id: str) -> list[dict]:
@@ -90,7 +107,7 @@ def main():
     }
     with httpx.Client(base_url=API_URL, headers=headers, timeout=30.0) as client:
         # 1. Find the PR
-        pr = get_pr_for_workflow_run(client, WORKFLOW_RUN_ID)
+        pr = get_pr_for_workflow_run(client, WORKFLOW_RUN_ID, HEAD_SHA)
         if not pr:
             sys.exit(0)
         pr_number = pr["number"]

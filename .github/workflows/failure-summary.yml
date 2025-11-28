@@ -36,5 +36,6 @@ jobs:
           WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
           REPO_OWNER: ${{ github.repository_owner }}
           REPO_NAME: ${{ github.event.repository.name }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           python scripts/summarize_failure.py
