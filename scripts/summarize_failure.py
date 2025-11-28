@@ -1,0 +1,128 @@
+import os
+import sys
+import httpx
+import zipfile
+import io
+
+# --- Configuration ---
+GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
+REPO_OWNER = os.environ["REPO_OWNER"]
+REPO_NAME = os.environ["REPO_NAME"]
+WORKFLOW_RUN_ID = os.environ["WORKFLOW_RUN_ID"]
+API_URL = "https://api.github.com"
+
+# --- Main Logic ---
+
+def get_pr_for_workflow_run(client: httpx.Client, run_id: str) -> dict | None:
+    """Fetches the pull request associated with a workflow run."""
+    print(f"Fetching workflow run {run_id}...")
+    response = client.get(
+        f"/repos/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run_id}"
+    )
+    response.raise_for_status()
+    run_data = response.json()
+
+    if not run_data.get("pull_requests"):
+        print("No pull requests associated with this workflow run.")
+        return None
+    
+    # Return the first PR found
+    return run_data["pull_requests"][0]
+
+
+def get_failed_jobs(client: httpx.Client, run_id: str) -> list[dict]:
+    """Gets all failed jobs for a given workflow run."""
+    print(f"Fetching jobs for workflow run {run_id}...")
+    response = client.get(
+        f"/repos/{REPO_OWNER}/{REPO_NAME}/actions/runs/{run_id}/jobs"
+    )
+    response.raise_for_status()
+    jobs = response.json().get("jobs", [])
+    
+    failed_jobs = [
+        job for job in jobs if job.get("conclusion") == "failure"
+    ]
+    print(f"Found {len(failed_jobs)} failed jobs.")
+    return failed_jobs
+
+def get_job_logs(client: httpx.Client, job_id: int) -> str:
+    """Downloads and extracts logs for a specific job."""
+    print(f"Fetching logs for job {job_id}...")
+    log_zip_response = client.get(
+        f"/repos/{REPO_OWNER}/{REPO_NAME}/actions/jobs/{job_id}/logs"
+    )
+    log_zip_response.raise_for_status()
+
+    log_content = ""
+    with zipfile.ZipFile(io.BytesIO(log_zip_response.content)) as zf:
+        for filename in zf.namelist():
+            # We are interested in the log file itself, not sub-steps
+            if "/" not in filename: 
+                with zf.open(filename) as f:
+                    try:
+                        log_content += f.read().decode("utf-8", errors="ignore")
+                        log_content += "\n" # Add a newline for readability between files if multiple
+                    except Exception as e:
+                        log_content += f"Could not read log file {filename}: {e}\n"
+    
+    return log_content.strip()
+
+def post_comment(client: httpx.Client, pr_number: int, comment: str):
+    """Posts a comment to a pull request."""
+    print(f"Posting comment to PR #{pr_number}...")
+    response = client.post(
+        f"/repos/{REPO_OWNER}/{REPO_NAME}/issues/{pr_number}/comments",
+        json={"body": comment},
+    )
+    try:
+        response.raise_for_status()
+        print("Successfully posted comment.")
+    except httpx.HTTPStatusError as e:
+        print(f"Error posting comment: {e.response.status_code}")
+        print(f"Response: {e.response.text}")
+        sys.exit(1)
+
+def main():
+    """Main function to orchestrate the process."""
+    headers = {
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json",
+    }
+    with httpx.Client(base_url=API_URL, headers=headers, timeout=30.0) as client:
+        # 1. Find the PR
+        pr = get_pr_for_workflow_run(client, WORKFLOW_RUN_ID)
+        if not pr:
+            sys.exit(0)
+        pr_number = pr["number"]
+
+        # 2. Get failed jobs
+        failed_jobs = get_failed_jobs(client, WORKFLOW_RUN_ID)
+        if not failed_jobs:
+            print("Workflow run failed, but no specific jobs were marked as failed. Exiting.")
+            sys.exit(0)
+
+        # 3. Build the comment
+        comment_body = "## 🤖 GitHub Actions Failure Analysis\n\n"
+        comment_body += "One or more jobs failed. Here are the logs from the failed jobs:\n\n"
+
+        for job in failed_jobs:
+            job_id = job["id"]
+            job_name = job["name"]
+            logs = get_job_logs(client, job_id)
+
+            comment_body += f"### ❌ Job: `{job_name}`\n"
+            comment_body += f"<{job['html_url']}|View Full Log>\n\n"
+            comment_body += "<details><summary>Click to view raw log snippet</summary>\n\n"
+            comment_body += "```\n"
+            comment_body += logs
+            comment_body += "\n```\n"
+            comment_body += "</details>\n\n"
+
+        # 4. Print the comment body to console
+        print("\n--- GENERATED COMMENT BODY ---\n")
+        print(comment_body)
+        print("\n--- END GENERATED COMMENT BODY ---\n")
+
+
+if __name__ == "__main__":
+    main()
