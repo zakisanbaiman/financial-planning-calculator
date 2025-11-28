@@ -55,6 +55,9 @@ jobs:
           echo "Running go vet..."
           go vet ./...
 
+      - name: Force failure for bot test # Botテスト用に強制的に失敗させる
+        run: exit 1
+
   frontend-lint:
     name: Frontend Lint
     runs-on: ubuntu-latest
