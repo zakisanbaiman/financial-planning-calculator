@@ -99,6 +99,34 @@ def post_comment(client: httpx.Client, pr_number: int, comment: str):
         print(f"Response: {e.response.text}")
         sys.exit(1)
 
+def get_log_for_failed_step(full_log: str, step_name: str) -> str:
+    """Parses a full log to extract the output of a specific step."""
+    log_lines = full_log.splitlines()
+    start_marker = f"##[group]Run {step_name}"
+    # Sometimes the step name in the log is just the name, not "Run {name}"
+    # e.g. for `actions/checkout` it's just "Checkout repository"
+    alt_start_marker = f"##[group]{step_name}"
+    end_marker = "##[endgroup]"
+    
+    step_log_lines = []
+    in_step_log = False
+
+    for line in log_lines:
+        if start_marker in line or alt_start_marker in line:
+            in_step_log = True
+            continue
+        if end_marker in line and in_step_log:
+            break
+        if in_step_log:
+            step_log_lines.append(line)
+
+    if not step_log_lines:
+        # Fallback if group markers aren't found, return last 50 lines
+        return "\n".join(log_lines[-50:])
+        
+    return "\n".join(step_log_lines)
+
+
 def main():
     """Main function to orchestrate the process."""
     headers = {
@@ -119,26 +147,37 @@ def main():
             sys.exit(0)
 
         # 3. Build the comment
-        comment_body = "## 🤖 GitHub Actions Failure Analysis\n\n"
-        comment_body += "One or more jobs failed. Here are the logs from the failed jobs:\n\n"
+        comment_body = f"## 🤖 GitHub Actions Failure Analysis for run <{failed_jobs[0]['run_url']}|#{failed_jobs[0]['run_attempt']}>\n\n"
+        comment_body += "A CI job failed. Here is a summary of the failing step:\n\n"
 
         for job in failed_jobs:
             job_id = job["id"]
             job_name = job["name"]
-            logs = get_job_logs(client, job_id)
+            
+            # Find the failing step
+            failing_step = None
+            for step in job.get("steps", []):
+                if step.get("conclusion") == "failure":
+                    failing_step = step
+                    break
+            
+            if not failing_step:
+                comment_body += f"### ⚠️ Job: `{job_name}`\n"
+                comment_body += f"Could not determine the exact failing step. <{job['html_url']}|View Full Log>\n\n"
+                continue
 
-            comment_body += f"### ❌ Job: `{job_name}`\n"
-            comment_body += f"<{job['html_url']}|View Full Log>\n\n"
-            comment_body += "<details><summary>Click to view raw log snippet</summary>\n\n"
+            full_logs = get_job_logs(client, job_id)
+            step_logs = get_log_for_failed_step(full_logs, failing_step['name'])
+
+            comment_body += f"### ❌ Job: `{job_name}` / Step: `{failing_step['name']}`\n\n"
             comment_body += "```\n"
-            comment_body += logs
+            comment_body += step_logs.strip()
             comment_body += "\n```\n"
-            comment_body += "</details>\n\n"
+            comment_body += f"<{job['html_url']}|View Full Log>\n\n"
 
-        # 4. Print the comment body to console
-        print("\n--- GENERATED COMMENT BODY ---\n")
-        print(comment_body)
-        print("\n--- END GENERATED COMMENT BODY ---\n")
+
+        # 4. Post the comment
+        post_comment(client, pr_number, comment_body)
 
 
 if __name__ == "__main__":
