@@ -14,6 +14,8 @@ jobs:
         go-version: ['1.21']
     
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
         with:
@@ -56,6 +58,8 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Setup Node.js Environment
         uses: ./.github/actions/setup-node
         with:

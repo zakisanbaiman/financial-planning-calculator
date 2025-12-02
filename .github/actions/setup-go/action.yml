@@ -11,9 +11,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
     - name: Set up Go ${{ inputs.go-version }}
       uses: actions/setup-go@v5
       with:

@@ -40,11 +40,14 @@ jobs:
           node-version: '20'
           working-directory: './frontend'
 
-      - name: Setup Node.js Environment (E2E)
-        uses: ./.github/actions/setup-node
-        with:
-          node-version: '20'
-          working-directory: './e2e'
+      - name: Install E2E dependencies
+        working-directory: ./e2e
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
       - name: Install Playwright Browsers
         working-directory: ./e2e
         run: npx playwright install --with-deps
