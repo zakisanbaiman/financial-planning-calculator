@@ -34,20 +34,21 @@ jobs:
           - 5432:5432
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup Node.js Environment (Frontend)
         uses: ./.github/actions/setup-node
         with:
           node-version: '20'
           working-directory: './frontend'
 
-      - name: Install E2E dependencies
-        working-directory: ./e2e
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install
-          fi
+      - name: Setup Node.js Environment (E2E)
+        uses: ./.github/actions/setup-node
+        with:
+          node-version: '20'
+          working-directory: './e2e'
+      
       - name: Install Playwright Browsers
         working-directory: ./e2e
         run: npx playwright install --with-deps
