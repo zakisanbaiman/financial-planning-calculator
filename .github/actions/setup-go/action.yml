@@ -1,0 +1,33 @@
+# .github/actions/setup-go/action.yml
+name: 'Composite Go Setup'
+description: 'Checks out code, sets up Go, caches modules, and installs dependencies'
+
+inputs:
+  go-version:
+    required: true
+    type: string
+    description: "Go version to use"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Go ${{ inputs.go-version }}
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ inputs.go-version }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ inputs.go-version }}-${{ hashFiles('backend/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-${{ inputs.go-version }}-
+          ${{ runner.os }}-go-
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: ./backend
+      run: go mod download

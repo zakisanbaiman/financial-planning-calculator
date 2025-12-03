@@ -1,0 +1,33 @@
+# .github/actions/setup-node/action.yml
+name: 'Composite Node.js Setup'
+description: 'Checks out code, sets up Node.js, caches npm modules, and installs dependencies'
+
+inputs:
+  node-version:
+    required: true
+    type: string
+    description: "Node.js version to use"
+  working-directory:
+    required: false
+    type: string
+    default: "."
+    description: "Working directory for npm install/ci"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Node.js ${{ inputs.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'npm' # npmキャッシュを有効化
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [ -f package-lock.json ]; then
+          npm ci
+        else
+          npm install
+        fi
