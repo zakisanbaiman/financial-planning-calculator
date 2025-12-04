@@ -20,11 +20,11 @@ jobs:
         working-directory: ./backend
         run: go mod tidy
     
-    - name: Run go vet
-      working-directory: ./backend
-      run: go vet ./...
-    
-    - name: Run tests
-      working-directory: ./backend
-      run: go test -v -short ./...
+      - name: Run go vet
+        working-directory: ./backend
+        run: go vet ./...
+      
+      - name: Run tests
+        working-directory: ./backend
+        run: go test -v -short ./...
 
