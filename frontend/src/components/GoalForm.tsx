@@ -27,6 +27,12 @@ const goalTypeLabels: Record<GoalType, string> = {
   custom: 'カスタム',
 };
 
+const getDefaultTargetDate = () => {
+  const today = new Date();
+  today.setFullYear(today.getFullYear() + 1); // 今から1年後
+  return today.toISOString().split('T')[0];
+};
+
 const GoalForm: React.FC<GoalFormProps> = ({
   initialData,
   userId,
@@ -36,13 +42,13 @@ const GoalForm: React.FC<GoalFormProps> = ({
 }) => {
   const [type, setType] = useState<GoalType>(initialData?.type || 'savings');
   const [title, setTitle] = useState(initialData?.title || '');
-  const [targetAmount, setTargetAmount] = useState(initialData?.target_amount || 0);
+  const [targetAmount, setTargetAmount] = useState(initialData?.target_amount || 5000000); // デフォルト値を500万円に設定
   const [targetDate, setTargetDate] = useState(
-    initialData?.target_date ? initialData.target_date.split('T')[0] : ''
+    initialData?.target_date ? initialData.target_date.split('T')[0] : getDefaultTargetDate() // 1年後の日付をデフォルトに設定
   );
-  const [currentAmount, setCurrentAmount] = useState(initialData?.current_amount || 0);
+  const [currentAmount, setCurrentAmount] = useState(initialData?.current_amount || 1000000); // デフォルト値を100万円に設定
   const [monthlyContribution, setMonthlyContribution] = useState(
-    initialData?.monthly_contribution || 0
+    initialData?.monthly_contribution || 50000 // デフォルト値を5万円に設定
   );
   const [isActive, setIsActive] = useState(initialData?.is_active ?? true);
 
@@ -125,7 +131,7 @@ const GoalForm: React.FC<GoalFormProps> = ({
     const goalData: Goal = {
       ...(initialData?.id && { id: initialData.id }),
       user_id: userId,
-      type,
+      goal_type: type, // プロパティ名を 'type' から 'goal_type' に変更
       title: title.trim(),
       target_amount: targetAmount,
       target_date: new Date(targetDate).toISOString(),
