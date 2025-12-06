@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/financial-planning-calculator/backend/domain/entities"
@@ -380,7 +381,9 @@ func (uc *manageGoalsUseCaseImpl) GetGoalsByUser(
 	for _, goal := range goals {
 		progress, err := goal.CalculateProgress(goal.CurrentAmount())
 		if err != nil {
-			return nil, fmt.Errorf("進捗の計算に失敗しました: %w", err)
+			// エラーが発生しても処理を止めずにログを出力し、進捗は0として扱う
+			slog.Error("failed to calculate goal progress", "goal_id", goal.ID(), "error", err)
+			progress, _ = entities.NewProgressRate(0) // 0% で進捗を初期化 (エラーは無視し、0%とする)
 		}
 
 		status := uc.generateGoalStatus(goal)
