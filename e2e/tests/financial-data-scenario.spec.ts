@@ -58,7 +58,7 @@ test.describe('Financial Data Flow Scenarios', () => {
     expect(createResponse.status()).toBe(201);
 
     // Update the profile
-    const updateResponse = await request.put(`http://localhost:8080/api/financial-data/${userId}/profile`, {
+    const updateResponse = await request.put(`${API_BASE_URL}/api/financial-data/${userId}/profile`, {
       data: {
         monthly_income: 550000,
         monthly_expenses: [
@@ -95,7 +95,7 @@ test.describe('Financial Data Flow Scenarios', () => {
     });
 
     // Add retirement data
-    const retirementResponse = await request.put(`http://localhost:8080/api/financial-data/${userId}/retirement`, {
+    const retirementResponse = await request.put(`${API_BASE_URL}/api/financial-data/${userId}/retirement`, {
       data: {
         current_age: 35,
         retirement_age: 65,
@@ -126,7 +126,7 @@ test.describe('Financial Data Flow Scenarios', () => {
     });
 
     // Add emergency fund
-    const emergencyResponse = await request.put(`http://localhost:8080/api/financial-data/${userId}/emergency-fund`, {
+    const emergencyResponse = await request.put(`${API_BASE_URL}/api/financial-data/${userId}/emergency-fund`, {
       data: {
         target_months: 6,
         current_amount: 500000,
@@ -155,7 +155,7 @@ test.describe('Financial Data Flow Scenarios', () => {
     });
 
     // Retrieve the data
-    const getResponse = await request.get(`http://localhost:8080/api/financial-data?user_id=${userId}`);
+    const getResponse = await request.get(`${API_BASE_URL}/api/financial-data?user_id=${userId}`);
     expect(getResponse.ok()).toBeTruthy();
     
     const data = await getResponse.json();
@@ -186,7 +186,7 @@ test.describe('Financial Data Flow Scenarios', () => {
     expect(financialResponse.status()).toBe(201);
 
     // Step 2: Add retirement data
-    const retirementResponse = await request.put(`http://localhost:8080/api/financial-data/${userId}/retirement`, {
+    const retirementResponse = await request.put(`${API_BASE_URL}/api/financial-data/${userId}/retirement`, {
       data: {
         current_age: 30,
         retirement_age: 60,
@@ -198,7 +198,7 @@ test.describe('Financial Data Flow Scenarios', () => {
     expect(retirementResponse.ok()).toBeTruthy();
 
     // Step 3: Add emergency fund
-    const emergencyResponse = await request.put(`http://localhost:8080/api/financial-data/${userId}/emergency-fund`, {
+    const emergencyResponse = await request.put(`${API_BASE_URL}/api/financial-data/${userId}/emergency-fund`, {
       data: {
         target_months: 6,
         current_amount: 1000000,
@@ -235,10 +235,10 @@ test.describe('Financial Data Flow Scenarios', () => {
     expect(goal2.status()).toBe(201);
 
     // Step 5: Verify all data is retrievable
-    const finalDataResponse = await request.get(`http://localhost:8080/api/financial-data?user_id=${userId}`);
+    const finalDataResponse = await request.get(`${API_BASE_URL}/api/financial-data?user_id=${userId}`);
     expect(finalDataResponse.ok()).toBeTruthy();
 
-    const goalsResponse = await request.get(`http://localhost:8080/api/goals?user_id=${userId}`);
+    const goalsResponse = await request.get(`${API_BASE_URL}/api/goals?user_id=${userId}`);
     expect(goalsResponse.ok()).toBeTruthy();
     const goalsData = await goalsResponse.json();
     expect(goalsData.goals.length).toBe(2);
@@ -260,18 +260,18 @@ test.describe('Financial Data Flow Scenarios', () => {
     });
 
     // Delete the data
-    const deleteResponse = await request.delete(`http://localhost:8080/api/financial-data/${userId}`);
+    const deleteResponse = await request.delete(`${API_BASE_URL}/api/financial-data/${userId}`);
     expect(deleteResponse.status()).toBe(204);
 
     // Verify deletion
-    const getResponse = await request.get(`http://localhost:8080/api/financial-data?user_id=${userId}`);
+    const getResponse = await request.get(`${API_BASE_URL}/api/financial-data?user_id=${userId}`);
     expect(getResponse.status()).toBe(404);
   });
 
   test('Scenario: Error - Get non-existent financial data', async ({ request }) => {
     const userId = 'non-existent-user-12345';
 
-    const response = await request.get(`http://localhost:8080/api/financial-data?user_id=${userId}`);
+    const response = await request.get(`${API_BASE_URL}/api/financial-data?user_id=${userId}`);
     expect(response.status()).toBe(404);
   });
 

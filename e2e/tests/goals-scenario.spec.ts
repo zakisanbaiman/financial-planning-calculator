@@ -80,7 +80,7 @@ test.describe('Goals Management Scenarios', () => {
     }
 
     // Retrieve all goals
-    const getGoalsResponse = await request.get(`http://localhost:8080/api/goals?user_id=${userId}`);
+    const getGoalsResponse = await request.get(`${API_BASE_URL}/api/goals?user_id=${userId}`);
     expect(getGoalsResponse.ok()).toBeTruthy();
     
     const goalsData = await getGoalsResponse.json();
@@ -112,7 +112,7 @@ test.describe('Goals Management Scenarios', () => {
 
     // Update the goal
     const updateResponse = await request.put(
-      `http://localhost:8080/api/goals/${goalData.goal_id}?user_id=${userId}`,
+      `${API_BASE_URL}/api/goals/${goalData.goal_id}?user_id=${userId}`,
       {
         data: {
           title: '新車購入資金（更新）',
@@ -150,7 +150,7 @@ test.describe('Goals Management Scenarios', () => {
 
     // Update progress
     const progressResponse = await request.put(
-      `http://localhost:8080/api/goals/${goalData.goal_id}/progress?user_id=${userId}`,
+      `${API_BASE_URL}/api/goals/${goalData.goal_id}/progress?user_id=${userId}`,
       {
         data: {
           current_amount: 450000,
@@ -187,7 +187,7 @@ test.describe('Goals Management Scenarios', () => {
 
     // Get recommendations
     const recommendationsResponse = await request.get(
-      `http://localhost:8080/api/goals/${goalData.goal_id}/recommendations?user_id=${userId}`
+      `${API_BASE_URL}/api/goals/${goalData.goal_id}/recommendations?user_id=${userId}`
     );
 
     expect(recommendationsResponse.ok()).toBeTruthy();
@@ -218,7 +218,7 @@ test.describe('Goals Management Scenarios', () => {
 
     // Analyze feasibility
     const feasibilityResponse = await request.get(
-      `http://localhost:8080/api/goals/${goalData.goal_id}/feasibility?user_id=${userId}`
+      `${API_BASE_URL}/api/goals/${goalData.goal_id}/feasibility?user_id=${userId}`
     );
 
     expect(feasibilityResponse.ok()).toBeTruthy();
@@ -250,14 +250,14 @@ test.describe('Goals Management Scenarios', () => {
 
     // Delete the goal
     const deleteResponse = await request.delete(
-      `http://localhost:8080/api/goals/${goalData.goal_id}?user_id=${userId}`
+      `${API_BASE_URL}/api/goals/${goalData.goal_id}?user_id=${userId}`
     );
 
     expect(deleteResponse.status()).toBe(204);
 
     // Verify the goal is deleted
     const getResponse = await request.get(
-      `http://localhost:8080/api/goals/${goalData.goal_id}?user_id=${userId}`
+      `${API_BASE_URL}/api/goals/${goalData.goal_id}?user_id=${userId}`
     );
     expect(getResponse.status()).toBe(404);
   });
@@ -286,7 +286,7 @@ test.describe('Goals Management Scenarios', () => {
 
     // Get only savings goals
     const savingsResponse = await request.get(
-      `http://localhost:8080/api/goals?user_id=${userId}&goal_type=savings`
+      `${API_BASE_URL}/api/goals?user_id=${userId}&goal_type=savings`
     );
     expect(savingsResponse.ok()).toBeTruthy();
     const savingsData = await savingsResponse.json();
@@ -371,7 +371,7 @@ test.describe('Goals Management Scenarios', () => {
     expect(retirementGoal.status()).toBe(201);
 
     // Step 3: Get all goals
-    const allGoalsResponse = await request.get(`http://localhost:8080/api/goals?user_id=${userId}`);
+    const allGoalsResponse = await request.get(`${API_BASE_URL}/api/goals?user_id=${userId}`);
     expect(allGoalsResponse.ok()).toBeTruthy();
     const allGoals = await allGoalsResponse.json();
     expect(allGoals.goals.length).toBeGreaterThanOrEqual(2);
@@ -386,7 +386,7 @@ test.describe('Goals Management Scenarios', () => {
     expect(projectionResponse.ok()).toBeTruthy();
 
     // Step 5: Update retirement data
-    const retirementDataResponse = await request.put(`http://localhost:8080/api/financial-data/${userId}/retirement`, {
+    const retirementDataResponse = await request.put(`${API_BASE_URL}/api/financial-data/${userId}/retirement`, {
       data: {
         current_age: 35,
         retirement_age: 65,
