@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { generateTestUserId, addYearsToDate, API_BASE_URL } from './test-utils';
 
 /**
  * E2E Test: Financial Data Flow Scenarios
@@ -6,15 +7,12 @@ import { test, expect } from '@playwright/test';
  * Tests the complete flow of financial data creation, updates, and related operations
  */
 
-// Test data helpers
-const generateTestUserId = () => `test-user-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-
 test.describe('Financial Data Flow Scenarios', () => {
   test('Scenario: Create complete financial profile', async ({ request }) => {
     const userId = generateTestUserId();
 
     // Create financial data with complete profile
-    const response = await request.post('http://localhost:8080/api/financial-data', {
+    const response = await request.post('${API_BASE_URL}/api/financial-data', {
       data: {
         user_id: userId,
         monthly_income: 600000,
@@ -47,7 +45,7 @@ test.describe('Financial Data Flow Scenarios', () => {
     const userId = generateTestUserId();
 
     // Create initial financial data
-    const createResponse = await request.post('http://localhost:8080/api/financial-data', {
+    const createResponse = await request.post('${API_BASE_URL}/api/financial-data', {
       data: {
         user_id: userId,
         monthly_income: 500000,
@@ -85,7 +83,7 @@ test.describe('Financial Data Flow Scenarios', () => {
     const userId = generateTestUserId();
 
     // Create financial data
-    await request.post('http://localhost:8080/api/financial-data', {
+    await request.post('${API_BASE_URL}/api/financial-data', {
       data: {
         user_id: userId,
         monthly_income: 500000,
@@ -116,7 +114,7 @@ test.describe('Financial Data Flow Scenarios', () => {
     const userId = generateTestUserId();
 
     // Create financial data
-    await request.post('http://localhost:8080/api/financial-data', {
+    await request.post('${API_BASE_URL}/api/financial-data', {
       data: {
         user_id: userId,
         monthly_income: 500000,
@@ -145,7 +143,7 @@ test.describe('Financial Data Flow Scenarios', () => {
     const userId = generateTestUserId();
 
     // Create financial data
-    await request.post('http://localhost:8080/api/financial-data', {
+    await request.post('${API_BASE_URL}/api/financial-data', {
       data: {
         user_id: userId,
         monthly_income: 500000,
@@ -168,7 +166,7 @@ test.describe('Financial Data Flow Scenarios', () => {
     const userId = generateTestUserId();
 
     // Step 1: Create financial data
-    const financialResponse = await request.post('http://localhost:8080/api/financial-data', {
+    const financialResponse = await request.post('${API_BASE_URL}/api/financial-data', {
       data: {
         user_id: userId,
         monthly_income: 600000,
@@ -210,26 +208,26 @@ test.describe('Financial Data Flow Scenarios', () => {
     expect(emergencyResponse.ok()).toBeTruthy();
 
     // Step 4: Create goals
-    const goal1 = await request.post('http://localhost:8080/api/goals', {
+    const goal1 = await request.post('${API_BASE_URL}/api/goals', {
       data: {
         user_id: userId,
         goal_type: 'savings',
         title: 'マイホーム頭金',
         target_amount: 5000000,
-        target_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000 * 3).toISOString(),
+        target_date: addYearsToDate(3),
         current_amount: 1000000,
         monthly_contribution: 100000,
       },
     });
     expect(goal1.status()).toBe(201);
 
-    const goal2 = await request.post('http://localhost:8080/api/goals', {
+    const goal2 = await request.post('${API_BASE_URL}/api/goals', {
       data: {
         user_id: userId,
         goal_type: 'retirement',
         title: '老後資金',
         target_amount: 30000000,
-        target_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000 * 30).toISOString(),
+        target_date: addYearsToDate(30),
         current_amount: 3000000,
         monthly_contribution: 80000,
       },
@@ -250,7 +248,7 @@ test.describe('Financial Data Flow Scenarios', () => {
     const userId = generateTestUserId();
 
     // Create financial data
-    await request.post('http://localhost:8080/api/financial-data', {
+    await request.post('${API_BASE_URL}/api/financial-data', {
       data: {
         user_id: userId,
         monthly_income: 500000,
@@ -281,7 +279,7 @@ test.describe('Financial Data Flow Scenarios', () => {
     const userId = generateTestUserId();
 
     // Try to create with negative income
-    const response = await request.post('http://localhost:8080/api/financial-data', {
+    const response = await request.post('${API_BASE_URL}/api/financial-data', {
       data: {
         user_id: userId,
         monthly_income: -100000, // Invalid: negative

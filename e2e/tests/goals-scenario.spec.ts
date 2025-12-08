@@ -1,36 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { generateTestUserId, createFinancialData, addYearsToDate, API_BASE_URL } from './test-utils';
 
 /**
  * E2E Test: Goals Management Scenarios
  * 
  * Comprehensive scenario tests for goal creation, management, and related operations
  */
-
-// Test data helpers
-const generateTestUserId = () => `test-user-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-
-const createFinancialData = async (request: any, userId: string) => {
-  const response = await request.post('http://localhost:8080/api/financial-data', {
-    data: {
-      user_id: userId,
-      monthly_income: 500000,
-      monthly_expenses: [
-        { category: '住居費', amount: 120000 },
-        { category: '食費', amount: 60000 },
-        { category: '光熱費', amount: 20000 },
-      ],
-      current_savings: [
-        { type: 'deposit', amount: 2000000 },
-        { type: 'investment', amount: 1000000 },
-      ],
-      investment_return: 5.0,
-      inflation_rate: 2.0,
-    },
-  });
-
-  expect(response.ok()).toBeTruthy();
-  return response.json();
-};
 
 test.describe('Goals Management Scenarios', () => {
   test('Scenario: Create financial data and then create a goal', async ({ request }) => {
@@ -41,13 +16,13 @@ test.describe('Goals Management Scenarios', () => {
     expect(financialData.user_id).toBe(userId);
 
     // Step 2: Create a savings goal
-    const goalResponse = await request.post('http://localhost:8080/api/goals', {
+    const goalResponse = await request.post(`${API_BASE_URL}/api/goals`, {
       data: {
         user_id: userId,
         goal_type: 'savings',
         title: 'マイホーム購入資金',
         target_amount: 10000000,
-        target_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000 * 3).toISOString(), // 3 years from now
+        target_date: addYearsToDate(3),
         current_amount: 1000000,
         monthly_contribution: 150000,
         description: '3年後にマイホームを購入するための貯蓄',
@@ -93,11 +68,11 @@ test.describe('Goals Management Scenarios', () => {
 
     const createdGoals = [];
     for (const goal of goals) {
-      const response = await request.post('http://localhost:8080/api/goals', {
+      const response = await request.post('${API_BASE_URL}/api/goals', {
         data: {
           user_id: userId,
           ...goal,
-          target_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000 * 5).toISOString(),
+          target_date: addYearsToDate(5),
         },
       });
       expect(response.status()).toBe(201);
@@ -120,13 +95,13 @@ test.describe('Goals Management Scenarios', () => {
     await createFinancialData(request, userId);
 
     // Create a goal
-    const createResponse = await request.post('http://localhost:8080/api/goals', {
+    const createResponse = await request.post('${API_BASE_URL}/api/goals', {
       data: {
         user_id: userId,
         goal_type: 'savings',
         title: '車購入資金',
         target_amount: 3000000,
-        target_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000 * 2).toISOString(),
+        target_date: addYearsToDate(2),
         current_amount: 500000,
         monthly_contribution: 80000,
       },
@@ -159,7 +134,7 @@ test.describe('Goals Management Scenarios', () => {
     await createFinancialData(request, userId);
 
     // Create a goal
-    const createResponse = await request.post('http://localhost:8080/api/goals', {
+    const createResponse = await request.post('${API_BASE_URL}/api/goals', {
       data: {
         user_id: userId,
         goal_type: 'savings',
@@ -196,13 +171,13 @@ test.describe('Goals Management Scenarios', () => {
     await createFinancialData(request, userId);
 
     // Create a goal
-    const createResponse = await request.post('http://localhost:8080/api/goals', {
+    const createResponse = await request.post('${API_BASE_URL}/api/goals', {
       data: {
         user_id: userId,
         goal_type: 'savings',
         title: '教育資金',
         target_amount: 5000000,
-        target_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000 * 10).toISOString(),
+        target_date: addYearsToDate(10),
         current_amount: 500000,
         monthly_contribution: 40000,
       },
@@ -227,13 +202,13 @@ test.describe('Goals Management Scenarios', () => {
     await createFinancialData(request, userId);
 
     // Create a goal
-    const createResponse = await request.post('http://localhost:8080/api/goals', {
+    const createResponse = await request.post('${API_BASE_URL}/api/goals', {
       data: {
         user_id: userId,
         goal_type: 'savings',
         title: '投資用不動産',
         target_amount: 20000000,
-        target_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000 * 5).toISOString(),
+        target_date: addYearsToDate(5),
         current_amount: 2000000,
         monthly_contribution: 200000,
       },
@@ -259,7 +234,7 @@ test.describe('Goals Management Scenarios', () => {
     await createFinancialData(request, userId);
 
     // Create a goal
-    const createResponse = await request.post('http://localhost:8080/api/goals', {
+    const createResponse = await request.post('${API_BASE_URL}/api/goals', {
       data: {
         user_id: userId,
         goal_type: 'savings',
@@ -296,7 +271,7 @@ test.describe('Goals Management Scenarios', () => {
     // Create goals of different types
     const goalTypes = ['savings', 'retirement', 'emergency', 'savings'];
     for (const goalType of goalTypes) {
-      await request.post('http://localhost:8080/api/goals', {
+      await request.post('${API_BASE_URL}/api/goals', {
         data: {
           user_id: userId,
           goal_type: goalType,
@@ -322,7 +297,7 @@ test.describe('Goals Management Scenarios', () => {
     const userId = generateTestUserId();
 
     // Try to create a goal without creating financial data first
-    const goalResponse = await request.post('http://localhost:8080/api/goals', {
+    const goalResponse = await request.post('${API_BASE_URL}/api/goals', {
       data: {
         user_id: userId,
         goal_type: 'savings',
@@ -345,7 +320,7 @@ test.describe('Goals Management Scenarios', () => {
     await createFinancialData(request, userId);
 
     // Try to create a goal with negative target amount
-    const goalResponse = await request.post('http://localhost:8080/api/goals', {
+    const goalResponse = await request.post('${API_BASE_URL}/api/goals', {
       data: {
         user_id: userId,
         goal_type: 'savings',
@@ -369,26 +344,26 @@ test.describe('Goals Management Scenarios', () => {
     expect(financialData.user_id).toBe(userId);
 
     // Step 2: Create multiple goals
-    const savingsGoal = await request.post('http://localhost:8080/api/goals', {
+    const savingsGoal = await request.post('${API_BASE_URL}/api/goals', {
       data: {
         user_id: userId,
         goal_type: 'savings',
         title: 'マイホーム購入',
         target_amount: 10000000,
-        target_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000 * 5).toISOString(),
+        target_date: addYearsToDate(5),
         current_amount: 2000000,
         monthly_contribution: 150000,
       },
     });
     expect(savingsGoal.status()).toBe(201);
 
-    const retirementGoal = await request.post('http://localhost:8080/api/goals', {
+    const retirementGoal = await request.post('${API_BASE_URL}/api/goals', {
       data: {
         user_id: userId,
         goal_type: 'retirement',
         title: '老後資金',
         target_amount: 50000000,
-        target_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000 * 30).toISOString(),
+        target_date: addYearsToDate(30),
         current_amount: 5000000,
         monthly_contribution: 100000,
       },
@@ -402,7 +377,7 @@ test.describe('Goals Management Scenarios', () => {
     expect(allGoals.goals.length).toBeGreaterThanOrEqual(2);
 
     // Step 4: Calculate asset projection
-    const projectionResponse = await request.post('http://localhost:8080/api/calculations/asset-projection', {
+    const projectionResponse = await request.post('${API_BASE_URL}/api/calculations/asset-projection', {
       data: {
         user_id: userId,
         years: 10,
@@ -423,7 +398,7 @@ test.describe('Goals Management Scenarios', () => {
     expect(retirementDataResponse.ok()).toBeTruthy();
 
     // Step 6: Calculate retirement projection
-    const retirementProjectionResponse = await request.post('http://localhost:8080/api/calculations/retirement', {
+    const retirementProjectionResponse = await request.post('${API_BASE_URL}/api/calculations/retirement', {
       data: {
         user_id: userId,
       },
