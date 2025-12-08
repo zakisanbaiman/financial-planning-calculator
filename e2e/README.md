@@ -71,48 +71,57 @@ npm run test:goals        # Goals management tests
 ```
 e2e/
 ├── tests/
-│   ├── financial-data-flow.spec.ts  # Tests for financial data input and calculations
-│   ├── goals-management.spec.ts     # Tests for goal creation and tracking
-│   └── api-integration.spec.ts      # Tests for API endpoints
-├── playwright.config.ts              # Playwright configuration
-├── package.json                      # Dependencies and scripts
-└── README.md                         # This file
+│   ├── health-check.spec.ts              # Basic health checks
+│   ├── goals-scenario.spec.ts            # Comprehensive goal management scenarios
+│   ├── financial-data-scenario.spec.ts   # Financial data flow scenarios
+│   ├── calculation-scenario.spec.ts      # Calculation and projection scenarios
+│   └── README.md                         # Detailed test documentation
+├── playwright.config.ts                   # Playwright configuration
+├── package.json                           # Dependencies and scripts
+└── README.md                              # This file
 ```
 
 ## Test Scenarios
 
-### Financial Data Flow Tests
+### Health Check Tests (`health-check.spec.ts`)
+- Backend API health check
+- Frontend homepage load verification
 
-- Homepage navigation
-- Financial data input
-- Asset projection calculation
-- Retirement needs calculation
-- Emergency fund calculation
-- Form validation
-- Error handling
-- Data persistence
-
-### Goals Management Tests
-
-- Goal creation
-- Goal progress tracking
-- Goal recommendations
-- Goal editing
+### Goals Scenario Tests (`goals-scenario.spec.ts`)
+Comprehensive end-to-end scenarios for goal management:
+- Create financial data → create goal flow
+- Multiple goal creation and retrieval
+- Goal updates and progress tracking
+- Goal recommendations and feasibility analysis
 - Goal deletion
-- Goal filtering
-- Goals summary visualization
-- Concurrent updates
+- Goal filtering by type
+- Error handling (missing financial data, invalid inputs)
+- Complete financial planning integration flow
 
-### API Integration Tests
+### Financial Data Scenario Tests (`financial-data-scenario.spec.ts`)
+Complete financial data management scenarios:
+- Financial profile creation
+- Profile updates
+- Retirement data management
+- Emergency fund settings
+- Data retrieval and validation
+- Complete setup with goals integration
+- Data deletion
+- Error handling for invalid/missing data
 
-- Health checks
-- Calculation endpoints
-- Validation errors
-- Rate limiting
-- CORS configuration
-- Response format consistency
-- Concurrent requests
-- Response time measurement
+### Calculation Scenario Tests (`calculation-scenario.spec.ts`)
+Financial calculation and projection scenarios:
+- Asset projection calculations
+- Retirement projections
+- Emergency fund calculations
+- Comprehensive projections
+- Goal-specific projections
+- Multiple goals with calculations
+- Different timeframe validations
+- Integration with report generation
+- Error handling for invalid parameters
+
+For detailed information about each test scenario, see [tests/README.md](tests/README.md).
 
 ## Configuration
 
