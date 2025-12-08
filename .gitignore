@@ -58,9 +58,6 @@ backend/bin/
 # Go workspace file
 go.work
 
-# Go mod cache
-go.sum
-
 # Logs
 logs
 *.log
