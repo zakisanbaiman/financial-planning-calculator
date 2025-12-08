@@ -42,7 +42,18 @@ export function GoalsProvider({ children }: GoalsProviderProps) {
     setError(null);
     try {
       const data = await goalsAPI.list(userId);
-      setGoals(data);
+
+      // API may return either an array of goals or an object like { goals: [...], summary: {...} }
+      if (Array.isArray(data)) {
+        setGoals(data);
+      } else if (data && Array.isArray((data as any).goals)) {
+        // If each item is a wrapper with a nested `goal` field (GoalWithStatus), extract it.
+        const extracted = (data as any).goals.map((g: any) => (g.goal ? g.goal : g));
+        setGoals(extracted);
+      } else {
+        // Fallback: set to empty array to avoid runtime errors
+        setGoals([]);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '目標の取得に失敗しました';
       setError(errorMessage);
