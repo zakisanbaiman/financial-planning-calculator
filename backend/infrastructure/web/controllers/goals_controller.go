@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/financial-planning-calculator/backend/application/usecases"
 	"github.com/financial-planning-calculator/backend/domain/entities"
@@ -148,6 +149,10 @@ func (c *GoalsController) CreateGoal(ctx echo.Context) error {
 
 	output, err := c.useCase.CreateGoal(ctx.Request().Context(), input)
 	if err != nil {
+		// Financial data missing should be reported as insufficient data / bad request
+		if strings.Contains(err.Error(), "財務データが見つかりません") || strings.Contains(err.Error(), "財務プロファイルの取得に失敗しました") {
+			return ctx.JSON(http.StatusBadRequest, NewInsufficientDataErrorResponse(ctx, "financial_data"))
+		}
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
