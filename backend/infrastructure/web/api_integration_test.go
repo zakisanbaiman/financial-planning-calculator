@@ -254,9 +254,9 @@ func setupTestServer() (*echo.Echo, *MockManageFinancialDataUseCase, *MockCalcul
 
 	// Create minimal ServerDependencies for testing
 	deps := &ServerDependencies{
-		FinancialPlanRepo:    nil,
-		GoalRepo:             nil,
-		CalculationService:   nil,
+		FinancialPlanRepo:     nil,
+		GoalRepo:              nil,
+		CalculationService:    nil,
 		RecommendationService: nil,
 	}
 

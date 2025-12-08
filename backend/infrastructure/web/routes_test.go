@@ -48,9 +48,9 @@ func TestSetupRoutes(t *testing.T) {
 
 	// Create minimal ServerDependencies for testing (all nils are acceptable here)
 	deps := &ServerDependencies{
-		FinancialPlanRepo:    nil,
-		GoalRepo:             nil,
-		CalculationService:   nil,
+		FinancialPlanRepo:     nil,
+		GoalRepo:              nil,
+		CalculationService:    nil,
 		RecommendationService: nil,
 	}
 
