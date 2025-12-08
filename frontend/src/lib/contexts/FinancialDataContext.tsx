@@ -52,7 +52,16 @@ export function FinancialDataProvider({ children }: FinancialDataProviderProps) 
       const data = await financialDataAPI.get(userId);
       setFinancialData(data);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '財務データの取得に失敗しました';
+      // APIError の場合は status を確認
+      let errorMessage = '財務データの取得に失敗しました';
+      if (err instanceof Error) {
+        // 404 の場合は、ユーザーが財務データをまだ入力していないことを示す
+        if ((err as any).status === 404) {
+          errorMessage = '財務データがまだ作成されていません。下のフォームから入力してください。';
+        } else {
+          errorMessage = err.message;
+        }
+      }
       setError(errorMessage);
       throw err;
     } finally {

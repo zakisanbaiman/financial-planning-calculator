@@ -83,8 +83,16 @@ export default function FinancialDataPage() {
 
       {/* Error Message */}
       {error && (
-        <div className="mb-6 bg-error-50 border border-error-200 text-error-700 px-4 py-3 rounded-lg">
-          ✕ {error}
+        <div className="mb-6 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg">
+          <div className="flex items-start gap-3">
+            <span className="text-xl">ℹ️</span>
+            <div>
+              <p className="font-medium">{error}</p>
+              {error.includes('まだ作成されていません') && (
+                <p className="text-sm text-blue-600 mt-1">下のフォームから最初のデータを入力してください。</p>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

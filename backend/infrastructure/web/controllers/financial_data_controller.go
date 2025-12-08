@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/financial-planning-calculator/backend/application/usecases"
 	"github.com/financial-planning-calculator/backend/domain/entities"
@@ -218,7 +219,14 @@ func (c *FinancialDataController) GetFinancialData(ctx echo.Context) error {
 
 	output, err := c.useCase.GetFinancialPlan(ctx.Request().Context(), input)
 	if err != nil {
-		return ctx.JSON(http.StatusNotFound, NewNotFoundErrorResponse(ctx, "財務データ"))
+		// 404 for not found, 500 for other errors
+		// Check for various forms of "financial data not found" error messages
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "財務データが見つかりません") || 
+		   strings.Contains(errMsg, "財務プロファイルの取得に失敗しました") {
+			return ctx.JSON(http.StatusNotFound, NewNotFoundErrorResponse(ctx, "財務データ"))
+		}
+		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
 	return ctx.JSON(http.StatusOK, output)
