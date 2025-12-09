@@ -133,10 +133,10 @@ export default function GoalsPage() {
                       <div className="flex items-center gap-2 mb-2">
                         <span
                           className={`px-2 py-1 rounded text-xs font-medium ${
-                            goalTypeColors[goal.type]
+                            goalTypeColors[goal.goal_type]
                           }`}
                         >
-                          {goalTypeLabels[goal.type]}
+                          {goalTypeLabels[goal.goal_type]}
                         </span>
                       </div>
                       <h3 className="text-lg font-semibold text-gray-900">{goal.title}</h3>
@@ -283,10 +283,10 @@ export default function GoalsPage() {
                       <div className="flex items-center gap-3">
                         <span
                           className={`px-2 py-1 rounded text-xs font-medium ${
-                            goalTypeColors[goal.type]
+                            goalTypeColors[goal.goal_type]
                           }`}
                         >
-                          {goalTypeLabels[goal.type]}
+                          {goalTypeLabels[goal.goal_type]}
                         </span>
                         <h3 className="text-base font-medium text-gray-700">{goal.title}</h3>
                         <span className="text-sm text-gray-500">
