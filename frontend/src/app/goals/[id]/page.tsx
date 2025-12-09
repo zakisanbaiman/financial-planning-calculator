@@ -116,7 +116,7 @@ export default function GoalDetailPage() {
           <div>
             <div className="flex items-center gap-3 mb-2">
               <span className="px-3 py-1 bg-primary-100 text-primary-800 rounded text-sm font-medium">
-                {goalTypeLabels[goal.type]}
+                {goalTypeLabels[goal.goal_type]}
               </span>
               {!goal.is_active && (
                 <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded text-sm font-medium">
