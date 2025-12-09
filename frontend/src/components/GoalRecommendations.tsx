@@ -119,7 +119,7 @@ const GoalRecommendations: React.FC<GoalRecommendationsProps> = ({ goal, financi
       }
 
       // 緊急資金の確認
-      if (goal.type !== 'emergency' && financialProfile.current_savings < financialProfile.monthly_expenses * 3) {
+      if (goal.goal_type !== 'emergency' && financialProfile.current_savings < financialProfile.monthly_expenses * 3) {
         recommendations.push({
           type: 'info',
           title: '緊急資金の確保を優先',

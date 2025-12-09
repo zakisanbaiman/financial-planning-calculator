@@ -85,7 +85,7 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({ goals, onGoal
         const remainingAmount = Math.max(0, goal.target_amount - goal.current_amount);
         const status = getProgressStatus(progress, daysRemaining);
         const statusInfo = statusConfig[status];
-        const colors = goalTypeColors[goal.type];
+        const colors = goalTypeColors[goal.goal_type];
 
         return (
           <div
@@ -98,7 +98,7 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({ goals, onGoal
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`text-xs font-medium ${colors.text}`}>
-                    {goalTypeLabels[goal.type]}
+                    {goalTypeLabels[goal.goal_type]}
                   </span>
                   <span className={`text-xs font-medium ${statusInfo.color}`}>
                     {statusInfo.icon} {statusInfo.label}
