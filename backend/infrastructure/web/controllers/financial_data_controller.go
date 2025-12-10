@@ -310,6 +310,10 @@ func (c *FinancialDataController) UpdateFinancialProfile(ctx echo.Context) error
 
 	output, err := c.useCase.UpdateFinancialProfile(ctx.Request().Context(), input)
 	if err != nil {
+		// If underlying error indicates missing financial data, return 404
+		if strings.Contains(err.Error(), "財務データが見つかりません") || strings.Contains(err.Error(), "財務計画の取得に失敗しました") || strings.Contains(err.Error(), "財務プロファイルの取得に失敗しました") {
+			return ctx.JSON(http.StatusNotFound, NewNotFoundErrorResponse(ctx, "財務データ"))
+		}
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
@@ -398,6 +402,9 @@ func (c *FinancialDataController) UpdateRetirementData(ctx echo.Context) error {
 
 	output, err := c.useCase.UpdateRetirementData(ctx.Request().Context(), input)
 	if err != nil {
+		if strings.Contains(err.Error(), "財務データが見つかりません") || strings.Contains(err.Error(), "財務計画の取得に失敗しました") || strings.Contains(err.Error(), "財務プロファイルの取得に失敗しました") {
+			return ctx.JSON(http.StatusNotFound, NewNotFoundErrorResponse(ctx, "財務データ"))
+		}
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
@@ -472,6 +479,9 @@ func (c *FinancialDataController) UpdateEmergencyFund(ctx echo.Context) error {
 
 	output, err := c.useCase.UpdateEmergencyFund(ctx.Request().Context(), input)
 	if err != nil {
+		if strings.Contains(err.Error(), "財務データが見つかりません") || strings.Contains(err.Error(), "財務計画の取得に失敗しました") || strings.Contains(err.Error(), "財務プロファイルの取得に失敗しました") {
+			return ctx.JSON(http.StatusNotFound, NewNotFoundErrorResponse(ctx, "財務データ"))
+		}
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
@@ -500,6 +510,9 @@ func (c *FinancialDataController) DeleteFinancialData(ctx echo.Context) error {
 
 	err := c.useCase.DeleteFinancialPlan(ctx.Request().Context(), input)
 	if err != nil {
+		if strings.Contains(err.Error(), "財務データが見つかりません") || strings.Contains(err.Error(), "財務計画の取得に失敗しました") || strings.Contains(err.Error(), "財務プロファイルの取得に失敗しました") {
+			return ctx.JSON(http.StatusNotFound, NewNotFoundErrorResponse(ctx, "財務データ"))
+		}
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
