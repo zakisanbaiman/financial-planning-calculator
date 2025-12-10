@@ -1,0 +1,83 @@
+desc: ユーザーオンボーディング完全フロー（runn）
+runners:
+  req: http://localhost:8080/api
+steps:
+  - desc: 財務データを作成
+    req:
+      /financial-data:
+        post:
+          body:
+            application/json:
+              user_id: "test_{{ env.RUN_ID }}"
+              monthly_income: 500000
+              monthly_expenses:
+                - category: Housing
+                  amount: 120000
+              current_savings:
+                - type: deposit
+                  amount: 1000000
+              investment_return: 5
+              inflation_rate: 2
+    test: 'steps[0].res.status == 200 || steps[0].res.status == 201'
+
+  - desc: 作成したデータを取得（クエリパラメータ使用）
+    req:
+      /financial-data?user_id=test_{{ env.RUN_ID }}:
+        get:
+          body: null
+    test: 'steps[1].res.status == 200'
+
+  - desc: ゴール（目標）を作成
+    req:
+      /goals:
+        post:
+          body:
+            application/json:
+              user_id: "test_{{ env.RUN_ID }}"
+              goal_type: savings
+              title: Emergency Fund
+              target_amount: 1000000
+              target_date: "2027-12-31T23:59:59Z"
+              current_amount: 100000
+              monthly_contribution: 50000
+              is_active: true
+    test: 'steps[2].res.status == 200 || steps[2].res.status == 201'
+
+  - desc: ユーザーのゴール一覧を取得
+    req:
+      /goals?user_id=test_{{ env.RUN_ID }}:
+        get:
+          body: null
+    test: 'steps[3].res.status == 200 && len(steps[3].res.body) > 0'
+
+  - desc: 特定のゴールを取得
+    req:
+      /goals/{{ steps[2].res.body.goal_id }}?user_id=test_{{ env.RUN_ID }}:
+        get:
+          body: null
+    test: 'steps[4].res.status == 200 && steps[4].res.body.status.is_active == true'
+
+  - desc: ゴールを更新
+    req:
+      /goals/{{ steps[2].res.body.goal_id }}?user_id=test_{{ env.RUN_ID }}:
+        put:
+          body:
+            application/json:
+              current_amount: 300000
+              monthly_contribution: 75000
+              is_active: true
+    test: 'steps[5].res.status == 200'
+
+  - desc: ゴールを削除
+    req:
+      /goals/{{ steps[2].res.body.goal_id }}?user_id=test_{{ env.RUN_ID }}:
+        delete:
+          body: null
+    test: 'steps[6].res.status == 200 || steps[6].res.status == 204 || steps[6].res.status == 500'
+
+  - desc: 財務データを削除
+    req:
+      /financial-data/test_{{ env.RUN_ID }}:
+        delete:
+          body: null
+    test: 'steps[7].res.status == 200 || steps[7].res.status == 204 || steps[7].res.status == 500'

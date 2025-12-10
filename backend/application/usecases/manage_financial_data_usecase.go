@@ -78,6 +78,16 @@ type GetFinancialPlanOutput struct {
 	Plan *aggregates.FinancialPlan `json:"plan"`
 }
 
+// FinancialDataResponse はフロントエンド向けの財務データレスポンス
+type FinancialDataResponse struct {
+	UserID        string                 `json:"user_id"`
+	Profile       map[string]interface{} `json:"profile,omitempty"`
+	Retirement    map[string]interface{} `json:"retirement,omitempty"`
+	EmergencyFund map[string]interface{} `json:"emergency_fund,omitempty"`
+	CreatedAt     string                 `json:"created_at,omitempty"`
+	UpdatedAt     string                 `json:"updated_at,omitempty"`
+}
+
 // UpdateFinancialProfileInput は財務プロファイル更新の入力
 type UpdateFinancialProfileInput struct {
 	UserID           entities.UserID `json:"user_id"`

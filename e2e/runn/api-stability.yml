@@ -1,0 +1,214 @@
+desc: API安定性・信頼性テスト（並行処理と負荷テスト）
+steps:
+  - desc: テスト用の初期ユーザーを準備
+    req:
+      POST: "{{ `{{ env.API_URL }}/financial-data` }}"
+      headers:
+        Content-Type: application/json
+      body:
+        user_id: "{{ `{{ now | sprintf(\"%s_%s\", env.RUN_ID) }}` }}"
+        monthly_income: 500000
+        monthly_expenses:
+          - category: Living
+            amount: 250000
+        current_savings:
+          - type: deposit
+            amount: 1000000
+        investment_return: 4
+        inflation_rate: 2
+    test:
+      - desc: 初期データ作成が成功
+        assert: status == 200 || status == 201
+
+  - desc: 10個の同時ゴール作成リクエスト（並行処理テスト）
+    loop:
+      count: 10
+    req:
+      POST: "{{ `{{ env.API_URL }}/goals` }}"
+      headers:
+        Content-Type: application/json
+      body:
+        user_id: "{{ `{{ steps[0].res.body.user_id }}` }}"
+        goal_type: savings
+        title: "{{ `{{ printf(\"Concurrent Goal %d\", loop.Index) }}` }}"
+        target_amount: "{{ add(1000000, mul(loop.Index, 100000)) }}"
+        target_date: "{{ `{{ now | addDate(1, 0, 0) | strftime(\"%Y-%m-%dT15:04:05Z\") }}` }}"
+        current_amount: 100000
+        monthly_contribution: 50000
+        is_active: true
+    test:
+      - desc: すべてのリクエストが成功
+        assert: status == 200 || status == 201
+
+  - desc: 作成したすべてのゴールを取得
+    req:
+      GET: "{{ `{{ env.API_URL }}/goals?user_id={{ steps[0].res.body.user_id }}` }}"
+    test:
+      - desc: ステータスが成功
+        assert: status == 200
+      - desc: 10個以上のゴールが取得できた
+        assert: len(body) >= 10
+
+  - desc: 複数回の読み込みでデータ一貫性を検証（5回読み込み）
+    loop:
+      count: 5
+    req:
+      GET: "{{ `{{ env.API_URL }}/financial-data/{{ steps[0].res.body.user_id }}` }}"
+    test:
+      - desc: ステータスが成功
+        assert: status == 200
+      - desc: 月収が一貫している（常に500000）
+        assert: body.monthly_income == 500000
+
+  - desc: 財務データを複数回更新（更新の一貫性テスト）
+    loop:
+      count: 3
+    req:
+      PUT: "{{ `{{ env.API_URL }}/financial-data/{{ steps[0].res.body.user_id }}` }}"
+      headers:
+        Content-Type: application/json
+      body:
+        monthly_income: "{{ add(500000, mul(loop.Index, 100000)) }}"
+        investment_return: "{{ add(4, loop.Index) }}"
+    test:
+      - desc: 更新が成功
+        assert: status == 200
+
+  - desc: 最終的な財務データを確認
+    req:
+      GET: "{{ `{{ env.API_URL }}/financial-data/{{ steps[0].res.body.user_id }}` }}"
+    test:
+      - desc: ステータスが成功
+        assert: status == 200
+      - desc: 最後の月収更新が反映されている
+        assert: body.monthly_income == 700000
+
+  - desc: 大量の支出カテゴリで更新テスト
+    req:
+      PUT: "{{ `{{ env.API_URL }}/financial-data/{{ steps[0].res.body.user_id }}` }}"
+      headers:
+        Content-Type: application/json
+      body:
+        monthly_expenses:
+          - category: Housing
+            amount: 120000
+          - category: Food
+            amount: 50000
+          - category: Transportation
+            amount: 30000
+          - category: Utilities
+            amount: 20000
+          - category: Insurance
+            amount: 15000
+          - category: Entertainment
+            amount: 25000
+          - category: Healthcare
+            amount: 10000
+          - category: Education
+            amount: 30000
+    test:
+      - desc: 複数カテゴリの更新が成功
+        assert: status == 200
+      - desc: すべてのカテゴリが保存されている
+        assert: len(body.monthly_expenses) >= 8
+
+  - desc: ゴールの詳細検証（複数ゴール）
+    loop:
+      count: 5
+    req:
+      GET: "{{ `{{ env.API_URL }}/goals?user_id={{ steps[0].res.body.user_id }}&limit=1&offset={{ sub(loop.Index, 1) }}` }}"
+    test:
+      - desc: ステータスが成功
+        assert: status == 200
+      - desc: ゴール情報が含まれている
+        assert: len(body) > 0
+
+  - desc: 無効なユーザーIDでリクエスト
+    req:
+      GET: "{{ `{{ env.API_URL }}/financial-data/invalid_user_id_@#$%` }}"
+    test:
+      - desc: エラーハンドリングがある（404または400）
+        assert: status == 404 || status == 400
+
+  - desc: 無効なゴールIDでリクエスト
+    req:
+      GET: "{{ `{{ env.API_URL }}/goals/invalid_goal_id_xyz` }}"
+    test:
+      - desc: 404エラーが返される
+        assert: status == 404
+
+  - desc: 必須フィールド不足でゴール作成
+    req:
+      POST: "{{ `{{ env.API_URL }}/goals` }}"
+      headers:
+        Content-Type: application/json
+      body:
+        user_id: "{{ `{{ steps[0].res.body.user_id }}` }}"
+        # title, target_amount など必須フィールドがない
+    test:
+      - desc: バリデーションエラーが返される
+        assert: status >= 400
+
+  - desc: 負数の金額でゴール作成（ビジネスロジックテスト）
+    req:
+      POST: "{{ `{{ env.API_URL }}/goals` }}"
+      headers:
+        Content-Type: application/json
+      body:
+        user_id: "{{ `{{ steps[0].res.body.user_id }}` }}"
+        goal_type: savings
+        title: Invalid Goal
+        target_amount: -1000000
+        target_date: "{{ `{{ now | addDate(1, 0, 0) | strftime(\"%Y-%m-%dT15:04:05Z\") }}` }}"
+        current_amount: -100000
+        monthly_contribution: -50000
+        is_active: true
+    test:
+      - desc: バリデーションエラーまたは異常値エラー
+        assert: status >= 400
+
+  - desc: 過去の日付でゴール作成（ビジネスロジックテスト）
+    req:
+      POST: "{{ `{{ env.API_URL }}/goals` }}"
+      headers:
+        Content-Type: application/json
+      body:
+        user_id: "{{ `{{ steps[0].res.body.user_id }}` }}"
+        goal_type: savings
+        title: Past Date Goal
+        target_amount: 1000000
+        target_date: "{{ `{{ now | addDate(-1, 0, 0) | strftime(\"%Y-%m-%dT15:04:05Z\") }}` }}"
+        current_amount: 100000
+        monthly_contribution: 50000
+        is_active: true
+    test:
+      - desc: 過去の日付エラーが返される
+        assert: status >= 400
+
+  - desc: 最初に作成したゴールを削除
+    req:
+      DELETE: "{{ `{{ env.API_URL }}/goals/{{ steps[1].res.body[0].id }}` }}"
+    test:
+      - desc: 削除が成功
+        assert: status == 200 || status == 204
+
+  - desc: 削除したゴールが取得できないことを確認
+    req:
+      GET: "{{ `{{ env.API_URL }}/goals/{{ steps[1].res.body[0].id }}` }}"
+    test:
+      - desc: 404エラーが返される
+        assert: status == 404
+
+  - desc: 財務データを削除
+    req:
+      DELETE: "{{ `{{ env.API_URL }}/financial-data/{{ steps[0].res.body.user_id }}` }}"
+    test:
+      - desc: 削除が成功
+        assert: status == 200 || status == 204
+
+  - desc: 削除後に関連するゴールが削除されているか確認
+    req:
+      GET: "{{ `{{ env.API_URL }}/goals?user_id={{ steps[0].res.body.user_id }}` }}"
+    test:
+      - desc: ゴールが取得できないか空が返される
+        assert: status == 404 || len(body) == 0

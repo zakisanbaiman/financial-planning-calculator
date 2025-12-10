@@ -202,7 +202,7 @@ func (c *FinancialDataController) CreateFinancialData(ctx echo.Context) error {
 // @Tags financial-data
 // @Produce json
 // @Param user_id query string true "ユーザーID"
-// @Success 200 {object} usecases.GetFinancialPlanOutput
+// @Success 200 {object} usecases.FinancialDataResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
@@ -229,7 +229,58 @@ func (c *FinancialDataController) GetFinancialData(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
-	return ctx.JSON(http.StatusOK, output)
+	// GetFinancialPlanOutput をフロントエンド向けレスポンスに変換
+	response := c.convertToFinancialDataResponse(output, userID)
+	return ctx.JSON(http.StatusOK, response)
+}
+
+// convertToFinancialDataResponse は GetFinancialPlanOutput をフロントエンド向けレスポンスに変換
+func (c *FinancialDataController) convertToFinancialDataResponse(
+	output *usecases.GetFinancialPlanOutput,
+	userID string,
+) *usecases.FinancialDataResponse {
+	if output == nil || output.Plan == nil {
+		return &usecases.FinancialDataResponse{
+			UserID: userID,
+		}
+	}
+
+	response := &usecases.FinancialDataResponse{
+		UserID: userID,
+	}
+
+	// Profile を変換
+	if profile := output.Plan.Profile(); profile != nil {
+		profileMap := map[string]interface{}{
+			"monthly_income":    profile.MonthlyIncome(),
+			"monthly_expenses":  profile.MonthlyExpenses(),
+			"current_savings":   profile.CurrentSavings(),
+			"investment_return": profile.InvestmentReturn(),
+			"inflation_rate":    profile.InflationRate(),
+		}
+		response.Profile = profileMap
+	}
+
+	// RetirementData を変換
+	if retirement := output.Plan.RetirementData(); retirement != nil {
+		retirementMap := map[string]interface{}{
+			"retirement_age":              retirement.RetirementAge(),
+			"monthly_retirement_expenses": retirement.MonthlyRetirementExpenses(),
+			"pension_amount":              retirement.PensionAmount(),
+		}
+		response.Retirement = retirementMap
+	}
+
+	// EmergencyFund を変換
+	if emergencyFund := output.Plan.EmergencyFund(); emergencyFund != nil {
+		emergencyMap := map[string]interface{}{
+			"target_months": emergencyFund.TargetMonths,
+			"current_fund":  emergencyFund.CurrentFund,
+		}
+		response.EmergencyFund = emergencyMap
+	}
+
+	return response
 }
 
 // UpdateFinancialProfile は財務プロファイルを更新する

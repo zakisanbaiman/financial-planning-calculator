@@ -1,0 +1,33 @@
+desc: API レスポンス形式デバッグ
+runners:
+  req: http://localhost:8080
+steps:
+  - desc: 財務データを作成
+    req:
+      /api/financial-data:
+        post:
+          body:
+            application/json:
+              user_id: "debug_{{ env.RUN_ID }}"
+              monthly_income: 500000
+              monthly_expenses:
+                - category: Housing
+                  amount: 120000
+              current_savings:
+                - type: deposit
+                  amount: 1000000
+              investment_return: 5
+              inflation_rate: 2
+              retirement_age: 65
+              monthly_retirement_expenses: 200000
+              pension_amount: 100000
+              emergency_fund_target_months: 3
+              emergency_fund_current_amount: 600000
+    test: 'steps[0].res.status == 200 || steps[0].res.status == 201'
+
+  - desc: 作成したデータを取得して形式を確認
+    req:
+      /api/financial-data?user_id=debug_{{ env.RUN_ID }}:
+        get:
+          body: null
+    test: 'steps[1].res.status == 200'
