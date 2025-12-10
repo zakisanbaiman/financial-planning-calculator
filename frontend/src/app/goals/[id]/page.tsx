@@ -93,12 +93,12 @@ export default function GoalDetailPage() {
 
   const financialProfile = financialData?.profile
     ? {
-        monthly_income: financialData.profile.monthly_income,
-        monthly_expenses: financialData.profile.monthly_expenses.reduce(
+        monthly_income: financialData.profile.monthly_income || 0,
+        monthly_expenses: (financialData.profile.monthly_expenses || []).reduce(
           (sum, e) => sum + e.amount,
           0
         ),
-        current_savings: financialData.profile.current_savings.reduce((sum, s) => sum + s.amount, 0),
+        current_savings: (financialData.profile.current_savings || []).reduce((sum, s) => sum + s.amount, 0),
       }
     : undefined;
 

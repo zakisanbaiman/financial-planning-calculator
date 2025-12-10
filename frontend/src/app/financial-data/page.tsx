@@ -105,7 +105,7 @@ export default function FinancialDataPage() {
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-gray-600">月収</span>
                 <span className="font-medium text-gray-900">
-                  ¥{profile.monthly_income.toLocaleString()}
+                  ¥{(profile.monthly_income || 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
@@ -193,7 +193,7 @@ export default function FinancialDataPage() {
       </div>
 
       {/* Expense Breakdown */}
-      {profile && profile.monthly_expenses.length > 0 && (
+      {profile && profile.monthly_expenses && profile.monthly_expenses.length > 0 && (
         <div className="mt-8">
           <div className="card">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">支出内訳</h2>
