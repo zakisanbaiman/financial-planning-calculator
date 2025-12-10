@@ -40,7 +40,7 @@ const GoalForm: React.FC<GoalFormProps> = ({
   onCancel,
   loading = false,
 }) => {
-  const [type, setType] = useState<GoalType>(initialData?.type || 'savings');
+  const [type, setType] = useState<GoalType>(initialData?.goal_type || 'savings');
   const [title, setTitle] = useState(initialData?.title || '');
   const [targetAmount, setTargetAmount] = useState(initialData?.target_amount || 5000000); // デフォルト値を500万円に設定
   const [targetDate, setTargetDate] = useState(

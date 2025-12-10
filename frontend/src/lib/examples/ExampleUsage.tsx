@@ -76,7 +76,7 @@ export function ExampleUsage() {
     try {
       await createGoal({
         user_id: userId,
-        type: 'savings',
+        goal_type: 'savings',
         title: '新車購入',
         target_amount: 3000000,
         target_date: '2025-12-31',
