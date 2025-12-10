@@ -24,21 +24,17 @@ const FinancialInputForm: React.FC<FinancialInputFormProps> = ({
   onSubmit,
   loading = false,
 }) => {
-  // フォーム状態
-  const [monthlyIncome, setMonthlyIncome] = useState(initialData?.monthly_income || 0);
+  // フォーム状態（デフォルト値を設定）
+  const [monthlyIncome, setMonthlyIncome] = useState(initialData?.monthly_income || 300000);
   const [expenses, setExpenses] = useState<ExpenseItem[]>(
-    initialData?.monthly_expenses || [
-      { category: '住居費', amount: 0 },
-      { category: '食費', amount: 0 },
-      { category: '交通費', amount: 0 },
-      { category: 'その他', amount: 0 },
-    ]
+    initialData?.monthly_expenses && initialData.monthly_expenses.length > 0
+      ? initialData.monthly_expenses
+      : [{ category: '生活費', amount: 100000 }]
   );
   const [savings, setSavings] = useState<SavingsItem[]>(
-    initialData?.current_savings || [
-      { type: 'deposit', amount: 0 },
-      { type: 'investment', amount: 0 },
-    ]
+    initialData?.current_savings && initialData.current_savings.length > 0
+      ? initialData.current_savings
+      : [{ type: 'deposit', amount: 500000 }]
   );
   const [investmentReturn, setInvestmentReturn] = useState(
     initialData?.investment_return || 5.0

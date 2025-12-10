@@ -24,9 +24,9 @@ func NewFinancialDataController(useCase usecases.ManageFinancialDataUseCase) *Fi
 // CreateFinancialDataRequest は財務データ作成リクエスト
 type CreateFinancialDataRequest struct {
 	UserID                     string               `json:"user_id" validate:"required"`
-	MonthlyIncome              float64              `json:"monthly_income" validate:"required,gt=0"`
-	MonthlyExpenses            []ExpenseItemRequest `json:"monthly_expenses" validate:"required,dive"`
-	CurrentSavings             []SavingsItemRequest `json:"current_savings" validate:"required,dive"`
+	MonthlyIncome              float64              `json:"monthly_income" validate:"omitempty,gt=0"`
+	MonthlyExpenses            []ExpenseItemRequest `json:"monthly_expenses" validate:"omitempty,dive"`
+	CurrentSavings             []SavingsItemRequest `json:"current_savings" validate:"omitempty,dive"`
 	InvestmentReturn           float64              `json:"investment_return" validate:"required,gte=0,lte=100"`
 	InflationRate              float64              `json:"inflation_rate" validate:"required,gte=0,lte=50"`
 	RetirementAge              *int                 `json:"retirement_age,omitempty" validate:"omitempty,gte=50,lte=100"`
@@ -52,9 +52,9 @@ type SavingsItemRequest struct {
 
 // UpdateFinancialProfileRequest は財務プロファイル更新リクエスト
 type UpdateFinancialProfileRequest struct {
-	MonthlyIncome    float64              `json:"monthly_income" validate:"required,gt=0"`
-	MonthlyExpenses  []ExpenseItemRequest `json:"monthly_expenses" validate:"required,dive"`
-	CurrentSavings   []SavingsItemRequest `json:"current_savings" validate:"required,dive"`
+	MonthlyIncome    float64              `json:"monthly_income" validate:"omitempty,gt=0"`
+	MonthlyExpenses  []ExpenseItemRequest `json:"monthly_expenses" validate:"omitempty,dive"`
+	CurrentSavings   []SavingsItemRequest `json:"current_savings" validate:"omitempty,dive"`
 	InvestmentReturn float64              `json:"investment_return" validate:"required,gte=0,lte=100"`
 	InflationRate    float64              `json:"inflation_rate" validate:"required,gte=0,lte=50"`
 }
@@ -91,6 +91,21 @@ func (c *FinancialDataController) CreateFinancialData(ctx echo.Context) error {
 
 	if err := ctx.Validate(&req); err != nil {
 		return err // Validator already returns proper error response
+	}
+
+	// デフォルト値を設定
+	if req.MonthlyIncome == 0 {
+		req.MonthlyIncome = 300000 // デフォルト: 30万円
+	}
+	if len(req.MonthlyExpenses) == 0 {
+		req.MonthlyExpenses = []ExpenseItemRequest{
+			{Category: "生活費", Amount: 100000},
+		}
+	}
+	if len(req.CurrentSavings) == 0 {
+		req.CurrentSavings = []SavingsItemRequest{
+			{Type: "deposit", Amount: 500000},
+		}
 	}
 
 	// Business logic validation
@@ -309,6 +324,21 @@ func (c *FinancialDataController) UpdateFinancialProfile(ctx echo.Context) error
 
 	if err := ctx.Validate(&req); err != nil {
 		return err // Validator already returns proper error response
+	}
+
+	// デフォルト値を設定
+	if req.MonthlyIncome == 0 {
+		req.MonthlyIncome = 300000 // デフォルト: 30万円
+	}
+	if len(req.MonthlyExpenses) == 0 {
+		req.MonthlyExpenses = []ExpenseItemRequest{
+			{Category: "生活費", Amount: 100000},
+		}
+	}
+	if len(req.CurrentSavings) == 0 {
+		req.CurrentSavings = []SavingsItemRequest{
+			{Type: "deposit", Amount: 500000},
+		}
 	}
 
 	// Business logic validation

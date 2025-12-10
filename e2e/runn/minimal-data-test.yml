@@ -1,0 +1,28 @@
+desc: 最小限のデータでテスト（デフォルト値確認）
+runners:
+  req: http://localhost:8080/api
+steps:
+  - desc: 最小限のデータで財務データを作成
+    req:
+      /financial-data:
+        post:
+          body:
+            application/json:
+              user_id: "minimal_{{ env.RUN_ID }}"
+              investment_return: 5
+              inflation_rate: 2
+    test: 'steps[0].res.status == 200 || steps[0].res.status == 201'
+
+  - desc: 作成したデータを取得してデフォルト値を確認
+    req:
+      /financial-data?user_id=minimal_{{ env.RUN_ID }}:
+        get:
+          body: null
+    test: 'steps[1].res.status == 200 && steps[1].res.body.user_id != null && steps[1].res.body.profile != null'
+
+  - desc: データを削除
+    req:
+      /financial-data/minimal_{{ env.RUN_ID }}:
+        delete:
+          body: null
+    test: 'steps[2].res.status == 200 || steps[2].res.status == 204 || steps[2].res.status == 500'

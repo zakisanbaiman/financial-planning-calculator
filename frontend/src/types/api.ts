@@ -21,9 +21,9 @@ export interface SavingsItem {
 }
 
 export interface FinancialProfile {
-  monthly_income: number;
-  monthly_expenses: ExpenseItem[];
-  current_savings: SavingsItem[];
+  monthly_income?: number;
+  monthly_expenses?: ExpenseItem[];
+  current_savings?: SavingsItem[];
   investment_return: number;
   inflation_rate: number;
 }
