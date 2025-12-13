@@ -99,9 +99,9 @@ type UpdateFinancialProfileInput struct {
 }
 
 // UpdateFinancialProfileOutput は財務プロファイル更新の出力
+// フロントエンド向けに FinancialDataResponse を返す
 type UpdateFinancialProfileOutput struct {
-	Success   bool   `json:"success"`
-	UpdatedAt string `json:"updated_at"`
+	*FinancialDataResponse
 }
 
 // UpdateRetirementDataInput は退職データ更新の入力
@@ -113,9 +113,9 @@ type UpdateRetirementDataInput struct {
 }
 
 // UpdateRetirementDataOutput は退職データ更新の出力
+// フロントエンド向けに FinancialDataResponse を返す
 type UpdateRetirementDataOutput struct {
-	Success   bool   `json:"success"`
-	UpdatedAt string `json:"updated_at"`
+	*FinancialDataResponse
 }
 
 // UpdateEmergencyFundInput は緊急資金設定更新の入力
@@ -126,9 +126,9 @@ type UpdateEmergencyFundInput struct {
 }
 
 // UpdateEmergencyFundOutput は緊急資金設定更新の出力
+// フロントエンド向けに FinancialDataResponse を返す
 type UpdateEmergencyFundOutput struct {
-	Success   bool   `json:"success"`
-	UpdatedAt string `json:"updated_at"`
+	*FinancialDataResponse
 }
 
 // DeleteFinancialPlanInput は財務計画削除の入力
@@ -265,10 +265,58 @@ func (uc *manageFinancialDataUseCaseImpl) UpdateFinancialProfile(
 		return nil, fmt.Errorf("財務計画の保存に失敗しました: %w", err)
 	}
 
+	// フロントエンド向けレスポンスに変換して返す
+	return convertPlanToFinancialDataResponse(plan, input.UserID), nil
+}
+
+// convertPlanToFinancialDataResponse は FinancialPlan を FinancialDataResponse に変換
+func convertPlanToFinancialDataResponse(plan *aggregates.FinancialPlan, userID entities.UserID) *UpdateFinancialProfileOutput {
+	if plan == nil {
+		return &UpdateFinancialProfileOutput{
+			FinancialDataResponse: &FinancialDataResponse{
+				UserID: string(userID),
+			},
+		}
+	}
+
+	response := &FinancialDataResponse{
+		UserID: string(userID),
+	}
+
+	// Profile を変換
+	if profile := plan.Profile(); profile != nil {
+		profileMap := map[string]interface{}{
+			"monthly_income":    profile.MonthlyIncome(),
+			"monthly_expenses":  profile.MonthlyExpenses(),
+			"current_savings":   profile.CurrentSavings(),
+			"investment_return": profile.InvestmentReturn(),
+			"inflation_rate":    profile.InflationRate(),
+		}
+		response.Profile = profileMap
+	}
+
+	// RetirementData を変換
+	if retirement := plan.RetirementData(); retirement != nil {
+		retirementMap := map[string]interface{}{
+			"retirement_age":              retirement.RetirementAge(),
+			"monthly_retirement_expenses": retirement.MonthlyRetirementExpenses(),
+			"pension_amount":              retirement.PensionAmount(),
+		}
+		response.Retirement = retirementMap
+	}
+
+	// EmergencyFund を変換
+	if emergencyFund := plan.EmergencyFund(); emergencyFund != nil {
+		emergencyMap := map[string]interface{}{
+			"target_months": emergencyFund.TargetMonths,
+			"current_fund":  emergencyFund.CurrentFund,
+		}
+		response.EmergencyFund = emergencyMap
+	}
+
 	return &UpdateFinancialProfileOutput{
-		Success:   true,
-		UpdatedAt: plan.UpdatedAt().Format("2006-01-02T15:04:05Z07:00"),
-	}, nil
+		FinancialDataResponse: response,
+	}
 }
 
 // UpdateRetirementData は退職データを更新する
@@ -300,9 +348,9 @@ func (uc *manageFinancialDataUseCaseImpl) UpdateRetirementData(
 		return nil, fmt.Errorf("財務計画の保存に失敗しました: %w", err)
 	}
 
+	// フロントエンド向けレスポンスに変換して返す
 	return &UpdateRetirementDataOutput{
-		Success:   true,
-		UpdatedAt: plan.UpdatedAt().Format("2006-01-02T15:04:05Z07:00"),
+		FinancialDataResponse: convertPlanToFinancialDataResponse(plan, input.UserID).FinancialDataResponse,
 	}, nil
 }
 
@@ -340,9 +388,9 @@ func (uc *manageFinancialDataUseCaseImpl) UpdateEmergencyFund(
 		return nil, fmt.Errorf("財務計画の保存に失敗しました: %w", err)
 	}
 
+	// フロントエンド向けレスポンスに変換して返す
 	return &UpdateEmergencyFundOutput{
-		Success:   true,
-		UpdatedAt: plan.UpdatedAt().Format("2006-01-02T15:04:05Z07:00"),
+		FinancialDataResponse: convertPlanToFinancialDataResponse(plan, input.UserID).FinancialDataResponse,
 	}, nil
 }
 

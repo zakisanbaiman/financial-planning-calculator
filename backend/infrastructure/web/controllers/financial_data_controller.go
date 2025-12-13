@@ -398,6 +398,7 @@ func (c *FinancialDataController) UpdateFinancialProfile(ctx echo.Context) error
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
+	// UpdateFinancialProfileOutput は既に FinancialDataResponse を含んでいる
 	return ctx.JSON(http.StatusOK, output)
 }
 
@@ -489,6 +490,7 @@ func (c *FinancialDataController) UpdateRetirementData(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
+	// UpdateRetirementDataOutput は既に FinancialDataResponse を含んでいる
 	return ctx.JSON(http.StatusOK, output)
 }
 
@@ -566,6 +568,7 @@ func (c *FinancialDataController) UpdateEmergencyFund(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
+	// UpdateEmergencyFundOutput は既に FinancialDataResponse を含んでいる
 	return ctx.JSON(http.StatusOK, output)
 }
 
