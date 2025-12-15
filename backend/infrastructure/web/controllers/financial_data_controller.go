@@ -79,7 +79,7 @@ type UpdateEmergencyFundRequest struct {
 // @Accept json
 // @Produce json
 // @Param request body CreateFinancialDataRequest true "財務データ作成リクエスト"
-// @Success 201 {object} usecases.CreateFinancialPlanOutput
+// @Success 201 {object} usecases.FinancialDataResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /financial-data [post]
@@ -208,6 +208,17 @@ func (c *FinancialDataController) CreateFinancialData(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
+	// 作成直後の最新データを取得してフロントエンド向けレスポンスで返す
+	getInput := usecases.GetFinancialPlanInput{
+		UserID: entities.UserID(req.UserID),
+	}
+	getOutput, getErr := c.useCase.GetFinancialPlan(ctx.Request().Context(), getInput)
+	if getErr == nil {
+		response := c.convertToFinancialDataResponse(getOutput, req.UserID)
+		return ctx.JSON(http.StatusCreated, response)
+	}
+
+	// 取得に失敗した場合は作成結果のみ返す（後続のGETで取得される想定）
 	return ctx.JSON(http.StatusCreated, output)
 }
 
@@ -237,8 +248,8 @@ func (c *FinancialDataController) GetFinancialData(ctx echo.Context) error {
 		// 404 for not found, 500 for other errors
 		// Check for various forms of "financial data not found" error messages
 		errMsg := err.Error()
-		if strings.Contains(errMsg, "財務データが見つかりません") || 
-		   strings.Contains(errMsg, "財務プロファイルの取得に失敗しました") {
+		if strings.Contains(errMsg, "財務データが見つかりません") ||
+			strings.Contains(errMsg, "財務プロファイルの取得に失敗しました") {
 			return ctx.JSON(http.StatusNotFound, NewNotFoundErrorResponse(ctx, "財務データ"))
 		}
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
@@ -264,33 +275,59 @@ func (c *FinancialDataController) convertToFinancialDataResponse(
 		UserID: userID,
 	}
 
-	// Profile を変換
+	// Profile を変換（値オブジェクトをプリミティブ値に変換してフロントエンド互換に）
 	if profile := output.Plan.Profile(); profile != nil {
+		// 月間支出（category, amount, description）
+		expenses := make([]map[string]interface{}, 0, len(profile.MonthlyExpenses()))
+		for _, exp := range profile.MonthlyExpenses() {
+			item := map[string]interface{}{
+				"category": exp.Category,
+				"amount":   exp.Amount.Amount(),
+			}
+			if exp.Description != "" {
+				item["description"] = exp.Description
+			}
+			expenses = append(expenses, item)
+		}
+
+		// 現在の貯蓄（type, amount, description）
+		savings := make([]map[string]interface{}, 0, len(profile.CurrentSavings()))
+		for _, saving := range profile.CurrentSavings() {
+			item := map[string]interface{}{
+				"type":   saving.Type,
+				"amount": saving.Amount.Amount(),
+			}
+			if saving.Description != "" {
+				item["description"] = saving.Description
+			}
+			savings = append(savings, item)
+		}
+
 		profileMap := map[string]interface{}{
-			"monthly_income":    profile.MonthlyIncome(),
-			"monthly_expenses":  profile.MonthlyExpenses(),
-			"current_savings":   profile.CurrentSavings(),
-			"investment_return": profile.InvestmentReturn(),
-			"inflation_rate":    profile.InflationRate(),
+			"monthly_income":    profile.MonthlyIncome().Amount(),
+			"monthly_expenses":  expenses,
+			"current_savings":   savings,
+			"investment_return": profile.InvestmentReturn().AsPercentage(),
+			"inflation_rate":    profile.InflationRate().AsPercentage(),
 		}
 		response.Profile = profileMap
 	}
 
-	// RetirementData を変換
+	// RetirementData を変換（値オブジェクトをプリミティブに）
 	if retirement := output.Plan.RetirementData(); retirement != nil {
 		retirementMap := map[string]interface{}{
 			"retirement_age":              retirement.RetirementAge(),
-			"monthly_retirement_expenses": retirement.MonthlyRetirementExpenses(),
-			"pension_amount":              retirement.PensionAmount(),
+			"monthly_retirement_expenses": retirement.MonthlyRetirementExpenses().Amount(),
+			"pension_amount":              retirement.PensionAmount().Amount(),
 		}
 		response.Retirement = retirementMap
 	}
 
-	// EmergencyFund を変換
+	// EmergencyFund を変換（値オブジェクトをプリミティブに）
 	if emergencyFund := output.Plan.EmergencyFund(); emergencyFund != nil {
 		emergencyMap := map[string]interface{}{
 			"target_months": emergencyFund.TargetMonths,
-			"current_fund":  emergencyFund.CurrentFund,
+			"current_fund":  emergencyFund.CurrentFund.Amount(),
 		}
 		response.EmergencyFund = emergencyMap
 	}
