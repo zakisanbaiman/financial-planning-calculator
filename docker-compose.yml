@@ -52,7 +52,7 @@ services:
       - ./backend:/app
       - go_mod_cache:/go/pkg/mod
     working_dir: /app
-    command: ["go", "run", "main.go"]
+    command: ["air", "-c", ".air.toml"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
