@@ -1,4 +1,4 @@
-.PHONY: help install setup lint format test clean dev build
+.PHONY: help install setup lint format test clean dev build docker-help dev-setup up up-full down logs logs-api logs-db migrate migrate-status migrate-down seed reset shell-api shell-db test-docker
 
 # デフォルトターゲット
 help:
@@ -23,6 +23,13 @@ help:
 	@echo "  make ci-all     - Run all CI workflows (except E2E)"
 	@echo "  make ci-quick   - Run quick CI checks (lint + pr-check)"
 	@echo "  ./scripts/run-ci-local.sh [workflow] - Run specific workflow"
+	@echo ""
+	@echo "Docker Development:"
+	@echo "  make docker-help     - Show Docker-specific commands"
+	@echo "  make dev-setup       - First-time Docker setup (build, migrate, seed)"
+	@echo "  make up              - Start Docker development environment"
+	@echo "  make down            - Stop Docker environment"
+	@echo "  make logs            - View all Docker logs"
 	@echo ""
 	@echo "Build:"
 	@echo "  make build      - Build all projects"
@@ -203,3 +210,153 @@ ci-all: ci-lint ci-test ci-pr-check
 # クイックチェック（lint + クイックテスト）
 ci-quick: ci-lint-backend ci-pr-check
 	@echo "✅ Quick CI checks passed!"
+
+# =============================================================================
+# Docker Development Commands
+# =============================================================================
+
+docker-help:
+	@echo "Docker Development Environment - Commands"
+	@echo "=========================================="
+	@echo ""
+	@echo "Setup & Start:"
+	@echo "  make dev-setup       - First-time setup (build, start, migrate, seed)"
+	@echo "  make up              - Start backend + database (hot reload enabled)"
+	@echo "  make up-full         - Start all services including frontend"
+	@echo "  make down            - Stop all containers"
+	@echo "  make restart         - Restart all containers"
+	@echo ""
+	@echo "Database Operations:"
+	@echo "  make migrate         - Run database migrations"
+	@echo "  make migrate-status  - Check migration status"
+	@echo "  make migrate-down    - Rollback last migration"
+	@echo "  make seed            - Seed database with sample data"
+	@echo "  make reset           - Reset database (down + migrate + seed)"
+	@echo ""
+	@echo "Development:"
+	@echo "  make logs            - View all logs"
+	@echo "  make logs-api        - View backend API logs"
+	@echo "  make logs-db         - View database logs"
+	@echo "  make shell-api       - Access backend container shell"
+	@echo "  make shell-db        - Access PostgreSQL shell"
+	@echo "  make test-docker     - Run tests in Docker"
+	@echo ""
+	@echo "Cleanup:"
+	@echo "  make clean-docker    - Remove containers and volumes"
+	@echo "  make rebuild         - Rebuild Docker images"
+
+# First-time setup
+dev-setup:
+	@echo "🚀 Setting up Docker development environment..."
+	docker compose build
+	docker compose up -d postgres
+	@echo "⏳ Waiting for database to be ready..."
+	@sleep 5
+	@$(MAKE) migrate
+	@$(MAKE) seed
+	docker compose up -d backend
+	@echo "✅ Setup complete!"
+	@echo ""
+	@echo "Backend API: http://localhost:8080"
+	@echo "Swagger UI:  http://localhost:8080/swagger/index.html"
+	@echo "Database:    localhost:5432"
+	@echo ""
+	@echo "Use 'make logs' to view logs"
+	@echo "Use 'make down' to stop"
+
+# Start development environment
+up:
+	@echo "🚀 Starting Docker development environment..."
+	docker compose up -d postgres backend
+	@echo "✅ Started! Backend with hot reload at http://localhost:8080"
+	@echo "Use 'make logs' to view logs"
+
+# Start all services including frontend
+up-full:
+	@echo "🚀 Starting all services..."
+	docker compose --profile frontend up -d
+	@echo "✅ All services started!"
+	@echo "Backend:  http://localhost:8080"
+	@echo "Frontend: http://localhost:3000"
+
+# Stop all services
+down:
+	@echo "🛑 Stopping Docker environment..."
+	docker compose down
+	@echo "✅ Stopped!"
+
+# Restart services
+restart:
+	@echo "🔄 Restarting services..."
+	docker compose restart
+	@echo "✅ Restarted!"
+
+# View all logs
+logs:
+	docker compose logs -f
+
+# View backend logs
+logs-api:
+	docker compose logs -f backend
+
+# View database logs
+logs-db:
+	docker compose logs -f postgres
+
+# Run migrations
+migrate:
+	@echo "📦 Running database migrations..."
+	docker compose run --rm db-tools go run ./cmd/migrate/main.go -command=up
+	@echo "✅ Migrations complete!"
+
+# Check migration status
+migrate-status:
+	@echo "📊 Checking migration status..."
+	docker compose run --rm db-tools go run ./cmd/migrate/main.go -command=status
+
+# Rollback migration
+migrate-down:
+	@echo "⏪ Rolling back last migration..."
+	docker compose run --rm db-tools go run ./cmd/migrate/main.go -command=down
+	@echo "✅ Rollback complete!"
+
+# Seed database
+seed:
+	@echo "🌱 Seeding database..."
+	docker compose run --rm db-tools go run ./cmd/seed/main.go
+	@echo "✅ Seeding complete!"
+
+# Reset database
+reset:
+	@echo "🔄 Resetting database..."
+	@$(MAKE) migrate-down
+	@$(MAKE) migrate
+	@$(MAKE) seed
+	@echo "✅ Database reset complete!"
+
+# Access backend container shell
+shell-api:
+	@echo "🐚 Accessing backend container..."
+	docker compose exec backend sh
+
+# Access database shell
+shell-db:
+	@echo "🐚 Accessing PostgreSQL..."
+	docker compose exec postgres psql -U postgres -d financial_planning
+
+# Run tests in Docker
+test-docker:
+	@echo "🧪 Running tests in Docker..."
+	docker compose run --rm backend go test -v ./...
+
+# Clean up Docker resources
+clean-docker:
+	@echo "🧹 Cleaning up Docker resources..."
+	docker compose down -v
+	@echo "✅ Cleanup complete!"
+
+# Rebuild Docker images
+rebuild:
+	@echo "🔨 Rebuilding Docker images..."
+	docker compose build --no-cache
+	@echo "✅ Rebuild complete!"

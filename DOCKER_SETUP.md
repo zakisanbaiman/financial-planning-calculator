@@ -91,11 +91,22 @@ make logs-api      # APIログのみ表示
 make up
 
 # コードを編集（ホットリロードで自動反映）
-# backend/ 配下のGoファイルを編集
+# backend/ 配下のGoファイルを編集すると自動的に再ビルド・再起動されます
+# 例: backend/main.go や backend/config/ 内のファイルを編集
+
+# ログで自動リロードを確認
+make logs-api
 
 # 夜の作業終了
 make down
 ```
+
+**ホットリロード機能について:**
+- バックエンドは[Air](https://github.com/air-verse/air)を使用してホットリロードを実現
+- `.go`, `.tpl`, `.tmpl`, `.html`ファイルの変更を監視
+- 変更検知後、約1秒で自動的に再ビルド・再起動
+- テストファイル（`*_test.go`）は監視対象外
+- 設定は`backend/.air.toml`で変更可能
 
 ### 2. データベーススキーマ変更
 

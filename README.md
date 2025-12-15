@@ -107,6 +107,7 @@ make down
 
 # その他のコマンド
 make help
+make docker-help  # Docker関連のコマンド一覧
 ```
 
 **Docker環境で使えるコマンド:**
@@ -115,6 +116,14 @@ make help
 - `make shell-api` - バックエンドコンテナに接続
 - `make shell-db` - データベースに接続
 - `make logs` - ログ表示
+- `make logs-api` - バックエンドログのみ表示
+- `make migrate` - DBマイグレーション実行
+- `make seed` - サンプルデータ投入
+
+**ホットリロード機能:**
+- バックエンドコードは[Air](https://github.com/air-verse/air)により自動的にホットリロードされます
+- `.go`ファイルを編集すると自動的に再ビルド・再起動されます
+- フロントエンドも同様にNext.jsの開発サーバーで自動リロードされます
 
 ### ローカル開発環境
 
