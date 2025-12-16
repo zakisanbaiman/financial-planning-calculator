@@ -428,10 +428,37 @@ func (c *FinancialDataController) UpdateFinancialProfile(ctx echo.Context) error
 
 	output, err := c.useCase.UpdateFinancialProfile(ctx.Request().Context(), input)
 	if err != nil {
-		// If underlying error indicates missing financial data, return 404
+		// 既存データが無い場合は新規作成にフォールバック
 		if strings.Contains(err.Error(), "財務データが見つかりません") || strings.Contains(err.Error(), "財務計画の取得に失敗しました") || strings.Contains(err.Error(), "財務プロファイルの取得に失敗しました") {
-			return ctx.JSON(http.StatusNotFound, NewNotFoundErrorResponse(ctx, "財務データ"))
+			createInput := usecases.CreateFinancialPlanInput{
+				UserID:                     entities.UserID(userID),
+				MonthlyIncome:              req.MonthlyIncome,
+				MonthlyExpenses:            convertExpenseItems(req.MonthlyExpenses),
+				CurrentSavings:             convertSavingsItems(req.CurrentSavings),
+				InvestmentReturn:           req.InvestmentReturn,
+				InflationRate:              req.InflationRate,
+				RetirementAge:              nil,
+				MonthlyRetirementExpenses:  nil,
+				PensionAmount:              nil,
+				EmergencyFundTargetMonths:  nil,
+				EmergencyFundCurrentAmount: nil,
+			}
+
+			_, createErr := c.useCase.CreateFinancialPlan(ctx.Request().Context(), createInput)
+			if createErr != nil {
+				return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, createErr.Error()))
+			}
+
+			// 作成後に最新データを取得して返す
+			getInput := usecases.GetFinancialPlanInput{UserID: entities.UserID(userID)}
+			getOutput, getErr := c.useCase.GetFinancialPlan(ctx.Request().Context(), getInput)
+			if getErr != nil {
+				return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, getErr.Error()))
+			}
+			response := c.convertToFinancialDataResponse(getOutput, userID)
+			return ctx.JSON(http.StatusOK, response)
 		}
+
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
