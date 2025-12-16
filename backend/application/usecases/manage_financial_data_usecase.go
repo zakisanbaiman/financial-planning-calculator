@@ -283,33 +283,59 @@ func convertPlanToFinancialDataResponse(plan *aggregates.FinancialPlan, userID e
 		UserID: string(userID),
 	}
 
-	// Profile を変換
+	// Profile を変換（値オブジェクトをプリミティブに）
 	if profile := plan.Profile(); profile != nil {
+		// 月間支出（category, amount, description）
+		expenses := make([]map[string]interface{}, 0, len(profile.MonthlyExpenses()))
+		for _, exp := range profile.MonthlyExpenses() {
+			item := map[string]interface{}{
+				"category": exp.Category,
+				"amount":   exp.Amount.Amount(),
+			}
+			if exp.Description != "" {
+				item["description"] = exp.Description
+			}
+			expenses = append(expenses, item)
+		}
+
+		// 現在の貯蓄（type, amount, description）
+		savings := make([]map[string]interface{}, 0, len(profile.CurrentSavings()))
+		for _, saving := range profile.CurrentSavings() {
+			item := map[string]interface{}{
+				"type":   saving.Type,
+				"amount": saving.Amount.Amount(),
+			}
+			if saving.Description != "" {
+				item["description"] = saving.Description
+			}
+			savings = append(savings, item)
+		}
+
 		profileMap := map[string]interface{}{
-			"monthly_income":    profile.MonthlyIncome(),
-			"monthly_expenses":  profile.MonthlyExpenses(),
-			"current_savings":   profile.CurrentSavings(),
-			"investment_return": profile.InvestmentReturn(),
-			"inflation_rate":    profile.InflationRate(),
+			"monthly_income":    profile.MonthlyIncome().Amount(),
+			"monthly_expenses":  expenses,
+			"current_savings":   savings,
+			"investment_return": profile.InvestmentReturn().AsPercentage(),
+			"inflation_rate":    profile.InflationRate().AsPercentage(),
 		}
 		response.Profile = profileMap
 	}
 
-	// RetirementData を変換
+	// RetirementData を変換（値オブジェクトをプリミティブに）
 	if retirement := plan.RetirementData(); retirement != nil {
 		retirementMap := map[string]interface{}{
 			"retirement_age":              retirement.RetirementAge(),
-			"monthly_retirement_expenses": retirement.MonthlyRetirementExpenses(),
-			"pension_amount":              retirement.PensionAmount(),
+			"monthly_retirement_expenses": retirement.MonthlyRetirementExpenses().Amount(),
+			"pension_amount":              retirement.PensionAmount().Amount(),
 		}
 		response.Retirement = retirementMap
 	}
 
-	// EmergencyFund を変換
+	// EmergencyFund を変換（値オブジェクトをプリミティブに）
 	if emergencyFund := plan.EmergencyFund(); emergencyFund != nil {
 		emergencyMap := map[string]interface{}{
 			"target_months": emergencyFund.TargetMonths,
-			"current_fund":  emergencyFund.CurrentFund,
+			"current_fund":  emergencyFund.CurrentFund.Amount(),
 		}
 		response.EmergencyFund = emergencyMap
 	}
