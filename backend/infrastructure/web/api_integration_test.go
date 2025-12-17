@@ -400,8 +400,10 @@ func TestFinancialDataEndpoints(t *testing.T) {
 	t.Run("UpdateFinancialProfile - Success", func(t *testing.T) {
 		// Setup mock expectation
 		expectedOutput := &usecases.UpdateFinancialProfileOutput{
-			Success:   true,
-			UpdatedAt: "2024-01-01T00:00:00Z",
+			FinancialDataResponse: &usecases.FinancialDataResponse{
+				UserID:    "user-123",
+				UpdatedAt: "2024-01-01T00:00:00Z",
+			},
 		}
 		mockFinancialUseCase.On("UpdateFinancialProfile", mock.Anything, mock.AnythingOfType("usecases.UpdateFinancialProfileInput")).Return(expectedOutput, nil)
 
