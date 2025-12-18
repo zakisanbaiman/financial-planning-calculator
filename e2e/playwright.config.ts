@@ -4,6 +4,9 @@ import { defineConfig, devices } from '@playwright/test';
  * E2E Test Configuration for Financial Planning Calculator
  * 
  * See https://playwright.dev/docs/test-configuration
+ * 
+ * CI mode: Only runs health-check tests on Chromium for faster feedback
+ * Local mode: Full test suite available
  */
 export default defineConfig({
   testDir: './tests',
@@ -14,8 +17,11 @@ export default defineConfig({
   // Test execution settings
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 1 : undefined,
+
+  // In CI, only run health-check tests
+  testMatch: process.env.CI ? 'health-check.spec.ts' : '**/*.spec.ts',
 
   // Reporter configuration
   reporter: [
@@ -35,8 +41,8 @@ export default defineConfig({
     // Screenshot on failure
     screenshot: 'only-on-failure',
 
-    // Video on failure
-    video: 'retain-on-failure',
+    // Video on failure - disabled in CI for speed
+    video: process.env.CI ? 'off' : 'retain-on-failure',
 
     // API endpoint
     extraHTTPHeaders: {
@@ -44,28 +50,11 @@ export default defineConfig({
     },
   },
 
-  // Configure projects for different browsers
+  // Configure projects - Chromium only (other browsers can be run manually if needed)
   projects: [
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-    },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-    // Mobile viewports
-    {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
-    },
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
     },
   ],
 

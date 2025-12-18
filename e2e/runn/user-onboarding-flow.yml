@@ -1,0 +1,201 @@
+desc: ユーザーオンボーディングフローのAPI安定性テスト
+steps:
+  - desc: 新規ユーザーの財務データを作成
+    req:
+      POST: "{{ env.API_URL }}/financial-data"
+      headers:
+        Content-Type: application/json
+      body:
+        user_id: "test_user_{{ env.RUN_ID }}"
+        monthly_income: 500000
+        monthly_expenses:
+          - category: Housing
+            amount: 120000
+          - category: Food
+            amount: 50000
+          - category: Transportation
+            amount: 30000
+          - category: Utilities
+            amount: 20000
+        current_savings:
+          - type: deposit
+            amount: 1000000
+        investment_return: 5
+        inflation_rate: 2
+        retirement_age: 65
+        monthly_retirement_expenses: 300000
+        pension_amount: 150000
+        emergency_fund_target_months: 6
+        emergency_fund_current_amount: 0
+    test:
+      - assert: status == 200 || status == 201
+        desc: ステータスが成功している
+      - assert: body.user_id != null
+        desc: ユーザーIDが返却されている
+      - assert: body.monthly_income == 500000
+        desc: 月収が正しく保存されている
+
+  - desc: 作成した財務データを取得
+    req:
+      GET: "{{ `{{ env.API_URL }}/financial-data/{{ steps[0].res.body.user_id }}` }}"
+    test:
+      - desc: ステータスが成功している
+        assert: status == 200
+      - desc: 取得データが一致している
+        assert: body.monthly_income == 500000
+      - desc: 支出項目が4つある
+        assert: len(body.monthly_expenses) == 4
+      - desc: 最初の支出カテゴリがHousing
+        assert: body.monthly_expenses[0].category == "Housing"
+
+  - desc: 財務データを更新
+    req:
+      PUT: "{{ `{{ env.API_URL }}/financial-data/{{ steps[0].res.body.user_id }}` }}"
+      headers:
+        Content-Type: application/json
+      body:
+        monthly_income: 600000
+        investment_return: 6
+    test:
+      - desc: ステータスが成功している
+        assert: status == 200
+      - desc: 月収が更新されている
+        assert: body.monthly_income == 600000
+      - desc: 投資利回りが更新されている
+        assert: body.investment_return == 6
+
+  - desc: 更新内容が永続化されているか確認
+    req:
+      GET: "{{ `{{ env.API_URL }}/financial-data/{{ steps[0].res.body.user_id }}` }}"
+    test:
+      - desc: ステータスが成功している
+        assert: status == 200
+      - desc: 更新後の月収が正しい
+        assert: body.monthly_income == 600000
+
+  - desc: 緊急資金目標を作成
+    req:
+      POST: "{{ `{{ env.API_URL }}/goals` }}"
+      headers:
+        Content-Type: application/json
+      body:
+        user_id: "{{ `{{ steps[0].res.body.user_id }}` }}"
+        goal_type: savings
+        title: Emergency Fund
+        target_amount: 1000000
+        target_date: "{{ `{{ now | addDate(2, 0, 0) | strftime(\"%Y-%m-%dT15:04:05Z\") }}` }}"
+        current_amount: 100000
+        monthly_contribution: 50000
+        is_active: true
+    test:
+      - desc: ステータスが成功している
+        assert: status == 200 || status == 201
+      - desc: ゴールIDが返却されている
+        assert: body.id != null
+      - desc: ゴールタイトルが正しい
+        assert: body.title == "Emergency Fund"
+
+  - desc: 複数のゴールを並行作成（並行処理テスト）
+    loop:
+      count: 5
+    req:
+      POST: "{{ `{{ env.API_URL }}/goals` }}"
+      headers:
+        Content-Type: application/json
+      body:
+        user_id: "{{ `{{ steps[0].res.body.user_id }}` }}"
+        goal_type: "{{ [\"savings\", \"investment\", \"debt\"][mod(loop.Index, 3)] }}"
+        title: "{{ `{{ printf(\"Goal %d\", loop.Index) }}` }}"
+        target_amount: "{{ mul(1000000, loop.Index) }}"
+        target_date: "{{ `{{ now | addDate(loop.Index, 0, 0) | strftime(\"%Y-%m-%dT15:04:05Z\") }}` }}"
+        current_amount: "{{ mul(100000, loop.Index) }}"
+        monthly_contribution: "{{ mul(50000, loop.Index) }}"
+        is_active: true
+    test:
+      - desc: すべてのリクエストが成功している
+        assert: status == 200 || status == 201
+
+  - desc: ユーザーのすべてのゴールを取得
+    req:
+      GET: "{{ `{{ env.API_URL }}/goals?user_id={{ steps[0].res.body.user_id }}` }}"
+    test:
+      - desc: ステータスが成功している
+        assert: status == 200
+      - desc: ゴールが6個以上取得できる
+        assert: len(body) >= 6
+      - desc: Emergency Fundが含まれている
+        assert: any(body, {.title == "Emergency Fund"})
+
+  - desc: 最初に作成したゴールを取得
+    req:
+      GET: "{{ `{{ env.API_URL }}/goals/{{ steps[4].res.body.id }}` }}"
+    test:
+      - desc: ステータスが成功している
+        assert: status == 200
+      - desc: ゴールの詳細が正しい
+        assert: body.title == "Emergency Fund"
+
+  - desc: ゴールを更新
+    req:
+      PUT: "{{ `{{ env.API_URL }}/goals/{{ steps[4].res.body.id }}` }}"
+      headers:
+        Content-Type: application/json
+      body:
+        current_amount: 300000
+        monthly_contribution: 75000
+        is_active: true
+    test:
+      - desc: ステータスが成功している
+        assert: status == 200
+      - desc: 現在額が更新されている
+        assert: body.current_amount == 300000
+      - desc: 月々の拠出額が更新されている
+        assert: body.monthly_contribution == 75000
+
+  - desc: 存在しないゴールにアクセス
+    req:
+      GET: "{{ `{{ env.API_URL }}/goals/nonexistent_id_12345` }}"
+    test:
+      - desc: 404エラーが返される
+        assert: status == 404
+
+  - desc: 無効なデータで財務データを作成
+    req:
+      POST: "{{ `{{ env.API_URL }}/financial-data` }}"
+      headers:
+        Content-Type: application/json
+      body:
+        user_id: "{{ `{{ env.RUN_ID }}_invalid` }}"
+        monthly_income: invalid_number
+        monthly_expenses: not_an_array
+    test:
+      - desc: バリデーションエラーが返される
+        assert: status >= 400
+
+  - desc: ゴールを削除
+    req:
+      DELETE: "{{ `{{ env.API_URL }}/goals/{{ steps[4].res.body.id }}` }}"
+    test:
+      - desc: ステータスが成功している
+        assert: status == 200 || status == 204
+
+  - desc: 削除したゴールが存在しないことを確認
+    req:
+      GET: "{{ `{{ env.API_URL }}/goals/{{ steps[4].res.body.id }}` }}"
+    test:
+      - desc: 404エラーが返される
+        assert: status == 404
+
+  - desc: 財務データを削除
+    req:
+      DELETE: "{{ `{{ env.API_URL }}/financial-data/{{ steps[0].res.body.user_id }}` }}"
+    test:
+      - desc: ステータスが成功している
+        assert: status == 200 || status == 204
+
+  - desc: 削除した財務データが存在しないことを確認
+    req:
+      GET: "{{ `{{ env.API_URL }}/financial-data/{{ steps[0].res.body.user_id }}` }}"
+    test:
+      - desc: 404エラーが返される
+        assert: status == 404

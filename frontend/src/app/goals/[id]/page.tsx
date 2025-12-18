@@ -93,12 +93,12 @@ export default function GoalDetailPage() {
 
   const financialProfile = financialData?.profile
     ? {
-        monthly_income: financialData.profile.monthly_income,
-        monthly_expenses: financialData.profile.monthly_expenses.reduce(
+        monthly_income: financialData.profile.monthly_income || 0,
+        monthly_expenses: (financialData.profile.monthly_expenses || []).reduce(
           (sum, e) => sum + e.amount,
           0
         ),
-        current_savings: financialData.profile.current_savings.reduce((sum, s) => sum + s.amount, 0),
+        current_savings: (financialData.profile.current_savings || []).reduce((sum, s) => sum + s.amount, 0),
       }
     : undefined;
 
@@ -116,7 +116,7 @@ export default function GoalDetailPage() {
           <div>
             <div className="flex items-center gap-3 mb-2">
               <span className="px-3 py-1 bg-primary-100 text-primary-800 rounded text-sm font-medium">
-                {goalTypeLabels[goal.type]}
+                {goalTypeLabels[goal.goal_type]}
               </span>
               {!goal.is_active && (
                 <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded text-sm font-medium">

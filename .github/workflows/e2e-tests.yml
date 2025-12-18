@@ -4,14 +4,13 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main, develop]
   workflow_dispatch:
 
 jobs:
   e2e-tests:
     name: Run E2E Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
 
     permissions:
       contents: read
@@ -126,7 +125,7 @@ jobs:
         working-directory: ./e2e
         env:
           BASE_URL: http://localhost:3000
-          API_URL: http://localhost:8080/api
+          API_URL: http://localhost:8080
           CI: true
         run: npm test
 
@@ -144,14 +143,6 @@ jobs:
         with:
           name: playwright-screenshots
           path: e2e/test-results/**/*.png
-          retention-days: 7
-
-      - name: Upload videos
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-videos
-          path: e2e/test-results/**/*.webm
           retention-days: 7
 
       - name: Stop servers

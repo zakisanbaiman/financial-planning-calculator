@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/financial-planning-calculator/backend/application/usecases"
 	"github.com/financial-planning-calculator/backend/domain/entities"
@@ -23,9 +24,9 @@ func NewFinancialDataController(useCase usecases.ManageFinancialDataUseCase) *Fi
 // CreateFinancialDataRequest は財務データ作成リクエスト
 type CreateFinancialDataRequest struct {
 	UserID                     string               `json:"user_id" validate:"required"`
-	MonthlyIncome              float64              `json:"monthly_income" validate:"required,gt=0"`
-	MonthlyExpenses            []ExpenseItemRequest `json:"monthly_expenses" validate:"required,dive"`
-	CurrentSavings             []SavingsItemRequest `json:"current_savings" validate:"required,dive"`
+	MonthlyIncome              float64              `json:"monthly_income" validate:"omitempty,gt=0"`
+	MonthlyExpenses            []ExpenseItemRequest `json:"monthly_expenses" validate:"omitempty,dive"`
+	CurrentSavings             []SavingsItemRequest `json:"current_savings" validate:"omitempty,dive"`
 	InvestmentReturn           float64              `json:"investment_return" validate:"required,gte=0,lte=100"`
 	InflationRate              float64              `json:"inflation_rate" validate:"required,gte=0,lte=50"`
 	RetirementAge              *int                 `json:"retirement_age,omitempty" validate:"omitempty,gte=50,lte=100"`
@@ -51,9 +52,9 @@ type SavingsItemRequest struct {
 
 // UpdateFinancialProfileRequest は財務プロファイル更新リクエスト
 type UpdateFinancialProfileRequest struct {
-	MonthlyIncome    float64              `json:"monthly_income" validate:"required,gt=0"`
-	MonthlyExpenses  []ExpenseItemRequest `json:"monthly_expenses" validate:"required,dive"`
-	CurrentSavings   []SavingsItemRequest `json:"current_savings" validate:"required,dive"`
+	MonthlyIncome    float64              `json:"monthly_income" validate:"omitempty,gt=0"`
+	MonthlyExpenses  []ExpenseItemRequest `json:"monthly_expenses" validate:"omitempty,dive"`
+	CurrentSavings   []SavingsItemRequest `json:"current_savings" validate:"omitempty,dive"`
 	InvestmentReturn float64              `json:"investment_return" validate:"required,gte=0,lte=100"`
 	InflationRate    float64              `json:"inflation_rate" validate:"required,gte=0,lte=50"`
 }
@@ -78,7 +79,7 @@ type UpdateEmergencyFundRequest struct {
 // @Accept json
 // @Produce json
 // @Param request body CreateFinancialDataRequest true "財務データ作成リクエスト"
-// @Success 201 {object} usecases.CreateFinancialPlanOutput
+// @Success 201 {object} usecases.FinancialDataResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /financial-data [post]
@@ -90,6 +91,21 @@ func (c *FinancialDataController) CreateFinancialData(ctx echo.Context) error {
 
 	if err := ctx.Validate(&req); err != nil {
 		return err // Validator already returns proper error response
+	}
+
+	// デフォルト値を設定
+	if req.MonthlyIncome == 0 {
+		req.MonthlyIncome = 300000 // デフォルト: 30万円
+	}
+	if len(req.MonthlyExpenses) == 0 {
+		req.MonthlyExpenses = []ExpenseItemRequest{
+			{Category: "生活費", Amount: 100000},
+		}
+	}
+	if len(req.CurrentSavings) == 0 {
+		req.CurrentSavings = []SavingsItemRequest{
+			{Type: "deposit", Amount: 500000},
+		}
 	}
 
 	// Business logic validation
@@ -192,6 +208,17 @@ func (c *FinancialDataController) CreateFinancialData(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
+	// 作成直後の最新データを取得してフロントエンド向けレスポンスで返す
+	getInput := usecases.GetFinancialPlanInput{
+		UserID: entities.UserID(req.UserID),
+	}
+	getOutput, getErr := c.useCase.GetFinancialPlan(ctx.Request().Context(), getInput)
+	if getErr == nil {
+		response := c.convertToFinancialDataResponse(getOutput, req.UserID)
+		return ctx.JSON(http.StatusCreated, response)
+	}
+
+	// 取得に失敗した場合は作成結果のみ返す（後続のGETで取得される想定）
 	return ctx.JSON(http.StatusCreated, output)
 }
 
@@ -201,7 +228,7 @@ func (c *FinancialDataController) CreateFinancialData(ctx echo.Context) error {
 // @Tags financial-data
 // @Produce json
 // @Param user_id query string true "ユーザーID"
-// @Success 200 {object} usecases.GetFinancialPlanOutput
+// @Success 200 {object} usecases.FinancialDataResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
@@ -218,10 +245,94 @@ func (c *FinancialDataController) GetFinancialData(ctx echo.Context) error {
 
 	output, err := c.useCase.GetFinancialPlan(ctx.Request().Context(), input)
 	if err != nil {
-		return ctx.JSON(http.StatusNotFound, NewNotFoundErrorResponse(ctx, "財務データ"))
+		// 404 for not found, 500 for other errors
+		// Check for various forms of "financial data not found" error messages
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "財務データが見つかりません") ||
+			strings.Contains(errMsg, "財務プロファイルの取得に失敗しました") {
+			return ctx.JSON(http.StatusNotFound, NewNotFoundErrorResponse(ctx, "財務データ"))
+		}
+		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
-	return ctx.JSON(http.StatusOK, output)
+	// GetFinancialPlanOutput をフロントエンド向けレスポンスに変換
+	response := c.convertToFinancialDataResponse(output, userID)
+	return ctx.JSON(http.StatusOK, response)
+}
+
+// convertToFinancialDataResponse は GetFinancialPlanOutput をフロントエンド向けレスポンスに変換
+func (c *FinancialDataController) convertToFinancialDataResponse(
+	output *usecases.GetFinancialPlanOutput,
+	userID string,
+) *usecases.FinancialDataResponse {
+	if output == nil || output.Plan == nil {
+		return &usecases.FinancialDataResponse{
+			UserID: userID,
+		}
+	}
+
+	response := &usecases.FinancialDataResponse{
+		UserID: userID,
+	}
+
+	// Profile を変換（値オブジェクトをプリミティブ値に変換してフロントエンド互換に）
+	if profile := output.Plan.Profile(); profile != nil {
+		// 月間支出（category, amount, description）
+		expenses := make([]map[string]interface{}, 0, len(profile.MonthlyExpenses()))
+		for _, exp := range profile.MonthlyExpenses() {
+			item := map[string]interface{}{
+				"category": exp.Category,
+				"amount":   exp.Amount.Amount(),
+			}
+			if exp.Description != "" {
+				item["description"] = exp.Description
+			}
+			expenses = append(expenses, item)
+		}
+
+		// 現在の貯蓄（type, amount, description）
+		savings := make([]map[string]interface{}, 0, len(profile.CurrentSavings()))
+		for _, saving := range profile.CurrentSavings() {
+			item := map[string]interface{}{
+				"type":   saving.Type,
+				"amount": saving.Amount.Amount(),
+			}
+			if saving.Description != "" {
+				item["description"] = saving.Description
+			}
+			savings = append(savings, item)
+		}
+
+		profileMap := map[string]interface{}{
+			"monthly_income":    profile.MonthlyIncome().Amount(),
+			"monthly_expenses":  expenses,
+			"current_savings":   savings,
+			"investment_return": profile.InvestmentReturn().AsPercentage(),
+			"inflation_rate":    profile.InflationRate().AsPercentage(),
+		}
+		response.Profile = profileMap
+	}
+
+	// RetirementData を変換（値オブジェクトをプリミティブに）
+	if retirement := output.Plan.RetirementData(); retirement != nil {
+		retirementMap := map[string]interface{}{
+			"retirement_age":              retirement.RetirementAge(),
+			"monthly_retirement_expenses": retirement.MonthlyRetirementExpenses().Amount(),
+			"pension_amount":              retirement.PensionAmount().Amount(),
+		}
+		response.Retirement = retirementMap
+	}
+
+	// EmergencyFund を変換（値オブジェクトをプリミティブに）
+	if emergencyFund := output.Plan.EmergencyFund(); emergencyFund != nil {
+		emergencyMap := map[string]interface{}{
+			"target_months": emergencyFund.TargetMonths,
+			"current_fund":  emergencyFund.CurrentFund.Amount(),
+		}
+		response.EmergencyFund = emergencyMap
+	}
+
+	return response
 }
 
 // UpdateFinancialProfile は財務プロファイルを更新する
@@ -250,6 +361,21 @@ func (c *FinancialDataController) UpdateFinancialProfile(ctx echo.Context) error
 
 	if err := ctx.Validate(&req); err != nil {
 		return err // Validator already returns proper error response
+	}
+
+	// デフォルト値を設定
+	if req.MonthlyIncome == 0 {
+		req.MonthlyIncome = 300000 // デフォルト: 30万円
+	}
+	if len(req.MonthlyExpenses) == 0 {
+		req.MonthlyExpenses = []ExpenseItemRequest{
+			{Category: "生活費", Amount: 100000},
+		}
+	}
+	if len(req.CurrentSavings) == 0 {
+		req.CurrentSavings = []SavingsItemRequest{
+			{Type: "deposit", Amount: 500000},
+		}
 	}
 
 	// Business logic validation
@@ -302,9 +428,41 @@ func (c *FinancialDataController) UpdateFinancialProfile(ctx echo.Context) error
 
 	output, err := c.useCase.UpdateFinancialProfile(ctx.Request().Context(), input)
 	if err != nil {
+		// 既存データが無い場合は新規作成にフォールバック
+		if strings.Contains(err.Error(), "財務データが見つかりません") || strings.Contains(err.Error(), "財務計画の取得に失敗しました") || strings.Contains(err.Error(), "財務プロファイルの取得に失敗しました") {
+			createInput := usecases.CreateFinancialPlanInput{
+				UserID:                     entities.UserID(userID),
+				MonthlyIncome:              req.MonthlyIncome,
+				MonthlyExpenses:            convertExpenseItems(req.MonthlyExpenses),
+				CurrentSavings:             convertSavingsItems(req.CurrentSavings),
+				InvestmentReturn:           req.InvestmentReturn,
+				InflationRate:              req.InflationRate,
+				RetirementAge:              nil,
+				MonthlyRetirementExpenses:  nil,
+				PensionAmount:              nil,
+				EmergencyFundTargetMonths:  nil,
+				EmergencyFundCurrentAmount: nil,
+			}
+
+			_, createErr := c.useCase.CreateFinancialPlan(ctx.Request().Context(), createInput)
+			if createErr != nil {
+				return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, createErr.Error()))
+			}
+
+			// 作成後に最新データを取得して返す
+			getInput := usecases.GetFinancialPlanInput{UserID: entities.UserID(userID)}
+			getOutput, getErr := c.useCase.GetFinancialPlan(ctx.Request().Context(), getInput)
+			if getErr != nil {
+				return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, getErr.Error()))
+			}
+			response := c.convertToFinancialDataResponse(getOutput, userID)
+			return ctx.JSON(http.StatusOK, response)
+		}
+
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
+	// UpdateFinancialProfileOutput は既に FinancialDataResponse を含んでいる
 	return ctx.JSON(http.StatusOK, output)
 }
 
@@ -390,9 +548,13 @@ func (c *FinancialDataController) UpdateRetirementData(ctx echo.Context) error {
 
 	output, err := c.useCase.UpdateRetirementData(ctx.Request().Context(), input)
 	if err != nil {
+		if strings.Contains(err.Error(), "財務データが見つかりません") || strings.Contains(err.Error(), "財務計画の取得に失敗しました") || strings.Contains(err.Error(), "財務プロファイルの取得に失敗しました") {
+			return ctx.JSON(http.StatusNotFound, NewNotFoundErrorResponse(ctx, "財務データ"))
+		}
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
+	// UpdateRetirementDataOutput は既に FinancialDataResponse を含んでいる
 	return ctx.JSON(http.StatusOK, output)
 }
 
@@ -464,9 +626,13 @@ func (c *FinancialDataController) UpdateEmergencyFund(ctx echo.Context) error {
 
 	output, err := c.useCase.UpdateEmergencyFund(ctx.Request().Context(), input)
 	if err != nil {
+		if strings.Contains(err.Error(), "財務データが見つかりません") || strings.Contains(err.Error(), "財務計画の取得に失敗しました") || strings.Contains(err.Error(), "財務プロファイルの取得に失敗しました") {
+			return ctx.JSON(http.StatusNotFound, NewNotFoundErrorResponse(ctx, "財務データ"))
+		}
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
+	// UpdateEmergencyFundOutput は既に FinancialDataResponse を含んでいる
 	return ctx.JSON(http.StatusOK, output)
 }
 
@@ -492,6 +658,9 @@ func (c *FinancialDataController) DeleteFinancialData(ctx echo.Context) error {
 
 	err := c.useCase.DeleteFinancialPlan(ctx.Request().Context(), input)
 	if err != nil {
+		if strings.Contains(err.Error(), "財務データが見つかりません") || strings.Contains(err.Error(), "財務計画の取得に失敗しました") || strings.Contains(err.Error(), "財務プロファイルの取得に失敗しました") {
+			return ctx.JSON(http.StatusNotFound, NewNotFoundErrorResponse(ctx, "財務データ"))
+		}
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 

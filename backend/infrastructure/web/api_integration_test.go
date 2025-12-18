@@ -312,6 +312,8 @@ func TestFinancialDataEndpoints(t *testing.T) {
 			CreatedAt: "2024-01-01T00:00:00Z",
 		}
 		mockFinancialUseCase.On("CreateFinancialPlan", mock.Anything, mock.AnythingOfType("usecases.CreateFinancialPlanInput")).Return(expectedOutput, nil)
+		// Controller fetches the latest plan after creation; stub it to avoid unexpected call
+		mockFinancialUseCase.On("GetFinancialPlan", mock.Anything, mock.AnythingOfType("usecases.GetFinancialPlanInput")).Return(&usecases.GetFinancialPlanOutput{Plan: nil}, nil).Maybe()
 
 		// Create request body
 		requestBody := map[string]interface{}{
@@ -400,8 +402,10 @@ func TestFinancialDataEndpoints(t *testing.T) {
 	t.Run("UpdateFinancialProfile - Success", func(t *testing.T) {
 		// Setup mock expectation
 		expectedOutput := &usecases.UpdateFinancialProfileOutput{
-			Success:   true,
-			UpdatedAt: "2024-01-01T00:00:00Z",
+			FinancialDataResponse: &usecases.FinancialDataResponse{
+				UserID:    "user-123",
+				UpdatedAt: "2024-01-01T00:00:00Z",
+			},
 		}
 		mockFinancialUseCase.On("UpdateFinancialProfile", mock.Anything, mock.AnythingOfType("usecases.UpdateFinancialProfileInput")).Return(expectedOutput, nil)
 
@@ -919,7 +923,7 @@ func TestErrorHandling(t *testing.T) {
 
 	t.Run("Not Found Error", func(t *testing.T) {
 		// Setup mock to return error for non-existent resource
-		mockFinancialUseCase.On("GetFinancialPlan", mock.Anything, mock.AnythingOfType("usecases.GetFinancialPlanInput")).Return(nil, fmt.Errorf("financial plan not found"))
+		mockFinancialUseCase.On("GetFinancialPlan", mock.Anything, mock.AnythingOfType("usecases.GetFinancialPlanInput")).Return(nil, fmt.Errorf("財務データが見つかりません"))
 
 		req := httptest.NewRequest(http.MethodGet, "/api/financial-data?user_id=non-existent-user", nil)
 		rec := httptest.NewRecorder()
@@ -1043,6 +1047,8 @@ func TestLargePayloadHandling(t *testing.T) {
 		CreatedAt: "2024-01-01T00:00:00Z",
 	}
 	mockFinancialUseCase.On("CreateFinancialPlan", mock.Anything, mock.AnythingOfType("usecases.CreateFinancialPlanInput")).Return(expectedOutput, nil)
+	// Controller may request the latest data after creation
+	mockFinancialUseCase.On("GetFinancialPlan", mock.Anything, mock.AnythingOfType("usecases.GetFinancialPlanInput")).Return(&usecases.GetFinancialPlanOutput{Plan: nil}, nil).Maybe()
 
 	// Create a large request with many expense items
 	expenses := make([]map[string]interface{}, 100)

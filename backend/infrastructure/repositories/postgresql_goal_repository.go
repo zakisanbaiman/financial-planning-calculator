@@ -209,7 +209,7 @@ func (r *PostgreSQLGoalRepository) scanGoals(rows *sql.Rows) ([]*entities.Goal, 
 
 		goal, err := r.buildGoalFromRow(goalID, userID, goalType, title, targetAmount, currentAmount, monthlyContribution, targetDate, isActive, createdAt, updatedAt)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("goal_id %s の目標エンティティ構築に失敗しました: %w", goalID, err)
 		}
 
 		goals = append(goals, goal)

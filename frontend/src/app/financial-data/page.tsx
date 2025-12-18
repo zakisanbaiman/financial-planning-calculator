@@ -83,8 +83,16 @@ export default function FinancialDataPage() {
 
       {/* Error Message */}
       {error && (
-        <div className="mb-6 bg-error-50 border border-error-200 text-error-700 px-4 py-3 rounded-lg">
-          ✕ {error}
+        <div className="mb-6 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg">
+          <div className="flex items-start gap-3">
+            <span className="text-xl">ℹ️</span>
+            <div>
+              <p className="font-medium">{error}</p>
+              {error.includes('まだ作成されていません') && (
+                <p className="text-sm text-blue-600 mt-1">下のフォームから最初のデータを入力してください。</p>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -97,7 +105,7 @@ export default function FinancialDataPage() {
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-gray-600">月収</span>
                 <span className="font-medium text-gray-900">
-                  ¥{profile.monthly_income.toLocaleString()}
+                  ¥{(profile.monthly_income || 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
@@ -185,7 +193,7 @@ export default function FinancialDataPage() {
       </div>
 
       {/* Expense Breakdown */}
-      {profile && profile.monthly_expenses.length > 0 && (
+      {profile && profile.monthly_expenses && profile.monthly_expenses.length > 0 && (
         <div className="mt-8">
           <div className="card">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">支出内訳</h2>

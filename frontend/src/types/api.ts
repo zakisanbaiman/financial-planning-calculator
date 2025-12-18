@@ -21,9 +21,9 @@ export interface SavingsItem {
 }
 
 export interface FinancialProfile {
-  monthly_income: number;
-  monthly_expenses: ExpenseItem[];
-  current_savings: SavingsItem[];
+  monthly_income?: number;
+  monthly_expenses?: ExpenseItem[];
+  current_savings?: SavingsItem[];
   investment_return: number;
   inflation_rate: number;
 }
@@ -58,7 +58,7 @@ export type GoalType = 'savings' | 'retirement' | 'emergency' | 'custom';
 export interface Goal {
   id?: string;
   user_id: string;
-  type: GoalType;
+  goal_type: GoalType; // プロパティ名を 'goal_type' に変更
   title: string;
   target_amount: number;
   target_date: string;

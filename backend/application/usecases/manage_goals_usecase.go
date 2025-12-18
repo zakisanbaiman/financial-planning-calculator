@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/financial-planning-calculator/backend/domain/entities"
@@ -281,19 +283,27 @@ func (uc *manageGoalsUseCaseImpl) CreateGoal(
 		return nil, fmt.Errorf("現在金額の設定に失敗しました: %w", err)
 	}
 
-	// 財務計画を取得して達成可能性をチェック
+	// 財務計画を取得して達成可能性をチェック（財務データが見つからない場合はチェックをスキップ）
 	plan, err := uc.financialPlanRepo.FindByUserID(ctx, input.UserID)
 	if err != nil {
-		return nil, fmt.Errorf("財務計画の取得に失敗しました: %w", err)
+		// 財務データがない場合はクライアントが後で入力する可能性があるため、達成可能性チェックをスキップして目標作成を許可する
+		if strings.Contains(err.Error(), "財務データが見つかりません") || strings.Contains(err.Error(), "財務プロファイルの取得に失敗しました") {
+			slog.Warn("financial profile missing; skipping feasibility check and plan update", "user_id", input.UserID)
+			plan = nil
+		} else {
+			return nil, fmt.Errorf("財務計画の取得に失敗しました: %w", err)
+		}
 	}
 
-	achievable, err := goal.IsAchievable(plan.Profile())
-	if err != nil {
-		return nil, fmt.Errorf("目標の達成可能性チェックに失敗しました: %w", err)
-	}
+	if plan != nil {
+		achievable, err := goal.IsAchievable(plan.Profile())
+		if err != nil {
+			return nil, fmt.Errorf("目標の達成可能性チェックに失敗しました: %w", err)
+		}
 
-	if !achievable {
-		return nil, errors.New("現在の財務状況では目標の達成が困難です。目標金額または期日の調整を検討してください")
+		if !achievable {
+			return nil, errors.New("現在の財務状況では目標の達成が困難です。目標金額または期日の調整を検討してください")
+		}
 	}
 
 	// 目標を保存
@@ -302,15 +312,17 @@ func (uc *manageGoalsUseCaseImpl) CreateGoal(
 		return nil, fmt.Errorf("目標の保存に失敗しました: %w", err)
 	}
 
-	// 財務計画に目標を追加
-	err = plan.AddGoal(goal)
-	if err != nil {
-		return nil, fmt.Errorf("財務計画への目標追加に失敗しました: %w", err)
-	}
+	// 財務計画が存在する場合は目標を追加して更新する
+	if plan != nil {
+		err = plan.AddGoal(goal)
+		if err != nil {
+			return nil, fmt.Errorf("財務計画への目標追加に失敗しました: %w", err)
+		}
 
-	err = uc.financialPlanRepo.Update(ctx, plan)
-	if err != nil {
-		return nil, fmt.Errorf("財務計画の更新に失敗しました: %w", err)
+		err = uc.financialPlanRepo.Update(ctx, plan)
+		if err != nil {
+			return nil, fmt.Errorf("財務計画の更新に失敗しました: %w", err)
+		}
 	}
 
 	return &CreateGoalOutput{
@@ -380,7 +392,9 @@ func (uc *manageGoalsUseCaseImpl) GetGoalsByUser(
 	for _, goal := range goals {
 		progress, err := goal.CalculateProgress(goal.CurrentAmount())
 		if err != nil {
-			return nil, fmt.Errorf("進捗の計算に失敗しました: %w", err)
+			// エラーが発生しても処理を止めずにログを出力し、進捗は0として扱う
+			slog.Error("failed to calculate goal progress", "goal_id", goal.ID(), "error", err)
+			progress, _ = entities.NewProgressRate(0) // 0% で進捗を初期化 (エラーは無視し、0%とする)
 		}
 
 		status := uc.generateGoalStatus(goal)

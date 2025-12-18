@@ -78,6 +78,16 @@ type GetFinancialPlanOutput struct {
 	Plan *aggregates.FinancialPlan `json:"plan"`
 }
 
+// FinancialDataResponse はフロントエンド向けの財務データレスポンス
+type FinancialDataResponse struct {
+	UserID        string                 `json:"user_id"`
+	Profile       map[string]interface{} `json:"profile,omitempty"`
+	Retirement    map[string]interface{} `json:"retirement,omitempty"`
+	EmergencyFund map[string]interface{} `json:"emergency_fund,omitempty"`
+	CreatedAt     string                 `json:"created_at,omitempty"`
+	UpdatedAt     string                 `json:"updated_at,omitempty"`
+}
+
 // UpdateFinancialProfileInput は財務プロファイル更新の入力
 type UpdateFinancialProfileInput struct {
 	UserID           entities.UserID `json:"user_id"`
@@ -89,9 +99,9 @@ type UpdateFinancialProfileInput struct {
 }
 
 // UpdateFinancialProfileOutput は財務プロファイル更新の出力
+// フロントエンド向けに FinancialDataResponse を返す
 type UpdateFinancialProfileOutput struct {
-	Success   bool   `json:"success"`
-	UpdatedAt string `json:"updated_at"`
+	*FinancialDataResponse
 }
 
 // UpdateRetirementDataInput は退職データ更新の入力
@@ -103,9 +113,9 @@ type UpdateRetirementDataInput struct {
 }
 
 // UpdateRetirementDataOutput は退職データ更新の出力
+// フロントエンド向けに FinancialDataResponse を返す
 type UpdateRetirementDataOutput struct {
-	Success   bool   `json:"success"`
-	UpdatedAt string `json:"updated_at"`
+	*FinancialDataResponse
 }
 
 // UpdateEmergencyFundInput は緊急資金設定更新の入力
@@ -116,9 +126,9 @@ type UpdateEmergencyFundInput struct {
 }
 
 // UpdateEmergencyFundOutput は緊急資金設定更新の出力
+// フロントエンド向けに FinancialDataResponse を返す
 type UpdateEmergencyFundOutput struct {
-	Success   bool   `json:"success"`
-	UpdatedAt string `json:"updated_at"`
+	*FinancialDataResponse
 }
 
 // DeleteFinancialPlanInput は財務計画削除の入力
@@ -255,10 +265,84 @@ func (uc *manageFinancialDataUseCaseImpl) UpdateFinancialProfile(
 		return nil, fmt.Errorf("財務計画の保存に失敗しました: %w", err)
 	}
 
+	// フロントエンド向けレスポンスに変換して返す
+	return convertPlanToFinancialDataResponse(plan, input.UserID), nil
+}
+
+// convertPlanToFinancialDataResponse は FinancialPlan を FinancialDataResponse に変換
+func convertPlanToFinancialDataResponse(plan *aggregates.FinancialPlan, userID entities.UserID) *UpdateFinancialProfileOutput {
+	if plan == nil {
+		return &UpdateFinancialProfileOutput{
+			FinancialDataResponse: &FinancialDataResponse{
+				UserID: string(userID),
+			},
+		}
+	}
+
+	response := &FinancialDataResponse{
+		UserID: string(userID),
+	}
+
+	// Profile を変換（値オブジェクトをプリミティブに）
+	if profile := plan.Profile(); profile != nil {
+		// 月間支出（category, amount, description）
+		expenses := make([]map[string]interface{}, 0, len(profile.MonthlyExpenses()))
+		for _, exp := range profile.MonthlyExpenses() {
+			item := map[string]interface{}{
+				"category": exp.Category,
+				"amount":   exp.Amount.Amount(),
+			}
+			if exp.Description != "" {
+				item["description"] = exp.Description
+			}
+			expenses = append(expenses, item)
+		}
+
+		// 現在の貯蓄（type, amount, description）
+		savings := make([]map[string]interface{}, 0, len(profile.CurrentSavings()))
+		for _, saving := range profile.CurrentSavings() {
+			item := map[string]interface{}{
+				"type":   saving.Type,
+				"amount": saving.Amount.Amount(),
+			}
+			if saving.Description != "" {
+				item["description"] = saving.Description
+			}
+			savings = append(savings, item)
+		}
+
+		profileMap := map[string]interface{}{
+			"monthly_income":    profile.MonthlyIncome().Amount(),
+			"monthly_expenses":  expenses,
+			"current_savings":   savings,
+			"investment_return": profile.InvestmentReturn().AsPercentage(),
+			"inflation_rate":    profile.InflationRate().AsPercentage(),
+		}
+		response.Profile = profileMap
+	}
+
+	// RetirementData を変換（値オブジェクトをプリミティブに）
+	if retirement := plan.RetirementData(); retirement != nil {
+		retirementMap := map[string]interface{}{
+			"retirement_age":              retirement.RetirementAge(),
+			"monthly_retirement_expenses": retirement.MonthlyRetirementExpenses().Amount(),
+			"pension_amount":              retirement.PensionAmount().Amount(),
+		}
+		response.Retirement = retirementMap
+	}
+
+	// EmergencyFund を変換（値オブジェクトをプリミティブに）
+	if emergencyFund := plan.EmergencyFund(); emergencyFund != nil {
+		emergencyMap := map[string]interface{}{
+			"target_months": emergencyFund.TargetMonths,
+			"current_fund":  emergencyFund.CurrentFund.Amount(),
+		}
+		response.EmergencyFund = emergencyMap
+	}
+
 	return &UpdateFinancialProfileOutput{
-		Success:   true,
-		UpdatedAt: plan.UpdatedAt().Format("2006-01-02T15:04:05Z07:00"),
-	}, nil
+		FinancialDataResponse: response,
+	}
 }
 
 // UpdateRetirementData は退職データを更新する
@@ -290,9 +374,9 @@ func (uc *manageFinancialDataUseCaseImpl) UpdateRetirementData(
 		return nil, fmt.Errorf("財務計画の保存に失敗しました: %w", err)
 	}
 
+	// フロントエンド向けレスポンスに変換して返す
 	return &UpdateRetirementDataOutput{
-		Success:   true,
-		UpdatedAt: plan.UpdatedAt().Format("2006-01-02T15:04:05Z07:00"),
+		FinancialDataResponse: convertPlanToFinancialDataResponse(plan, input.UserID).FinancialDataResponse,
 	}, nil
 }
 
@@ -330,9 +414,9 @@ func (uc *manageFinancialDataUseCaseImpl) UpdateEmergencyFund(
 		return nil, fmt.Errorf("財務計画の保存に失敗しました: %w", err)
 	}
 
+	// フロントエンド向けレスポンスに変換して返す
 	return &UpdateEmergencyFundOutput{
-		Success:   true,
-		UpdatedAt: plan.UpdatedAt().Format("2006-01-02T15:04:05Z07:00"),
+		FinancialDataResponse: convertPlanToFinancialDataResponse(plan, input.UserID).FinancialDataResponse,
 	}, nil
 }
 

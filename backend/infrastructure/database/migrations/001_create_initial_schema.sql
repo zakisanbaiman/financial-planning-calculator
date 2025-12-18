@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ユーザーテーブル（将来の拡張用）
 CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id VARCHAR(255) PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -15,7 +15,7 @@ CREATE TABLE users (
 -- 財務データテーブル
 CREATE TABLE financial_data (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) NOT NULL,
     monthly_income DECIMAL(15,2) NOT NULL CHECK (monthly_income >= 0),
     investment_return DECIMAL(5,2) NOT NULL CHECK (investment_return >= 0 AND investment_return <= 100),
     inflation_rate DECIMAL(5,2) NOT NULL CHECK (inflation_rate >= 0 AND inflation_rate <= 50),
@@ -50,7 +50,7 @@ CREATE TABLE savings_items (
 -- 退職・年金情報テーブル
 CREATE TABLE retirement_data (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) NOT NULL,
     current_age INTEGER NOT NULL CHECK (current_age > 0 AND current_age <= 120),
     retirement_age INTEGER NOT NULL CHECK (retirement_age > 0 AND retirement_age <= 120),
     life_expectancy INTEGER NOT NULL CHECK (life_expectancy > 0 AND life_expectancy <= 120),
@@ -67,7 +67,7 @@ CREATE TABLE retirement_data (
 -- 目標テーブル
 CREATE TABLE goals (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) NOT NULL,
     type VARCHAR(50) NOT NULL CHECK (type IN ('savings', 'retirement', 'emergency', 'custom')),
     title VARCHAR(255) NOT NULL,
     target_amount DECIMAL(15,2) NOT NULL CHECK (target_amount > 0),
