@@ -7,8 +7,9 @@ import { useGoals } from '@/lib/contexts/GoalsContext';
 import { useUser } from '@/lib/hooks/useUser';
 import GoalProgressTracker from '@/components/GoalProgressTracker';
 import GoalsSummaryChart from '@/components/GoalsSummaryChart';
+import AssetProjectionChart from '@/components/AssetProjectionChart';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import type { Goal } from '@/types/api';
+import type { Goal, AssetProjectionPoint } from '@/types/api';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -30,6 +31,17 @@ export default function DashboardPage() {
   const totalTarget = activeGoals.reduce((sum, g) => sum + g.target_amount, 0);
   const totalCurrent = activeGoals.reduce((sum, g) => sum + g.current_amount, 0);
   const overallProgress = totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
+
+  // サンプルの資産推移データ（本番ではAPIから取得）
+  const sampleProjections: AssetProjectionPoint[] = [
+    { year: 0, total_assets: 3000000, real_value: 3000000, contributed_amount: 3000000, investment_gains: 0 },
+    { year: 1, total_assets: 4500000, real_value: 4410000, contributed_amount: 4440000, investment_gains: 60000 },
+    { year: 2, total_assets: 6100000, real_value: 5856000, contributed_amount: 5880000, investment_gains: 220000 },
+    { year: 3, total_assets: 7800000, real_value: 7332000, contributed_amount: 7320000, investment_gains: 480000 },
+    { year: 4, total_assets: 9600000, real_value: 8832000, contributed_amount: 8760000, investment_gains: 840000 },
+    { year: 5, total_assets: 11500000, real_value: 10350000, contributed_amount: 10200000, investment_gains: 1300000 },
+  ];
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
@@ -89,7 +101,7 @@ export default function DashboardPage() {
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Left Column - Charts and Projections */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Asset Projection Chart Placeholder */}
+          {/* Asset Projection Chart */}
           <div className="card">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900">資産推移予測</h2>
@@ -97,13 +109,12 @@ export default function DashboardPage() {
                 詳細計算 →
               </Link>
             </div>
-            <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-              <div className="text-center text-gray-500">
-                <div className="text-4xl mb-2">📊</div>
-                <p>資産推移グラフ</p>
-                <p className="text-sm">(Chart.js実装予定)</p>
-              </div>
-            </div>
+            <AssetProjectionChart
+              projections={sampleProjections}
+              showRealValue={true}
+              showContributions={true}
+              height={256}
+            />
           </div>
 
           {/* Monthly Breakdown */}
