@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import InputField from './InputField';
+import CurrencyInput from './CurrencyInput';
 import Button from './Button';
 import type { ExpenseItem, SavingsItem, FinancialProfile } from '@/types/api';
 
@@ -185,17 +186,15 @@ const FinancialInputForm: React.FC<FinancialInputFormProps> = ({
       {/* 月収入力 */}
       <div className="card">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">月収</h3>
-        <InputField
-          type="number"
+        <CurrencyInput
           label="月収（税込）"
-          value={monthlyIncome || ''}
-          onChange={(e) => setMonthlyIncome(Number(e.target.value))}
+          value={monthlyIncome}
+          onChange={setMonthlyIncome}
           onBlur={() => handleBlur('monthly_income')}
           error={errors.monthly_income}
-          placeholder="400000"
+          placeholder="400,000"
           required
-          min="0"
-          step="1000"
+          min={0}
         />
       </div>
 
@@ -221,17 +220,15 @@ const FinancialInputForm: React.FC<FinancialInputFormProps> = ({
                 />
               </div>
               <div className="flex-1">
-                <InputField
-                  type="number"
+                <CurrencyInput
                   label="金額"
-                  value={expense.amount || ''}
-                  onChange={(e) => handleExpenseChange(index, 'amount', Number(e.target.value))}
+                  value={expense.amount}
+                  onChange={(value) => handleExpenseChange(index, 'amount', value)}
                   onBlur={() => handleBlur(`expense_${index}`)}
                   error={errors.expenses?.[index]}
-                  placeholder="120000"
+                  placeholder="120,000"
                   required
-                  min="0"
-                  step="1000"
+                  min={0}
                 />
               </div>
               {expenses.length > 1 && (
@@ -301,17 +298,15 @@ const FinancialInputForm: React.FC<FinancialInputFormProps> = ({
                 </select>
               </div>
               <div className="flex-1">
-                <InputField
-                  type="number"
+                <CurrencyInput
                   label="金額"
-                  value={saving.amount || ''}
-                  onChange={(e) => handleSavingChange(index, 'amount', Number(e.target.value))}
+                  value={saving.amount}
+                  onChange={(value) => handleSavingChange(index, 'amount', value)}
                   onBlur={() => handleBlur(`saving_${index}`)}
                   error={errors.savings?.[index]}
-                  placeholder="1000000"
+                  placeholder="1,000,000"
                   required
-                  min="0"
-                  step="10000"
+                  min={0}
                 />
               </div>
               {savings.length > 1 && (
