@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import InputField from './InputField';
+import CurrencyInput from './CurrencyInput';
 import Button from './Button';
 import type { Goal, GoalType } from '@/types/api';
 
@@ -193,17 +194,15 @@ const GoalForm: React.FC<GoalFormProps> = ({
       />
 
       {/* 目標金額 */}
-      <InputField
-        type="number"
+      <CurrencyInput
         label="目標金額"
-        value={targetAmount || ''}
-        onChange={(e) => setTargetAmount(Number(e.target.value))}
+        value={targetAmount}
+        onChange={setTargetAmount}
         onBlur={() => handleBlur('target_amount')}
         error={errors.target_amount}
-        placeholder="5000000"
+        placeholder="5,000,000"
         required
-        min="0"
-        step="10000"
+        min={0}
       />
 
       {/* 目標期日 */}
@@ -218,29 +217,23 @@ const GoalForm: React.FC<GoalFormProps> = ({
       />
 
       {/* 現在の積立額 */}
-      <InputField
-        type="number"
+      <CurrencyInput
         label="現在の積立額"
-        value={currentAmount || ''}
-        onChange={(e) => setCurrentAmount(Number(e.target.value))}
-        placeholder="1000000"
+        value={currentAmount}
+        onChange={setCurrentAmount}
         helperText="この目標のために既に積み立てている金額"
-        min="0"
-        step="10000"
+        min={0}
       />
 
       {/* 月間積立額 */}
-      <InputField
-        type="number"
+      <CurrencyInput
         label="月間積立額"
-        value={monthlyContribution || ''}
-        onChange={(e) => setMonthlyContribution(Number(e.target.value))}
+        value={monthlyContribution}
+        onChange={setMonthlyContribution}
         onBlur={() => handleBlur('monthly_contribution')}
         error={errors.monthly_contribution}
-        placeholder="50000"
         helperText="毎月この目標のために積み立てる金額"
-        min="0"
-        step="1000"
+        min={0}
       />
 
       {/* 進捗状況表示 */}
