@@ -88,12 +88,15 @@ func (c *CalculationsController) CalculateAssetProjection(ctx echo.Context) erro
 		return err
 	}
 
+	// リクエストIDをコンテキストに追加
+	reqCtx := GetRequestContextWithUserID(ctx, req.UserID)
+
 	input := usecases.AssetProjectionInput{
 		UserID: entities.UserID(req.UserID),
 		Years:  req.Years,
 	}
 
-	output, err := c.useCase.CalculateAssetProjection(ctx.Request().Context(), input)
+	output, err := c.useCase.CalculateAssetProjection(reqCtx, input)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
@@ -122,11 +125,14 @@ func (c *CalculationsController) CalculateRetirementProjection(ctx echo.Context)
 		return err // Validator already returns proper error response
 	}
 
+	// リクエストIDをコンテキストに追加
+	reqCtx := GetRequestContextWithUserID(ctx, req.UserID)
+
 	input := usecases.RetirementProjectionInput{
 		UserID: entities.UserID(req.UserID),
 	}
 
-	output, err := c.useCase.CalculateRetirementProjection(ctx.Request().Context(), input)
+	output, err := c.useCase.CalculateRetirementProjection(reqCtx, input)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
@@ -155,11 +161,14 @@ func (c *CalculationsController) CalculateEmergencyFundProjection(ctx echo.Conte
 		return err // Validator already returns proper error response
 	}
 
+	// リクエストIDをコンテキストに追加
+	reqCtx := GetRequestContextWithUserID(ctx, req.UserID)
+
 	input := usecases.EmergencyFundProjectionInput{
 		UserID: entities.UserID(req.UserID),
 	}
 
-	output, err := c.useCase.CalculateEmergencyFundProjection(ctx.Request().Context(), input)
+	output, err := c.useCase.CalculateEmergencyFundProjection(reqCtx, input)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
@@ -206,12 +215,15 @@ func (c *CalculationsController) CalculateComprehensiveProjection(ctx echo.Conte
 		return err
 	}
 
+	// リクエストIDをコンテキストに追加
+	reqCtx := GetRequestContextWithUserID(ctx, req.UserID)
+
 	input := usecases.ComprehensiveProjectionInput{
 		UserID: entities.UserID(req.UserID),
 		Years:  req.Years,
 	}
 
-	output, err := c.useCase.CalculateComprehensiveProjection(ctx.Request().Context(), input)
+	output, err := c.useCase.CalculateComprehensiveProjection(reqCtx, input)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
@@ -240,12 +252,15 @@ func (c *CalculationsController) CalculateGoalProjection(ctx echo.Context) error
 		return err // Validator already returns proper error response
 	}
 
+	// リクエストIDをコンテキストに追加
+	reqCtx := GetRequestContextWithUserID(ctx, req.UserID)
+
 	input := usecases.GoalProjectionInput{
 		UserID: entities.UserID(req.UserID),
 		GoalID: entities.GoalID(req.GoalID),
 	}
 
-	output, err := c.useCase.CalculateGoalProjection(ctx.Request().Context(), input)
+	output, err := c.useCase.CalculateGoalProjection(reqCtx, input)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
