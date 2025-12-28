@@ -203,7 +203,10 @@ func (c *FinancialDataController) CreateFinancialData(ctx echo.Context) error {
 		EmergencyFundCurrentAmount: req.EmergencyFundCurrentAmount,
 	}
 
-	output, err := c.useCase.CreateFinancialPlan(ctx.Request().Context(), input)
+	// リクエストIDをコンテキストに追加
+	reqCtx := GetRequestContextWithUserID(ctx, req.UserID)
+
+	output, err := c.useCase.CreateFinancialPlan(reqCtx, input)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
@@ -212,7 +215,7 @@ func (c *FinancialDataController) CreateFinancialData(ctx echo.Context) error {
 	getInput := usecases.GetFinancialPlanInput{
 		UserID: entities.UserID(req.UserID),
 	}
-	getOutput, getErr := c.useCase.GetFinancialPlan(ctx.Request().Context(), getInput)
+	getOutput, getErr := c.useCase.GetFinancialPlan(reqCtx, getInput)
 	if getErr == nil {
 		response := c.convertToFinancialDataResponse(getOutput, req.UserID)
 		return ctx.JSON(http.StatusCreated, response)
@@ -239,11 +242,14 @@ func (c *FinancialDataController) GetFinancialData(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "ユーザーIDは必須です", nil))
 	}
 
+	// リクエストIDをコンテキストに追加
+	reqCtx := GetRequestContextWithUserID(ctx, userID)
+
 	input := usecases.GetFinancialPlanInput{
 		UserID: entities.UserID(userID),
 	}
 
-	output, err := c.useCase.GetFinancialPlan(ctx.Request().Context(), input)
+	output, err := c.useCase.GetFinancialPlan(reqCtx, input)
 	if err != nil {
 		// 404 for not found, 500 for other errors
 		// Check for various forms of "financial data not found" error messages

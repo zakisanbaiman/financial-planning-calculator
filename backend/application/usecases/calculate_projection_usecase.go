@@ -3,11 +3,13 @@ package usecases
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/financial-planning-calculator/backend/domain/aggregates"
 	"github.com/financial-planning-calculator/backend/domain/entities"
 	"github.com/financial-planning-calculator/backend/domain/repositories"
 	"github.com/financial-planning-calculator/backend/domain/services"
+	"github.com/financial-planning-calculator/backend/infrastructure/log"
 )
 
 // CalculateProjectionUseCase は将来予測計算のユースケース
@@ -167,6 +169,7 @@ type calculateProjectionUseCaseImpl struct {
 	goalRepo              repositories.GoalRepository
 	calculationService    *services.FinancialCalculationService
 	recommendationService *services.GoalRecommendationService
+	logger                *log.UseCaseLogger
 }
 
 // NewCalculateProjectionUseCase は新しいCalculateProjectionUseCaseを作成する
@@ -181,6 +184,7 @@ func NewCalculateProjectionUseCase(
 		goalRepo:              goalRepo,
 		calculationService:    calculationService,
 		recommendationService: recommendationService,
+		logger:                log.NewUseCaseLogger("CalculateProjectionUseCase"),
 	}
 }
 
@@ -189,23 +193,41 @@ func (uc *calculateProjectionUseCaseImpl) CalculateAssetProjection(
 	ctx context.Context,
 	input AssetProjectionInput,
 ) (*AssetProjectionOutput, error) {
+	ctx = uc.logger.StartOperation(ctx, "CalculateAssetProjection",
+		slog.String("user_id", string(input.UserID)),
+		slog.Int("years", input.Years),
+	)
+
 	// 財務計画を取得
 	plan, err := uc.financialPlanRepo.FindByUserID(ctx, input.UserID)
 	if err != nil {
+		uc.logger.OperationError(ctx, "CalculateAssetProjection", err,
+			slog.String("step", "find_plan"),
+		)
 		return nil, fmt.Errorf("財務計画の取得に失敗しました: %w", err)
 	}
 
 	// 資産推移を計算
 	projections, err := plan.Profile().ProjectAssets(input.Years)
 	if err != nil {
+		uc.logger.OperationError(ctx, "CalculateAssetProjection", err,
+			slog.String("step", "project_assets"),
+		)
 		return nil, fmt.Errorf("資産推移の計算に失敗しました: %w", err)
 	}
 
 	// サマリーを計算
 	summary, err := uc.calculateProjectionSummary(projections)
 	if err != nil {
+		uc.logger.OperationError(ctx, "CalculateAssetProjection", err,
+			slog.String("step", "calculate_summary"),
+		)
 		return nil, fmt.Errorf("予測サマリーの計算に失敗しました: %w", err)
 	}
+
+	uc.logger.EndOperation(ctx, "CalculateAssetProjection",
+		slog.Int("projection_count", len(projections)),
+	)
 
 	return &AssetProjectionOutput{
 		Projections: projections,
@@ -218,26 +240,43 @@ func (uc *calculateProjectionUseCaseImpl) CalculateRetirementProjection(
 	ctx context.Context,
 	input RetirementProjectionInput,
 ) (*RetirementProjectionOutput, error) {
+	ctx = uc.logger.StartOperation(ctx, "CalculateRetirementProjection",
+		slog.String("user_id", string(input.UserID)),
+	)
+
 	// 財務計画を取得
 	plan, err := uc.financialPlanRepo.FindByUserID(ctx, input.UserID)
 	if err != nil {
+		uc.logger.OperationError(ctx, "CalculateRetirementProjection", err,
+			slog.String("step", "find_plan"),
+		)
 		return nil, fmt.Errorf("財務計画の取得に失敗しました: %w", err)
 	}
 
 	// 退職データが設定されているかチェック
 	retirementData := plan.RetirementData()
 	if retirementData == nil {
-		return nil, fmt.Errorf("退職データが設定されていません")
+		err := fmt.Errorf("退職データが設定されていません")
+		uc.logger.OperationError(ctx, "CalculateRetirementProjection", err,
+			slog.String("step", "check_retirement_data"),
+		)
+		return nil, err
 	}
 
 	// 退職資金計算
 	currentSavings, err := plan.Profile().CurrentSavings().Total()
 	if err != nil {
+		uc.logger.OperationError(ctx, "CalculateRetirementProjection", err,
+			slog.String("step", "calculate_current_savings"),
+		)
 		return nil, fmt.Errorf("現在の貯蓄合計の計算に失敗しました: %w", err)
 	}
 
 	netSavings, err := plan.Profile().CalculateNetSavings()
 	if err != nil {
+		uc.logger.OperationError(ctx, "CalculateRetirementProjection", err,
+			slog.String("step", "calculate_net_savings"),
+		)
 		return nil, fmt.Errorf("純貯蓄額の計算に失敗しました: %w", err)
 	}
 
@@ -248,6 +287,9 @@ func (uc *calculateProjectionUseCaseImpl) CalculateRetirementProjection(
 		plan.Profile().InflationRate(),
 	)
 	if err != nil {
+		uc.logger.OperationError(ctx, "CalculateRetirementProjection", err,
+			slog.String("step", "calculate_sufficiency"),
+		)
 		return nil, fmt.Errorf("退職資金計算に失敗しました: %w", err)
 	}
 
@@ -263,6 +305,10 @@ func (uc *calculateProjectionUseCaseImpl) CalculateRetirementProjection(
 		requiredAdjustment = uc.calculateRequiredRetirementAdjustment(calculation, plan)
 	}
 
+	uc.logger.EndOperation(ctx, "CalculateRetirementProjection",
+		slog.String("sufficiency_level", sufficiencyLevel),
+	)
+
 	return &RetirementProjectionOutput{
 		Calculation:        calculation,
 		Recommendations:    recommendations,
@@ -276,20 +322,34 @@ func (uc *calculateProjectionUseCaseImpl) CalculateEmergencyFundProjection(
 	ctx context.Context,
 	input EmergencyFundProjectionInput,
 ) (*EmergencyFundProjectionOutput, error) {
+	ctx = uc.logger.StartOperation(ctx, "CalculateEmergencyFundProjection",
+		slog.String("user_id", string(input.UserID)),
+	)
+
 	// 財務計画を取得
 	plan, err := uc.financialPlanRepo.FindByUserID(ctx, input.UserID)
 	if err != nil {
+		uc.logger.OperationError(ctx, "CalculateEmergencyFundProjection", err,
+			slog.String("step", "find_plan"),
+		)
 		return nil, fmt.Errorf("財務計画の取得に失敗しました: %w", err)
 	}
 
 	// 包括的予測を生成して緊急資金状況を取得
 	projection, err := plan.GenerateProjection(1) // 1年間の予測
 	if err != nil {
+		uc.logger.OperationError(ctx, "CalculateEmergencyFundProjection", err,
+			slog.String("step", "generate_projection"),
+		)
 		return nil, fmt.Errorf("財務予測の生成に失敗しました: %w", err)
 	}
 
 	if projection.EmergencyFundStatus == nil {
-		return nil, fmt.Errorf("緊急資金状況が計算されていません")
+		err := fmt.Errorf("緊急資金状況が計算されていません")
+		uc.logger.OperationError(ctx, "CalculateEmergencyFundProjection", err,
+			slog.String("step", "check_emergency_status"),
+		)
+		return nil, err
 	}
 
 	// 推奨事項を生成
@@ -300,6 +360,10 @@ func (uc *calculateProjectionUseCaseImpl) CalculateEmergencyFundProjection(
 
 	// タイムラインを計算
 	timeline := uc.calculateEmergencyFundTimeline(projection.EmergencyFundStatus, plan)
+
+	uc.logger.EndOperation(ctx, "CalculateEmergencyFundProjection",
+		slog.String("priority", priority),
+	)
 
 	return &EmergencyFundProjectionOutput{
 		Status:          projection.EmergencyFundStatus,
@@ -314,15 +378,26 @@ func (uc *calculateProjectionUseCaseImpl) CalculateComprehensiveProjection(
 	ctx context.Context,
 	input ComprehensiveProjectionInput,
 ) (*ComprehensiveProjectionOutput, error) {
+	ctx = uc.logger.StartOperation(ctx, "CalculateComprehensiveProjection",
+		slog.String("user_id", string(input.UserID)),
+		slog.Int("years", input.Years),
+	)
+
 	// 財務計画を取得
 	plan, err := uc.financialPlanRepo.FindByUserID(ctx, input.UserID)
 	if err != nil {
+		uc.logger.OperationError(ctx, "CalculateComprehensiveProjection", err,
+			slog.String("step", "find_plan"),
+		)
 		return nil, fmt.Errorf("財務計画の取得に失敗しました: %w", err)
 	}
 
 	// 包括的予測を生成
 	projection, err := plan.GenerateProjection(input.Years)
 	if err != nil {
+		uc.logger.OperationError(ctx, "CalculateComprehensiveProjection", err,
+			slog.String("step", "generate_projection"),
+		)
 		return nil, fmt.Errorf("包括的予測の生成に失敗しました: %w", err)
 	}
 
@@ -334,6 +409,11 @@ func (uc *calculateProjectionUseCaseImpl) CalculateComprehensiveProjection(
 
 	// 機会を生成
 	opportunities := uc.generateFinancialOpportunities(projection, plan)
+
+	uc.logger.EndOperation(ctx, "CalculateComprehensiveProjection",
+		slog.Int("insights_count", len(insights)),
+		slog.Int("warnings_count", len(warnings)),
+	)
 
 	return &ComprehensiveProjectionOutput{
 		PlanProjection: projection,

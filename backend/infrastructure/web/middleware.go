@@ -1,11 +1,13 @@
 package web
 
 import (
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/financial-planning-calculator/backend/config"
+	"github.com/financial-planning-calculator/backend/infrastructure/log"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -84,19 +86,26 @@ func CustomHTTPErrorHandler(err error, c echo.Context) {
 		msg  any
 	)
 
+	requestID := c.Response().Header().Get(echo.HeaderXRequestID)
+	ctx := log.WithRequestID(c.Request().Context(), requestID)
+
 	if he, ok := err.(*echo.HTTPError); ok {
 		code = he.Code
 		msg = he.Message
 
 		// Check if it's our custom validation error
 		if validationErr, ok := he.Message.(ValidationErrorResponse); ok {
-			// ログ出力
-			c.Logger().Warnf("Validation error: %+v", validationErr)
+			// 構造化ログ出力
+			log.Warn(ctx, "バリデーションエラー",
+				slog.Int("status_code", code),
+				slog.String("path", c.Request().URL.Path),
+				slog.String("method", c.Request().Method),
+			)
 
 			if !c.Response().Committed {
 				err = c.JSON(code, validationErr)
 				if err != nil {
-					c.Logger().Error(err)
+					log.Error(ctx, "レスポンス送信エラー", err)
 				}
 			}
 			return
@@ -105,8 +114,12 @@ func CustomHTTPErrorHandler(err error, c echo.Context) {
 		msg = err.Error()
 	}
 
-	// ログ出力
-	c.Logger().Error(err)
+	// 構造化エラーログ出力
+	log.Error(ctx, "HTTPエラー", err,
+		slog.Int("status_code", code),
+		slog.String("path", c.Request().URL.Path),
+		slog.String("method", c.Request().Method),
+	)
 
 	// 統一されたエラーレスポンス形式を使用
 	if !c.Response().Committed {
@@ -117,13 +130,13 @@ func CustomHTTPErrorHandler(err error, c echo.Context) {
 				"error":      getErrorMessageFromStatus(code),
 				"details":    msg,
 				"timestamp":  time.Now().UTC().Format(time.RFC3339),
-				"request_id": c.Response().Header().Get(echo.HeaderXRequestID),
+				"request_id": requestID,
 				"code":       getErrorCodeFromStatus(code),
 			}
 			err = c.JSON(code, errorResponse)
 		}
 		if err != nil {
-			c.Logger().Error(err)
+			log.Error(ctx, "レスポンス送信エラー", err)
 		}
 	}
 }

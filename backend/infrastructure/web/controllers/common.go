@@ -1,8 +1,10 @@
 package controllers
 
 import (
+	"context"
 	"time"
 
+	"github.com/financial-planning-calculator/backend/infrastructure/log"
 	"github.com/labstack/echo/v4"
 )
 
@@ -171,4 +173,29 @@ func CreateBusinessLogicInfo(errorType, message, suggestion string, currentValue
 		ExpectedValue: expectedValue,
 		Severity:      "info",
 	}
+}
+
+// GetRequestContext はEchoコンテキストからリクエストID付きのcontextを取得します
+func GetRequestContext(ctx echo.Context) context.Context {
+	reqCtx := ctx.Request().Context()
+
+	// リクエストIDを取得してコンテキストに追加
+	requestID := ctx.Response().Header().Get(echo.HeaderXRequestID)
+	if requestID == "" {
+		requestID = ctx.Request().Header.Get("X-Request-ID")
+	}
+	if requestID != "" {
+		reqCtx = log.WithRequestID(reqCtx, requestID)
+	}
+
+	return reqCtx
+}
+
+// GetRequestContextWithUserID はリクエストIDとユーザーID付きのcontextを取得します
+func GetRequestContextWithUserID(ctx echo.Context, userID string) context.Context {
+	reqCtx := GetRequestContext(ctx)
+	if userID != "" {
+		reqCtx = log.WithUserID(reqCtx, userID)
+	}
+	return reqCtx
 }

@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/financial-planning-calculator/backend/domain/aggregates"
 	"github.com/financial-planning-calculator/backend/domain/entities"
 	"github.com/financial-planning-calculator/backend/domain/repositories"
 	"github.com/financial-planning-calculator/backend/domain/valueobjects"
+	"github.com/financial-planning-calculator/backend/infrastructure/log"
 )
 
 // ManageFinancialDataUseCase は財務データ管理のユースケース
@@ -139,6 +141,7 @@ type DeleteFinancialPlanInput struct {
 // manageFinancialDataUseCaseImpl はManageFinancialDataUseCaseの実装
 type manageFinancialDataUseCaseImpl struct {
 	financialPlanRepo repositories.FinancialPlanRepository
+	logger            *log.UseCaseLogger
 }
 
 // NewManageFinancialDataUseCase は新しいManageFinancialDataUseCaseを作成する
@@ -147,6 +150,7 @@ func NewManageFinancialDataUseCase(
 ) ManageFinancialDataUseCase {
 	return &manageFinancialDataUseCaseImpl{
 		financialPlanRepo: financialPlanRepo,
+		logger:            log.NewUseCaseLogger("ManageFinancialDataUseCase"),
 	}
 }
 
@@ -155,25 +159,42 @@ func (uc *manageFinancialDataUseCaseImpl) CreateFinancialPlan(
 	ctx context.Context,
 	input CreateFinancialPlanInput,
 ) (*CreateFinancialPlanOutput, error) {
+	ctx = uc.logger.StartOperation(ctx, "CreateFinancialPlan",
+		slog.String("user_id", string(input.UserID)),
+	)
+
 	// 既存の財務計画があるかチェック
 	exists, err := uc.financialPlanRepo.ExistsByUserID(ctx, input.UserID)
 	if err != nil {
+		uc.logger.OperationError(ctx, "CreateFinancialPlan", err,
+			slog.String("step", "check_existing_plan"),
+		)
 		return nil, fmt.Errorf("既存財務計画の確認に失敗しました: %w", err)
 	}
 
 	if exists {
-		return nil, errors.New("ユーザーの財務計画は既に存在します")
+		err := errors.New("ユーザーの財務計画は既に存在します")
+		uc.logger.OperationError(ctx, "CreateFinancialPlan", err,
+			slog.String("step", "validate_uniqueness"),
+		)
+		return nil, err
 	}
 
 	// 財務プロファイルを作成
 	profile, err := uc.createFinancialProfile(input)
 	if err != nil {
+		uc.logger.OperationError(ctx, "CreateFinancialPlan", err,
+			slog.String("step", "create_profile"),
+		)
 		return nil, fmt.Errorf("財務プロファイルの作成に失敗しました: %w", err)
 	}
 
 	// 財務計画を作成
 	plan, err := aggregates.NewFinancialPlan(profile)
 	if err != nil {
+		uc.logger.OperationError(ctx, "CreateFinancialPlan", err,
+			slog.String("step", "create_plan"),
+		)
 		return nil, fmt.Errorf("財務計画の作成に失敗しました: %w", err)
 	}
 
@@ -181,11 +202,17 @@ func (uc *manageFinancialDataUseCaseImpl) CreateFinancialPlan(
 	if input.RetirementAge != nil && input.MonthlyRetirementExpenses != nil && input.PensionAmount != nil {
 		retirementData, err := uc.createRetirementData(input.UserID, *input.RetirementAge, *input.MonthlyRetirementExpenses, *input.PensionAmount)
 		if err != nil {
+			uc.logger.OperationError(ctx, "CreateFinancialPlan", err,
+				slog.String("step", "create_retirement_data"),
+			)
 			return nil, fmt.Errorf("退職データの作成に失敗しました: %w", err)
 		}
 
 		err = plan.SetRetirementData(retirementData)
 		if err != nil {
+			uc.logger.OperationError(ctx, "CreateFinancialPlan", err,
+				slog.String("step", "set_retirement_data"),
+			)
 			return nil, fmt.Errorf("退職データの設定に失敗しました: %w", err)
 		}
 	}
@@ -194,16 +221,25 @@ func (uc *manageFinancialDataUseCaseImpl) CreateFinancialPlan(
 	if input.EmergencyFundTargetMonths != nil && input.EmergencyFundCurrentAmount != nil {
 		currentFund, err := valueobjects.NewMoneyJPY(*input.EmergencyFundCurrentAmount)
 		if err != nil {
+			uc.logger.OperationError(ctx, "CreateFinancialPlan", err,
+				slog.String("step", "create_emergency_fund_amount"),
+			)
 			return nil, fmt.Errorf("緊急資金額の作成に失敗しました: %w", err)
 		}
 
 		emergencyConfig, err := aggregates.NewEmergencyFundConfig(*input.EmergencyFundTargetMonths, currentFund)
 		if err != nil {
+			uc.logger.OperationError(ctx, "CreateFinancialPlan", err,
+				slog.String("step", "create_emergency_config"),
+			)
 			return nil, fmt.Errorf("緊急資金設定の作成に失敗しました: %w", err)
 		}
 
 		err = plan.UpdateEmergencyFund(emergencyConfig)
 		if err != nil {
+			uc.logger.OperationError(ctx, "CreateFinancialPlan", err,
+				slog.String("step", "update_emergency_fund"),
+			)
 			return nil, fmt.Errorf("緊急資金設定の更新に失敗しました: %w", err)
 		}
 	}
@@ -211,8 +247,15 @@ func (uc *manageFinancialDataUseCaseImpl) CreateFinancialPlan(
 	// 財務計画を保存
 	err = uc.financialPlanRepo.Save(ctx, plan)
 	if err != nil {
+		uc.logger.OperationError(ctx, "CreateFinancialPlan", err,
+			slog.String("step", "save_plan"),
+		)
 		return nil, fmt.Errorf("財務計画の保存に失敗しました: %w", err)
 	}
+
+	uc.logger.EndOperation(ctx, "CreateFinancialPlan",
+		slog.String("plan_id", string(plan.ID())),
+	)
 
 	return &CreateFinancialPlanOutput{
 		PlanID:    plan.ID(),
@@ -226,10 +269,19 @@ func (uc *manageFinancialDataUseCaseImpl) GetFinancialPlan(
 	ctx context.Context,
 	input GetFinancialPlanInput,
 ) (*GetFinancialPlanOutput, error) {
+	ctx = uc.logger.StartOperation(ctx, "GetFinancialPlan",
+		slog.String("user_id", string(input.UserID)),
+	)
+
 	plan, err := uc.financialPlanRepo.FindByUserID(ctx, input.UserID)
 	if err != nil {
+		uc.logger.OperationError(ctx, "GetFinancialPlan", err,
+			slog.String("step", "find_plan"),
+		)
 		return nil, fmt.Errorf("財務計画の取得に失敗しました: %w", err)
 	}
+
+	uc.logger.EndOperation(ctx, "GetFinancialPlan")
 
 	return &GetFinancialPlanOutput{
 		Plan: plan,
@@ -241,29 +293,47 @@ func (uc *manageFinancialDataUseCaseImpl) UpdateFinancialProfile(
 	ctx context.Context,
 	input UpdateFinancialProfileInput,
 ) (*UpdateFinancialProfileOutput, error) {
+	ctx = uc.logger.StartOperation(ctx, "UpdateFinancialProfile",
+		slog.String("user_id", string(input.UserID)),
+	)
+
 	// 既存の財務計画を取得
 	plan, err := uc.financialPlanRepo.FindByUserID(ctx, input.UserID)
 	if err != nil {
+		uc.logger.OperationError(ctx, "UpdateFinancialProfile", err,
+			slog.String("step", "find_plan"),
+		)
 		return nil, fmt.Errorf("財務計画の取得に失敗しました: %w", err)
 	}
 
 	// 新しい財務プロファイルを作成
 	profile, err := uc.createFinancialProfileFromUpdate(input)
 	if err != nil {
+		uc.logger.OperationError(ctx, "UpdateFinancialProfile", err,
+			slog.String("step", "create_profile"),
+		)
 		return nil, fmt.Errorf("財務プロファイルの作成に失敗しました: %w", err)
 	}
 
 	// 財務プロファイルを更新
 	err = plan.UpdateProfile(profile)
 	if err != nil {
+		uc.logger.OperationError(ctx, "UpdateFinancialProfile", err,
+			slog.String("step", "update_profile"),
+		)
 		return nil, fmt.Errorf("財務プロファイルの更新に失敗しました: %w", err)
 	}
 
 	// 財務計画を保存
 	err = uc.financialPlanRepo.Update(ctx, plan)
 	if err != nil {
+		uc.logger.OperationError(ctx, "UpdateFinancialProfile", err,
+			slog.String("step", "save_plan"),
+		)
 		return nil, fmt.Errorf("財務計画の保存に失敗しました: %w", err)
 	}
+
+	uc.logger.EndOperation(ctx, "UpdateFinancialProfile")
 
 	// フロントエンド向けレスポンスに変換して返す
 	return convertPlanToFinancialDataResponse(plan, input.UserID), nil
