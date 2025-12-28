@@ -27,22 +27,29 @@ const wrapper = ({ children }: { children: ReactNode }) => (
 const mockFinancialData: FinancialData = {
   user_id: 'user_123',
   profile: {
-    age: 30,
-    annual_income: 5000000,
-    monthly_expenses: 300000,
-    current_savings: 2000000,
-    risk_tolerance: 'moderate',
-  },
+    monthly_income: 500000,
+    monthly_expenses: [
+      { category: '生活費', amount: 200000 },
+      { category: '住居費', amount: 100000 },
+    ],
+    current_savings: [
+      { type: 'deposit', amount: 2000000 },
+    ],
+    investment_return: 5,
+    inflation_rate: 2,
+  } as FinancialProfile,
   retirement: {
-    target_age: 65,
-    monthly_living_expenses: 250000,
-    expected_pension: 150000,
-    has_pension_plan: true,
-  },
+    current_age: 30,
+    retirement_age: 65,
+    life_expectancy: 90,
+    monthly_retirement_expenses: 250000,
+    pension_amount: 150000,
+  } as RetirementData,
   emergency_fund: {
-    current_amount: 1000000,
     target_months: 6,
-  },
+    monthly_expenses: 300000,
+    current_amount: 1000000,
+  } as EmergencyFund,
 };
 
 describe('FinancialDataContext', () => {
@@ -183,49 +190,72 @@ describe('FinancialDataContext', () => {
 
   describe('updateProfile', () => {
     it('正常にプロファイルを更新できる', async () => {
-      const updatedData = { ...mockFinancialData, profile: { ...mockFinancialData.profile, age: 31 } };
+      const updatedProfile: FinancialProfile = {
+        monthly_income: 550000,
+        monthly_expenses: [
+          { category: '生活費', amount: 200000 },
+        ],
+        current_savings: [
+          { type: 'deposit', amount: 2500000 },
+        ],
+        investment_return: 6,
+        inflation_rate: 2,
+      };
+      const updatedData = { ...mockFinancialData, profile: updatedProfile };
       mockedAPI.updateProfile.mockResolvedValue(updatedData);
       
       const { result } = renderHook(() => useFinancialData(), { wrapper });
       
       await act(async () => {
-        await result.current.updateProfile('user_123', updatedData.profile);
+        await result.current.updateProfile('user_123', updatedProfile);
       });
       
-      expect(mockedAPI.updateProfile).toHaveBeenCalledWith('user_123', updatedData.profile);
-      expect(result.current.financialData?.profile.age).toBe(31);
+      expect(mockedAPI.updateProfile).toHaveBeenCalledWith('user_123', updatedProfile);
+      expect(result.current.financialData?.profile?.monthly_income).toBe(550000);
     });
   });
 
   describe('updateRetirement', () => {
     it('正常に退職データを更新できる', async () => {
-      const updatedData = { ...mockFinancialData, retirement: { ...mockFinancialData.retirement, target_age: 60 } };
+      const updatedRetirement: RetirementData = {
+        current_age: 30,
+        retirement_age: 60,
+        life_expectancy: 90,
+        monthly_retirement_expenses: 250000,
+        pension_amount: 150000,
+      };
+      const updatedData = { ...mockFinancialData, retirement: updatedRetirement };
       mockedAPI.updateRetirement.mockResolvedValue(updatedData);
       
       const { result } = renderHook(() => useFinancialData(), { wrapper });
       
       await act(async () => {
-        await result.current.updateRetirement('user_123', updatedData.retirement);
+        await result.current.updateRetirement('user_123', updatedRetirement);
       });
       
-      expect(mockedAPI.updateRetirement).toHaveBeenCalledWith('user_123', updatedData.retirement);
-      expect(result.current.financialData?.retirement.target_age).toBe(60);
+      expect(mockedAPI.updateRetirement).toHaveBeenCalledWith('user_123', updatedRetirement);
+      expect(result.current.financialData?.retirement?.retirement_age).toBe(60);
     });
   });
 
   describe('updateEmergencyFund', () => {
     it('正常に緊急資金を更新できる', async () => {
-      const updatedData = { ...mockFinancialData, emergency_fund: { ...mockFinancialData.emergency_fund, target_months: 12 } };
+      const updatedEmergencyFund: EmergencyFund = {
+        target_months: 12,
+        monthly_expenses: 300000,
+        current_amount: 1500000,
+      };
+      const updatedData = { ...mockFinancialData, emergency_fund: updatedEmergencyFund };
       mockedAPI.updateEmergencyFund.mockResolvedValue(updatedData);
       
       const { result } = renderHook(() => useFinancialData(), { wrapper });
       
       await act(async () => {
-        await result.current.updateEmergencyFund('user_123', updatedData.emergency_fund);
+        await result.current.updateEmergencyFund('user_123', updatedEmergencyFund);
       });
       
-      expect(mockedAPI.updateEmergencyFund).toHaveBeenCalledWith('user_123', updatedData.emergency_fund);
-      expect(result.current.financialData?.emergency_fund.target_months).toBe(12);
+      expect(mockedAPI.updateEmergencyFund).toHaveBeenCalledWith('user_123', updatedEmergencyFund);
+      expect(result.current.financialData?.emergency_fund?.target_months).toBe(12);
     });
   });
 
