@@ -10,6 +10,7 @@ import (
 	"github.com/financial-planning-calculator/backend/infrastructure/log"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"golang.org/x/time/rate"
 )
 
 // SetupMiddleware configures all middleware for the Echo server
@@ -41,7 +42,7 @@ func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) {
 			"X-Requested-With",
 		},
 		AllowCredentials: true,
-		MaxAge:           86400, // 24時間
+		MaxAge:           cfg.CORSMaxAge,
 	}))
 
 	// セキュリティヘッダー（開発環境ではSwagger UI動作のため無効化）
@@ -60,7 +61,7 @@ func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) {
 
 	// レート制限 - API呼び出し頻度制限
 	e.Use(middleware.RateLimiterWithConfig(middleware.RateLimiterConfig{
-		Store: middleware.NewRateLimiterMemoryStore(100), // 100 requests per second
+		Store: middleware.NewRateLimiterMemoryStore(rate.Limit(cfg.RateLimitRPS)),
 	}))
 
 	// タイムアウト設定

@@ -13,11 +13,12 @@ import (
 
 // TemporaryFileStorage は一時ファイルの保存と管理を行う
 type TemporaryFileStorage struct {
-	baseDir    string
-	secretKey  []byte
-	expiryTime time.Duration
-	files      map[string]*FileMetadata
-	mu         sync.RWMutex
+	baseDir         string
+	secretKey       []byte
+	expiryTime      time.Duration
+	cleanupInterval time.Duration
+	files           map[string]*FileMetadata
+	mu              sync.RWMutex
 }
 
 // FileMetadata はファイルのメタデータ
@@ -30,17 +31,18 @@ type FileMetadata struct {
 }
 
 // NewTemporaryFileStorage は新しいTemporaryFileStorageを作成する
-func NewTemporaryFileStorage(baseDir string, secretKey string, expiryDuration time.Duration) (*TemporaryFileStorage, error) {
+func NewTemporaryFileStorage(baseDir string, secretKey string, expiryDuration time.Duration, cleanupInterval time.Duration) (*TemporaryFileStorage, error) {
 	// ベースディレクトリを作成
 	if err := os.MkdirAll(baseDir, 0755); err != nil {
 		return nil, fmt.Errorf("ベースディレクトリの作成に失敗: %w", err)
 	}
 
 	storage := &TemporaryFileStorage{
-		baseDir:    baseDir,
-		secretKey:  []byte(secretKey),
-		expiryTime: expiryDuration,
-		files:      make(map[string]*FileMetadata),
+		baseDir:         baseDir,
+		secretKey:       []byte(secretKey),
+		expiryTime:      expiryDuration,
+		cleanupInterval: cleanupInterval,
+		files:           make(map[string]*FileMetadata),
 	}
 
 	// 定期的に期限切れファイルをクリーンアップ
@@ -155,7 +157,7 @@ func (s *TemporaryFileStorage) deleteFile(token string) error {
 
 // startCleanupRoutine は定期的に期限切れファイルをクリーンアップする
 func (s *TemporaryFileStorage) startCleanupRoutine() {
-	ticker := time.NewTicker(1 * time.Hour)
+	ticker := time.NewTicker(s.cleanupInterval)
 	defer ticker.Stop()
 
 	for range ticker.C {

@@ -12,6 +12,7 @@ type ServerConfig struct {
 	Port                string
 	Debug               bool
 	AllowedOrigins      []string
+	CORSMaxAge          int
 	RateLimitRPS        int
 	RequestTimeout      time.Duration
 	MaxRequestSize      string
@@ -24,6 +25,7 @@ type ServerConfig struct {
 	TempFileDir         string
 	TempFileSecret      string
 	TempFileExpiry      time.Duration
+	CleanupInterval     time.Duration
 }
 
 // LoadServerConfig loads server configuration from environment variables
@@ -32,6 +34,7 @@ func LoadServerConfig() *ServerConfig {
 		Port:                getEnv("PORT", "8080"),
 		Debug:               getEnvBool("DEBUG", false),
 		AllowedOrigins:      getEnvSlice("ALLOWED_ORIGINS", []string{"http://localhost:3000", "http://localhost:3001", "https://localhost:3000", "https://localhost:3001"}),
+		CORSMaxAge:          getEnvInt("CORS_MAX_AGE", 86400),
 		RateLimitRPS:        getEnvInt("RATE_LIMIT_RPS", 100),
 		RequestTimeout:      getEnvDuration("REQUEST_TIMEOUT", 30*time.Second),
 		MaxRequestSize:      getEnv("MAX_REQUEST_SIZE", "10M"),
@@ -44,6 +47,7 @@ func LoadServerConfig() *ServerConfig {
 		TempFileDir:         getEnv("TEMP_FILE_DIR", "/tmp/financial-planning-reports"),
 		TempFileSecret:      getEnv("TEMP_FILE_SECRET", "change-this-secret-in-production"),
 		TempFileExpiry:      getEnvDuration("TEMP_FILE_EXPIRY", 24*time.Hour),
+		CleanupInterval:     getEnvDuration("CLEANUP_INTERVAL", 1*time.Hour),
 	}
 
 	return config
