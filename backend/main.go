@@ -22,6 +22,10 @@ import (
 func main() {
 	// 設定読み込み
 	cfg := config.LoadServerConfig()
+	dbConfig := config.NewDatabaseConfig()
+
+	// セキュリティ警告チェック
+	checkSecurityWarnings(cfg, dbConfig)
 
 	// Echo インスタンス作成
 	e := echo.New()
@@ -95,5 +99,34 @@ func initializeDependencies() *web.ServerDependencies {
 		GoalRepo:              goalRepo,
 		CalculationService:    calculationService,
 		RecommendationService: recommendationService,
+	}
+}
+
+// checkSecurityWarnings checks for insecure default values in production
+func checkSecurityWarnings(serverCfg *config.ServerConfig, dbCfg *config.DatabaseConfig) {
+	warnings := []string{}
+
+	// Check database password
+	if dbCfg.Password == "password" {
+		warnings = append(warnings, "⚠️  DB_PASSWORD is set to default value 'password'. Change it in production!")
+	}
+
+	// Check temporary file secret
+	if serverCfg.TempFileSecret == "change-this-secret-in-production" {
+		warnings = append(warnings, "⚠️  TEMP_FILE_SECRET is set to default value. Change it in production!")
+	}
+
+	// Check SSL mode
+	if dbCfg.SSLMode == "disable" {
+		warnings = append(warnings, "⚠️  DB_SSLMODE is set to 'disable'. Enable SSL in production!")
+	}
+
+	// Output warnings
+	if len(warnings) > 0 {
+		log.Println("==================== SECURITY WARNINGS ====================")
+		for _, warning := range warnings {
+			log.Println(warning)
+		}
+		log.Println("===========================================================")
 	}
 }

@@ -13,7 +13,7 @@ func TestTemporaryFileStorage_SaveAndGetFile(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// ストレージを作成
-	storage, err := NewTemporaryFileStorage(tmpDir, "test-secret-key", 1*time.Hour)
+	storage, err := NewTemporaryFileStorage(tmpDir, "test-secret-key", 1*time.Hour, 1*time.Hour)
 	if err != nil {
 		t.Fatalf("ストレージの作成に失敗: %v", err)
 	}
@@ -56,7 +56,7 @@ func TestTemporaryFileStorage_ExpiredFile(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// 1秒で期限切れになるストレージ
-	storage, err := NewTemporaryFileStorage(tmpDir, "test-secret-key", 1*time.Second)
+	storage, err := NewTemporaryFileStorage(tmpDir, "test-secret-key", 1*time.Second, 1*time.Hour)
 	if err != nil {
 		t.Fatalf("ストレージの作成に失敗: %v", err)
 	}
@@ -90,7 +90,7 @@ func TestTemporaryFileStorage_InvalidToken(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// ストレージを作成
-	storage, err := NewTemporaryFileStorage(tmpDir, "test-secret-key", 1*time.Hour)
+	storage, err := NewTemporaryFileStorage(tmpDir, "test-secret-key", 1*time.Hour, 1*time.Hour)
 	if err != nil {
 		t.Fatalf("ストレージの作成に失敗: %v", err)
 	}
@@ -108,7 +108,7 @@ func TestTemporaryFileStorage_FileCount(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// ストレージを作成
-	storage, err := NewTemporaryFileStorage(tmpDir, "test-secret-key", 1*time.Hour)
+	storage, err := NewTemporaryFileStorage(tmpDir, "test-secret-key", 1*time.Hour, 1*time.Hour)
 	if err != nil {
 		t.Fatalf("ストレージの作成に失敗: %v", err)
 	}
