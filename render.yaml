@@ -1,0 +1,68 @@
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: financial-planning-db
+    plan: free
+    region: oregon
+    databaseName: financial_planning
+    databaseUser: postgres
+
+  # Backend API Service
+  - type: web
+    name: financial-planning-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    dockerCommand: ""
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: financial-planning-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: financial-planning-db
+          property: port
+      - key: DB_USER
+        fromDatabase:
+          name: financial-planning-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: financial-planning-db
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: financial-planning-db
+          property: database
+      - key: DB_SSLMODE
+        value: require
+      - key: GIN_MODE
+        value: release
+    buildFilter:
+      paths:
+        - backend/**
+    
+  # Frontend Web Service
+  - type: web
+    name: financial-planning-frontend
+    env: docker
+    dockerfilePath: ./frontend/Dockerfile.prod
+    dockerContext: ./frontend
+    plan: free
+    region: oregon
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: NODE_ENV
+        value: production
+    buildFilter:
+      paths:
+        - frontend/**
+
+# Preview environments for PRs
+previewsEnabled: true
+previewsExpireAfterDays: 7

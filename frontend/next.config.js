@@ -3,6 +3,9 @@ const nextConfig = {
   // Performance optimizations
   reactStrictMode: true,
   
+  // Enable standalone output for Docker deployments
+  output: 'standalone',
+  
   // Enable SWC minification for better performance
   swcMinify: true,
   

@@ -39,11 +39,15 @@ COPY --from=builder /app/main .
 COPY --from=builder /app/migrate .
 COPY --from=builder /app/seed .
 
+# スタートアップスクリプトをコピー
+COPY start.sh .
+RUN chmod +x start.sh
+
 # ポートを公開
 EXPOSE 8080
 
 # アプリケーションを実行
-CMD ["./main"]
+CMD ["./start.sh"]
 
 # 開発用イメージ
 FROM golang:1.24-alpine AS development
