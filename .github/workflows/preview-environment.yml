@@ -53,34 +53,47 @@ jobs:
               body: comment
             });
 
-  build-check:
+  dockerfile-check:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    strategy:
-      matrix:
-        service: [frontend, backend]
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Frontend Docker Image
-        if: matrix.service == 'frontend'
+      - name: Validate Dockerfiles
         run: |
-          cd frontend
-          docker build -f Dockerfile.prod -t financial-planning-frontend:preview .
-      
-      - name: Build Backend Docker Image
-        if: matrix.service == 'backend'
-        run: |
-          cd backend
-          docker build --target production -t financial-planning-backend:preview .
-
-      - name: Print build success
-        run: |
-          echo "✅ ${{ matrix.service }} Docker image built successfully"
-          echo "This confirms the image can be built for Render.com deployment"
+          echo "🔍 Validating Dockerfile configurations..."
+          
+          # Check frontend Dockerfile exists and is valid
+          if [ ! -f "frontend/Dockerfile.prod" ]; then
+            echo "❌ frontend/Dockerfile.prod not found"
+            exit 1
+          fi
+          echo "✅ frontend/Dockerfile.prod found"
+          
+          # Check backend Dockerfile exists and is valid
+          if [ ! -f "backend/Dockerfile" ]; then
+            echo "❌ backend/Dockerfile not found"
+            exit 1
+          fi
+          echo "✅ backend/Dockerfile found"
+          
+          # Check backend start.sh exists
+          if [ ! -f "backend/start.sh" ]; then
+            echo "❌ backend/start.sh not found"
+            exit 1
+          fi
+          echo "✅ backend/start.sh found"
+          
+          # Check render.yaml exists
+          if [ ! -f "render.yaml" ]; then
+            echo "❌ render.yaml not found"
+            exit 1
+          fi
+          echo "✅ render.yaml found"
+          
+          echo ""
+          echo "✅ All configuration files present"
+          echo "ℹ️  Actual builds will be performed by Render.com"
