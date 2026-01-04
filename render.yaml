@@ -2,17 +2,10 @@ services:
   # PostgreSQL Database
   - type: pserv
     name: financial-planning-db
-    env: docker
     plan: free
     region: oregon
-    databases:
-      - name: financial_planning
-        user: postgres
-    envVars:
-      - key: POSTGRES_DB
-        value: financial_planning
-      - key: POSTGRES_USER  
-        value: postgres
+    databaseName: financial_planning
+    databaseUser: postgres
 
   # Backend API Service
   - type: web
@@ -63,10 +56,7 @@ services:
     region: oregon
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        fromService:
-          name: financial-planning-backend
-          type: web
-          property: host
+        sync: false
       - key: NODE_ENV
         value: production
     buildFilter:

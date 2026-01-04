@@ -48,10 +48,27 @@ previewsExpireAfterDays: 7
 
 ### 4. 環境変数の設定
 
-Render.comは`render.yaml`で定義された環境変数を自動的に設定しますが、以下の点を確認してください:
+#### 自動設定される環境変数
 
-- データベース接続情報は自動的に設定されます
-- バックエンドのURLはフロントエンドに自動的に注入されます
+Render.comは`render.yaml`で定義された環境変数を自動的に設定します:
+
+- **データベース接続情報**: 自動的にバックエンドに注入されます
+  - `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+
+#### 手動設定が必要な環境変数
+
+フロントエンドの`NEXT_PUBLIC_API_URL`は、バックエンドのデプロイ後に手動で設定する必要があります:
+
+1. Render.comダッシュボードで `financial-planning-frontend` サービスを開く
+2. 「Environment」タブを選択
+3. `NEXT_PUBLIC_API_URL` を追加:
+   ```
+   https://financial-planning-backend.onrender.com
+   ```
+   （バックエンドのURLに置き換えてください）
+4. 「Save Changes」をクリック
+
+**注**: プレビュー環境では、各PRごとに異なるURLになるため、同様に設定が必要です。
 
 ## プレビュー環境の利用方法
 
