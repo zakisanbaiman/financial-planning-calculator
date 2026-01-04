@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import Navigation from '@/components/Navigation';
+import Tutorial from '@/components/Tutorial';
 import { AppProviders } from '@/lib/contexts/AppProviders';
 
 export const metadata: Metadata = {
@@ -23,6 +24,7 @@ export default function RootLayout({
               {children}
             </main>
           </div>
+          <Tutorial />
         </AppProviders>
       </body>
     </html>
