@@ -22,13 +22,18 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   // Load theme from localStorage on mount
   useEffect(() => {
     setMounted(true);
-    const storedTheme = localStorage.getItem('theme') as Theme | null;
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    if (storedTheme) {
-      setTheme(storedTheme);
-    } else if (prefersDark) {
-      setTheme('dark');
+    try {
+      const storedTheme = localStorage.getItem('theme') as Theme | null;
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      
+      if (storedTheme) {
+        setTheme(storedTheme);
+      } else if (prefersDark) {
+        setTheme('dark');
+      }
+    } catch (error) {
+      // Handle SSR or localStorage access errors gracefully
+      console.warn('Failed to load theme preference:', error);
     }
   }, []);
 
@@ -36,13 +41,18 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   useEffect(() => {
     if (!mounted) return;
 
-    const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
+    try {
+      const root = document.documentElement;
+      if (theme === 'dark') {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+      localStorage.setItem('theme', theme);
+    } catch (error) {
+      // Handle localStorage access errors gracefully
+      console.warn('Failed to save theme preference:', error);
     }
-    localStorage.setItem('theme', theme);
   }, [theme, mounted]);
 
   const toggleTheme = () => {
