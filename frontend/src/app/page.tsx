@@ -1,6 +1,11 @@
+'use client';
+
 import Link from 'next/link';
+import { useTutorial } from '@/lib/contexts/TutorialContext';
 
 export default function HomePage() {
+  const { startTutorial } = useTutorial();
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Hero Section */}
@@ -11,13 +16,22 @@ export default function HomePage() {
         <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
           将来の資産形成と老後の財務計画を可視化し、安心できる財務計画を立てましょう
         </p>
-        <Link
-          href="/dashboard"
-          className="btn-primary inline-flex items-center space-x-2 text-lg px-8 py-3"
-        >
-          <span>📊</span>
-          <span>ダッシュボードを開く</span>
-        </Link>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link
+            href="/dashboard"
+            className="btn-primary inline-flex items-center space-x-2 text-lg px-8 py-3"
+          >
+            <span>📊</span>
+            <span>ダッシュボードを開く</span>
+          </Link>
+          <button
+            onClick={startTutorial}
+            className="btn-secondary inline-flex items-center space-x-2 text-lg px-8 py-3"
+          >
+            <span>🎓</span>
+            <span>チュートリアルを見る</span>
+          </button>
+        </div>
       </div>
 
       {/* Features Grid */}

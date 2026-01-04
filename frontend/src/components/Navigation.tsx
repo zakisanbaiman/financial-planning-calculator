@@ -2,10 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTutorial } from '@/lib/contexts/TutorialContext';
 import ThemeToggle from './ThemeToggle';
 
 const Navigation = () => {
   const pathname = usePathname();
+  const { startTutorial } = useTutorial();
 
   const navItems = [
     { href: '/', label: 'ホーム', icon: '🏠' },
@@ -42,6 +44,14 @@ const Navigation = () => {
                 <span>{item.label}</span>
               </Link>
             ))}
+            <button
+              onClick={startTutorial}
+              className="flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700"
+              title="チュートリアルを表示"
+            >
+              <span>🎓</span>
+              <span>ヘルプ</span>
+            </button>
             <ThemeToggle />
           </div>
 
@@ -76,6 +86,13 @@ const Navigation = () => {
               <span>{item.label}</span>
             </Link>
           ))}
+          <button
+            onClick={startTutorial}
+            className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 w-full"
+          >
+            <span>🎓</span>
+            <span>ヘルプ</span>
+          </button>
         </div>
       </div>
     </nav>

@@ -15,6 +15,8 @@ export { default as Navigation } from './Navigation';
 
 export { default as ThemeToggle } from './ThemeToggle';
 
+export { default as Tutorial } from './Tutorial';
+
 // Form Components
 export { default as FinancialInputForm } from './FinancialInputForm';
 export type { FinancialInputFormProps } from './FinancialInputForm';
