@@ -1,0 +1,81 @@
+name: PR Preview Environment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+
+jobs:
+  preview-info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Comment Preview URLs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            
+            const comment = `## 🚀 Preview Environment
+            
+            Your PR preview environment is being deployed on Render.com!
+            
+            ### Preview URLs (available after deployment completes):
+            - 🌐 Frontend: \`https://financial-planning-frontend-pr-${prNumber}.onrender.com\`
+            - 🔧 Backend API: \`https://financial-planning-backend-pr-${prNumber}.onrender.com\`
+            - 📊 API Docs: \`https://financial-planning-backend-pr-${prNumber}.onrender.com/swagger/index.html\`
+            
+            ### What happens next:
+            1. ⏳ Render.com will automatically deploy your changes
+            2. ✅ Once deployed, you'll receive a notification
+            3. 🎯 Review your changes in a live environment
+            4. 🗑️ The preview environment will be automatically deleted 7 days after the PR is closed
+            
+            ### Useful Links:
+            - [Render.com Dashboard](https://dashboard.render.com)
+            - [Setup Guide](../blob/main/DEV_ENVIRONMENT_SETUP.md)
+            
+            ---
+            💡 **Note**: First deployment may take 5-10 minutes. Subsequent deployments are faster.
+            ⚠️ **Free Tier**: The preview environment may sleep after 15 minutes of inactivity. First request may take a few seconds to wake up.
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: prNumber,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  build-check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [frontend, backend]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Frontend Docker Image
+        if: matrix.service == 'frontend'
+        run: |
+          cd frontend
+          docker build -f Dockerfile.prod -t financial-planning-frontend:preview .
+      
+      - name: Build Backend Docker Image
+        if: matrix.service == 'backend'
+        run: |
+          cd backend
+          docker build --target production -t financial-planning-backend:preview .
+
+      - name: Print build success
+        run: |
+          echo "✅ ${{ matrix.service }} Docker image built successfully"
+          echo "This confirms the image can be built for Render.com deployment"
