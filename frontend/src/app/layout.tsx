@@ -14,8 +14,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ja">
-      <body className="bg-gray-50 min-h-screen">
+    <html lang="ja" suppressHydrationWarning>
+      <body className="bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors">
         <AppProviders>
           <div className="min-h-screen flex flex-col">
             <Navigation />

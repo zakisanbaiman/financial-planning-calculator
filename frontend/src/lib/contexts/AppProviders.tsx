@@ -4,6 +4,7 @@ import React, { ReactNode } from 'react';
 import { FinancialDataProvider } from './FinancialDataContext';
 import { GoalsProvider } from './GoalsContext';
 import { CalculationsProvider } from './CalculationsContext';
+import { ThemeProvider } from './ThemeContext';
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -15,12 +16,14 @@ interface AppProvidersProps {
  */
 export function AppProviders({ children }: AppProvidersProps) {
   return (
-    <FinancialDataProvider>
-      <GoalsProvider>
-        <CalculationsProvider>
-          {children}
-        </CalculationsProvider>
-      </GoalsProvider>
-    </FinancialDataProvider>
+    <ThemeProvider>
+      <FinancialDataProvider>
+        <GoalsProvider>
+          <CalculationsProvider>
+            {children}
+          </CalculationsProvider>
+        </GoalsProvider>
+      </FinancialDataProvider>
+    </ThemeProvider>
   );
 }
