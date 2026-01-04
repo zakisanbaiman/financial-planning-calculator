@@ -46,8 +46,8 @@ export default function DashboardPage() {
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">ダッシュボード</h1>
-        <p className="text-gray-600">財務状況の概要と主要な指標を確認できます</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">ダッシュボード</h1>
+        <p className="text-gray-600 dark:text-gray-300">財務状況の概要と主要な指標を確認できます</p>
       </div>
 
       {/* Quick Stats */}
@@ -55,41 +55,41 @@ export default function DashboardPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">月間純貯蓄</p>
-              <p className="text-2xl font-bold text-gray-900">¥120,000</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">月間純貯蓄</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">¥120,000</p>
             </div>
             <div className="text-2xl">💰</div>
           </div>
-          <p className="text-xs text-gray-500 mt-2">前月比 +5%</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">前月比 +5%</p>
         </div>
 
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">総資産</p>
-              <p className="text-2xl font-bold text-gray-900">¥1,500,000</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">総資産</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">¥1,500,000</p>
             </div>
             <div className="text-2xl">📈</div>
           </div>
-          <p className="text-xs text-gray-500 mt-2">前月比 +8%</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">前月比 +8%</p>
         </div>
 
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">老後資金充足率</p>
-              <p className="text-2xl font-bold text-gray-900">65%</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">老後資金充足率</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">65%</p>
             </div>
             <div className="text-2xl">🏖️</div>
           </div>
-          <p className="text-xs text-gray-500 mt-2">目標まで35%</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">目標まで35%</p>
         </div>
 
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">緊急資金</p>
-              <p className="text-2xl font-bold text-gray-900">6ヶ月分</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">緊急資金</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">6ヶ月分</p>
             </div>
             <div className="text-2xl">🚨</div>
           </div>
@@ -104,7 +104,7 @@ export default function DashboardPage() {
           {/* Asset Projection Chart */}
           <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">資産推移予測</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">資産推移予測</h2>
               <Link href="/calculations" className="text-primary-600 hover:text-primary-700 text-sm font-medium">
                 詳細計算 →
               </Link>
@@ -119,26 +119,26 @@ export default function DashboardPage() {
 
           {/* Monthly Breakdown */}
           <div className="card">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">月間収支内訳</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">月間収支内訳</h2>
             <div className="space-y-3">
-              <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-600">月収</span>
-                <span className="font-medium text-gray-900">¥400,000</span>
+              <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                <span className="text-gray-600 dark:text-gray-300">月収</span>
+                <span className="font-medium text-gray-900 dark:text-white">¥400,000</span>
               </div>
-              <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-600">住居費</span>
-                <span className="font-medium text-gray-900">¥120,000</span>
+              <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                <span className="text-gray-600 dark:text-gray-300">住居費</span>
+                <span className="font-medium text-gray-900 dark:text-white">¥120,000</span>
               </div>
-              <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-600">食費</span>
-                <span className="font-medium text-gray-900">¥60,000</span>
+              <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                <span className="text-gray-600 dark:text-gray-300">食費</span>
+                <span className="font-medium text-gray-900 dark:text-white">¥60,000</span>
               </div>
-              <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-600">その他支出</span>
-                <span className="font-medium text-gray-900">¥100,000</span>
+              <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                <span className="text-gray-600 dark:text-gray-300">その他支出</span>
+                <span className="font-medium text-gray-900 dark:text-white">¥100,000</span>
               </div>
               <div className="flex items-center justify-between py-2 font-semibold">
-                <span className="text-gray-900">純貯蓄</span>
+                <span className="text-gray-900 dark:text-white">純貯蓄</span>
                 <span className="text-success-600">¥120,000</span>
               </div>
             </div>
@@ -150,7 +150,7 @@ export default function DashboardPage() {
           {/* Active Goals */}
           <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">進行中の目標</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">進行中の目標</h2>
               <Link href="/goals" className="text-primary-600 hover:text-primary-700 text-sm font-medium">
                 管理 →
               </Link>
@@ -166,10 +166,10 @@ export default function DashboardPage() {
                   return (
                     <div key={goal.id}>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-900">{goal.title}</span>
-                        <span className="text-sm text-gray-600">{progress.toFixed(0)}%</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{goal.title}</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-300">{progress.toFixed(0)}%</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div
                           className={`h-2 rounded-full ${
                             progress >= 100
@@ -183,7 +183,7 @@ export default function DashboardPage() {
                           style={{ width: `${Math.min(progress, 100)}%` }}
                         ></div>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         ¥{goal.current_amount.toLocaleString()} / ¥{goal.target_amount.toLocaleString()}
                       </p>
                     </div>
@@ -200,7 +200,7 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="text-center py-6">
-                <p className="text-gray-500 text-sm mb-3">目標が設定されていません</p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-3">目標が設定されていません</p>
                 <Link
                   href="/goals"
                   className="text-primary-600 hover:text-primary-700 text-sm font-medium"
@@ -213,43 +213,43 @@ export default function DashboardPage() {
 
           {/* Quick Actions */}
           <div className="card">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">クイックアクション</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">クイックアクション</h2>
             <div className="space-y-3">
               <Link
                 href="/financial-data"
-                className="block w-full text-left p-3 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-colors"
+                className="block w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-300 hover:bg-primary-50 transition-colors"
               >
                 <div className="flex items-center space-x-3">
                   <span className="text-xl">💰</span>
                   <div>
-                    <p className="font-medium text-gray-900">財務データ更新</p>
-                    <p className="text-sm text-gray-600">収入・支出を更新</p>
+                    <p className="font-medium text-gray-900 dark:text-white">財務データ更新</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">収入・支出を更新</p>
                   </div>
                 </div>
               </Link>
 
               <Link
                 href="/goals"
-                className="block w-full text-left p-3 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-colors"
+                className="block w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-300 hover:bg-primary-50 transition-colors"
               >
                 <div className="flex items-center space-x-3">
                   <span className="text-xl">🎯</span>
                   <div>
-                    <p className="font-medium text-gray-900">新しい目標設定</p>
-                    <p className="text-sm text-gray-600">財務目標を追加</p>
+                    <p className="font-medium text-gray-900 dark:text-white">新しい目標設定</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">財務目標を追加</p>
                   </div>
                 </div>
               </Link>
 
               <Link
                 href="/reports"
-                className="block w-full text-left p-3 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-colors"
+                className="block w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-300 hover:bg-primary-50 transition-colors"
               >
                 <div className="flex items-center space-x-3">
                   <span className="text-xl">📋</span>
                   <div>
-                    <p className="font-medium text-gray-900">レポート生成</p>
-                    <p className="text-sm text-gray-600">PDF形式で出力</p>
+                    <p className="font-medium text-gray-900 dark:text-white">レポート生成</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">PDF形式で出力</p>
                   </div>
                 </div>
               </Link>
@@ -258,7 +258,7 @@ export default function DashboardPage() {
 
           {/* Recommendations */}
           <div className="card">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">推奨事項</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">推奨事項</h2>
             <div className="space-y-3">
               <div className="p-3 bg-success-50 border border-success-200 rounded-lg">
                 <p className="text-sm font-medium text-success-800">✅ 緊急資金は十分確保されています</p>
@@ -278,14 +278,14 @@ export default function DashboardPage() {
       {activeGoals.length > 0 && (
         <div className="mt-8">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">目標進捗ダッシュボード</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">目標進捗ダッシュボード</h2>
             <div className="flex gap-2">
               <button
                 onClick={() => setChartType('bar')}
                 className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
                   chartType === 'bar'
                     ? 'bg-primary-500 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 hover:bg-gray-300'
                 }`}
               >
                 棒グラフ
@@ -295,7 +295,7 @@ export default function DashboardPage() {
                 className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
                   chartType === 'doughnut'
                     ? 'bg-primary-500 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 hover:bg-gray-300'
                 }`}
               >
                 円グラフ
@@ -306,7 +306,7 @@ export default function DashboardPage() {
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Progress Tracker */}
             <div className="lg:col-span-1">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">目標一覧</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">目標一覧</h3>
               <GoalProgressTracker goals={goals} onGoalClick={handleGoalClick} />
             </div>
 

@@ -125,8 +125,8 @@ export default function ReportsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">レポート生成</h1>
-        <p className="text-gray-600">財務状況をまとめたレポートをPDF形式で生成・印刷できます</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">レポート生成</h1>
+        <p className="text-gray-600 dark:text-gray-300">財務状況をまとめたレポートをPDF形式で生成・印刷できます</p>
       </div>
 
       {error && (
@@ -138,7 +138,7 @@ export default function ReportsPage() {
       {loading && (
         <div className="mb-6 flex items-center justify-center p-8">
           <LoadingSpinner />
-          <span className="ml-3 text-gray-600">レポートを生成中...</span>
+          <span className="ml-3 text-gray-600 dark:text-gray-300">レポートを生成中...</span>
         </div>
       )}
 
@@ -147,8 +147,8 @@ export default function ReportsPage() {
         <div className="card">
           <div className="text-center">
             <div className="text-4xl mb-4">📊</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">総合財務レポート</h3>
-            <p className="text-gray-600 text-sm mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">総合財務レポート</h3>
+            <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
               現在の財務状況と将来予測を含む包括的なレポート
             </p>
             <button 
@@ -164,8 +164,8 @@ export default function ReportsPage() {
         <div className="card">
           <div className="text-center">
             <div className="text-4xl mb-4">🎯</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">目標進捗レポート</h3>
-            <p className="text-gray-600 text-sm mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">目標進捗レポート</h3>
+            <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
               設定した目標の進捗状況と達成予測
             </p>
             <button 
@@ -181,8 +181,8 @@ export default function ReportsPage() {
         <div className="card">
           <div className="text-center">
             <div className="text-4xl mb-4">📈</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">資産推移レポート</h3>
-            <p className="text-gray-600 text-sm mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">資産推移レポート</h3>
+            <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
               資産の推移予測とシナリオ分析
             </p>
             <button 
@@ -202,7 +202,7 @@ export default function ReportsPage() {
         <div className="lg:col-span-2">
           <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">レポートプレビュー</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">レポートプレビュー</h2>
               <div className="flex space-x-2">
                 <button 
                   className="btn-primary text-sm"
@@ -215,44 +215,44 @@ export default function ReportsPage() {
             </div>
             
             {/* Mock Report Content */}
-            <div className="bg-white border border-gray-200 rounded-lg p-6 min-h-96">
+            <div className="bg-white border border-gray-200 dark:border-gray-700 rounded-lg p-6 min-h-96">
               <div className="text-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">財務計画レポート</h1>
-                <p className="text-gray-600">作成日: 2024年11月7日</p>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">財務計画レポート</h1>
+                <p className="text-gray-600 dark:text-gray-300">作成日: 2024年11月7日</p>
               </div>
 
               <div className="space-y-6">
                 <section>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-3">現在の財務状況</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">現在の財務状況</h2>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-gray-50 p-3 rounded">
-                      <p className="text-sm text-gray-600">月収</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">月収</p>
                       <p className="text-lg font-semibold">¥400,000</p>
                     </div>
                     <div className="bg-gray-50 p-3 rounded">
-                      <p className="text-sm text-gray-600">月間支出</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">月間支出</p>
                       <p className="text-lg font-semibold">¥280,000</p>
                     </div>
                     <div className="bg-gray-50 p-3 rounded">
-                      <p className="text-sm text-gray-600">月間貯蓄</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">月間貯蓄</p>
                       <p className="text-lg font-semibold text-success-600">¥120,000</p>
                     </div>
                     <div className="bg-gray-50 p-3 rounded">
-                      <p className="text-sm text-gray-600">総資産</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">総資産</p>
                       <p className="text-lg font-semibold">¥1,500,000</p>
                     </div>
                   </div>
                 </section>
 
                 <section>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-3">将来予測</h2>
-                  <div className="h-32 bg-gray-100 rounded flex items-center justify-center">
-                    <span className="text-gray-500">資産推移グラフ</span>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">将来予測</h2>
+                  <div className="h-32 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center">
+                    <span className="text-gray-500 dark:text-gray-400">資産推移グラフ</span>
                   </div>
                 </section>
 
                 <section>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-3">目標達成状況</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">目標達成状況</h2>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span>緊急資金</span>
@@ -276,7 +276,7 @@ export default function ReportsPage() {
         {/* Report Settings */}
         <div className="space-y-6">
           <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">レポート設定</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">レポート設定</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -362,31 +362,31 @@ export default function ReportsPage() {
           </div>
 
           <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">クイックアクション</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">クイックアクション</h3>
             <div className="space-y-3">
               <button
-                className="w-full p-3 bg-gray-50 hover:bg-gray-100 rounded text-left transition-colors"
+                className="w-full p-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 rounded text-left transition-colors"
                 onClick={() => handleQuickDownload('comprehensive')}
                 disabled={loading}
               >
-                <p className="text-sm font-medium text-gray-900">📊 総合レポート</p>
-                <p className="text-xs text-gray-600">すべての情報を含む包括的レポート</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">📊 総合レポート</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300">すべての情報を含む包括的レポート</p>
               </button>
               <button
-                className="w-full p-3 bg-gray-50 hover:bg-gray-100 rounded text-left transition-colors"
+                className="w-full p-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 rounded text-left transition-colors"
                 onClick={() => handleQuickDownload('financial_summary')}
                 disabled={loading}
               >
-                <p className="text-sm font-medium text-gray-900">💰 財務サマリー</p>
-                <p className="text-xs text-gray-600">現在の財務状況の概要</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">💰 財務サマリー</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300">現在の財務状況の概要</p>
               </button>
               <button
-                className="w-full p-3 bg-gray-50 hover:bg-gray-100 rounded text-left transition-colors"
+                className="w-full p-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 rounded text-left transition-colors"
                 onClick={() => handleGenerateReport('asset_projection')}
                 disabled={loading}
               >
-                <p className="text-sm font-medium text-gray-900">📈 資産推移</p>
-                <p className="text-xs text-gray-600">将来の資産予測レポート</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">📈 資産推移</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300">将来の資産予測レポート</p>
               </button>
             </div>
           </div>
@@ -396,31 +396,31 @@ export default function ReportsPage() {
       {/* Report Information */}
       <div className="mt-8">
         <div className="card">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">レポートについて</h2>
-          <div className="space-y-4 text-gray-600">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">レポートについて</h2>
+          <div className="space-y-4 text-gray-600 dark:text-gray-300">
             <div>
-              <h3 className="font-semibold text-gray-900 mb-2">📊 総合財務レポート</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">📊 総合財務レポート</h3>
               <p className="text-sm">
                 現在の財務状況、資産推移予測、目標進捗、アクションプランを含む包括的なレポートです。
                 財務計画の全体像を把握するのに最適です。
               </p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 mb-2">💰 財務サマリーレポート</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">💰 財務サマリーレポート</h3>
               <p className="text-sm">
                 現在の財務健全性スコア、主要指標、推奨事項をまとめたレポートです。
                 定期的な財務状況のチェックに便利です。
               </p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 mb-2">🎯 目標進捗レポート</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">🎯 目標進捗レポート</h3>
               <p className="text-sm">
                 設定した目標の進捗状況、達成予測、推奨アクションを確認できます。
                 目標管理とモチベーション維持に役立ちます。
               </p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 mb-2">📈 資産推移レポート</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">📈 資産推移レポート</h3>
               <p className="text-sm">
                 将来の資産推移予測、シナリオ分析、投資戦略の洞察を提供します。
                 長期的な資産形成計画の策定に活用できます。

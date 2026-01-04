@@ -51,7 +51,7 @@ export default function GoalDetailPage() {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="text-center py-12">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">目標が見つかりません</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">目標が見つかりません</h2>
           <Button onClick={() => router.push('/goals')}>目標一覧に戻る</Button>
         </div>
       </div>
@@ -119,12 +119,12 @@ export default function GoalDetailPage() {
                 {goalTypeLabels[goal.goal_type]}
               </span>
               {!goal.is_active && (
-                <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded text-sm font-medium">
+                <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded text-sm font-medium">
                   非アクティブ
                 </span>
               )}
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">{goal.title}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{goal.title}</h1>
           </div>
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => setIsEditModalOpen(true)}>
@@ -140,15 +140,15 @@ export default function GoalDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* 進捗カード */}
           <div className="card">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">進捗状況</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">進捗状況</h2>
             <div className="space-y-4">
               {/* 進捗率 */}
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-medium text-gray-700">達成率</span>
-                  <span className="text-2xl font-bold text-gray-900">{progress.toFixed(1)}%</span>
+                  <span className="text-2xl font-bold text-gray-900 dark:text-white">{progress.toFixed(1)}%</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-4">
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
                   <div
                     className={`h-4 rounded-full transition-all ${
                       progress >= 100
@@ -167,14 +167,14 @@ export default function GoalDetailPage() {
               {/* 金額情報 */}
               <div className="grid grid-cols-2 gap-4 pt-4">
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="text-sm text-gray-600 mb-1">現在の積立額</div>
-                  <div className="text-2xl font-bold text-gray-900">
+                  <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">現在の積立額</div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
                     ¥{goal.current_amount.toLocaleString()}
                   </div>
                 </div>
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="text-sm text-gray-600 mb-1">目標金額</div>
-                  <div className="text-2xl font-bold text-gray-900">
+                  <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">目標金額</div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
                     ¥{goal.target_amount.toLocaleString()}
                   </div>
                 </div>
@@ -196,11 +196,11 @@ export default function GoalDetailPage() {
 
           {/* 期日情報 */}
           <div className="card">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">期日情報</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">期日情報</h2>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="text-sm text-gray-600 mb-1">目標期日</div>
-                <div className="text-lg font-semibold text-gray-900">
+                <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">目標期日</div>
+                <div className="text-lg font-semibold text-gray-900 dark:text-white">
                   {targetDate.toLocaleDateString('ja-JP', {
                     year: 'numeric',
                     month: 'long',
@@ -209,14 +209,14 @@ export default function GoalDetailPage() {
                 </div>
               </div>
               <div>
-                <div className="text-sm text-gray-600 mb-1">残り日数</div>
+                <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">残り日数</div>
                 <div
                   className={`text-lg font-semibold ${
                     daysRemaining < 0
                       ? 'text-error-600'
                       : daysRemaining < 30
                       ? 'text-warning-600'
-                      : 'text-gray-900'
+                      : 'text-gray-900 dark:text-white'
                   }`}
                 >
                   {daysRemaining > 0 ? `${daysRemaining}日` : '期限切れ'}
@@ -225,13 +225,13 @@ export default function GoalDetailPage() {
               {monthsRemaining > 0 && remainingAmount > 0 && goal.monthly_contribution > 0 && (
                 <>
                   <div>
-                    <div className="text-sm text-gray-600 mb-1">達成まで（現在のペース）</div>
-                    <div className="text-lg font-semibold text-gray-900">
+                    <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">達成まで（現在のペース）</div>
+                    <div className="text-lg font-semibold text-gray-900 dark:text-white">
                       約{Math.ceil(remainingAmount / goal.monthly_contribution)}ヶ月
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-600 mb-1">推奨月間積立額</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">推奨月間積立額</div>
                     <div className="text-lg font-semibold text-primary-600">
                       ¥{Math.ceil(remainingAmount / monthsRemaining).toLocaleString()}
                     </div>
@@ -243,7 +243,7 @@ export default function GoalDetailPage() {
 
           {/* 推奨事項 */}
           <div className="card">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">推奨事項とアドバイス</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">推奨事項とアドバイス</h2>
             <GoalRecommendations goal={goal} financialProfile={financialProfile} />
           </div>
         </div>
@@ -252,7 +252,7 @@ export default function GoalDetailPage() {
         <div className="space-y-6">
           {/* クイックアクション */}
           <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">クイックアクション</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">クイックアクション</h3>
             <div className="space-y-3">
               <Button
                 fullWidth
@@ -272,29 +272,29 @@ export default function GoalDetailPage() {
 
           {/* 目標情報 */}
           <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">目標情報</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">目標情報</h3>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">作成日</span>
-                <span className="font-medium text-gray-900">
+                <span className="text-gray-600 dark:text-gray-300">作成日</span>
+                <span className="font-medium text-gray-900 dark:text-white">
                   {goal.created_at
                     ? new Date(goal.created_at).toLocaleDateString('ja-JP')
                     : '-'}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">最終更新</span>
-                <span className="font-medium text-gray-900">
+                <span className="text-gray-600 dark:text-gray-300">最終更新</span>
+                <span className="font-medium text-gray-900 dark:text-white">
                   {goal.updated_at
                     ? new Date(goal.updated_at).toLocaleDateString('ja-JP')
                     : '-'}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">ステータス</span>
+                <span className="text-gray-600 dark:text-gray-300">ステータス</span>
                 <span
                   className={`font-medium ${
-                    goal.is_active ? 'text-success-600' : 'text-gray-500'
+                    goal.is_active ? 'text-success-600' : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
                   {goal.is_active ? 'アクティブ' : '非アクティブ'}
@@ -343,7 +343,7 @@ export default function GoalDetailPage() {
               min="0"
               step="1000"
             />
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               目標金額: ¥{goal.target_amount.toLocaleString()}
             </p>
           </div>
