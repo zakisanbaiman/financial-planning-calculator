@@ -4,8 +4,6 @@ services:
     name: financial-planning-db
     plan: free
     region: oregon
-    databaseName: financial_planning
-    databaseUser: postgres
 
   # Backend API Service
   - type: web
