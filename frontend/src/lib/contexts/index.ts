@@ -14,3 +14,8 @@ export {
   CalculationsProvider,
   useCalculations,
 } from './CalculationsContext';
+
+export {
+  ThemeProvider,
+  useTheme,
+} from './ThemeContext';

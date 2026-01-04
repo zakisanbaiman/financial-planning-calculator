@@ -73,8 +73,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
       // Default error UI
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-800 px-4">
+          <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
             <div className="text-center">
               <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
                 <svg
@@ -92,22 +92,22 @@ export class ErrorBoundary extends Component<Props, State> {
                 </svg>
               </div>
               
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                 エラーが発生しました
               </h2>
               
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
                 申し訳ございません。予期しないエラーが発生しました。
                 ページをリロードするか、もう一度お試しください。
               </p>
 
               {process.env.NODE_ENV === 'development' && this.state.error && (
-                <div className="mb-6 p-4 bg-gray-100 rounded text-left">
+                <div className="mb-6 p-4 bg-gray-100 dark:bg-gray-700 rounded text-left">
                   <p className="text-sm font-mono text-red-600 mb-2">
                     {this.state.error.toString()}
                   </p>
                   {this.state.errorInfo && (
-                    <details className="text-xs text-gray-600">
+                    <details className="text-xs text-gray-600 dark:text-gray-300">
                       <summary className="cursor-pointer font-semibold mb-2">
                         スタックトレース
                       </summary>

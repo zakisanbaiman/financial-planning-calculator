@@ -13,6 +13,8 @@ export type { LoadingSpinnerProps, SpinnerSize, SpinnerColor } from './LoadingSp
 
 export { default as Navigation } from './Navigation';
 
+export { default as ThemeToggle } from './ThemeToggle';
+
 // Form Components
 export { default as FinancialInputForm } from './FinancialInputForm';
 export type { FinancialInputFormProps } from './FinancialInputForm';

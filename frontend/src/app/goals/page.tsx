@@ -20,7 +20,7 @@ const goalTypeColors: Record<GoalType, string> = {
   savings: 'bg-blue-100 text-blue-800',
   retirement: 'bg-purple-100 text-purple-800',
   emergency: 'bg-orange-100 text-orange-800',
-  custom: 'bg-gray-100 text-gray-800',
+  custom: 'bg-gray-100 dark:bg-gray-700 text-gray-800',
 };
 
 export default function GoalsPage() {
@@ -95,8 +95,8 @@ export default function GoalsPage() {
       {/* ヘッダー */}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">目標管理</h1>
-          <p className="text-gray-600 mt-2">財務目標を設定して進捗を追跡しましょう</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">目標管理</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-2">財務目標を設定して進捗を追跡しましょう</p>
         </div>
         <Button onClick={() => setIsCreateModalOpen(true)}>+ 新しい目標</Button>
       </div>
@@ -118,7 +118,7 @@ export default function GoalsPage() {
       {/* アクティブな目標 */}
       {activeGoals.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">アクティブな目標</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">アクティブな目標</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {activeGoals.map((goal) => {
               const progress = calculateProgress(goal);
@@ -139,7 +139,7 @@ export default function GoalsPage() {
                           {goalTypeLabels[goal.goal_type]}
                         </span>
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900">{goal.title}</h3>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{goal.title}</h3>
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -186,10 +186,10 @@ export default function GoalsPage() {
                   {/* 進捗バー */}
                   <div className="mb-4">
                     <div className="flex justify-between items-center text-sm mb-2">
-                      <span className="text-gray-600">進捗</span>
-                      <span className="font-semibold text-gray-900">{progress.toFixed(1)}%</span>
+                      <span className="text-gray-600 dark:text-gray-300">進捗</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">{progress.toFixed(1)}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                       <div
                         className={`h-3 rounded-full transition-all ${
                           progress >= 100
@@ -208,19 +208,19 @@ export default function GoalsPage() {
                   {/* 金額情報 */}
                   <div className="space-y-2 mb-4">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">現在の積立額</span>
-                      <span className="font-medium text-gray-900">
+                      <span className="text-gray-600 dark:text-gray-300">現在の積立額</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
                         ¥{goal.current_amount.toLocaleString()}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">目標金額</span>
-                      <span className="font-medium text-gray-900">
+                      <span className="text-gray-600 dark:text-gray-300">目標金額</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
                         ¥{goal.target_amount.toLocaleString()}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">残り</span>
+                      <span className="text-gray-600 dark:text-gray-300">残り</span>
                       <span className="font-semibold text-primary-600">
                         ¥{remainingAmount.toLocaleString()}
                       </span>
@@ -228,22 +228,22 @@ export default function GoalsPage() {
                   </div>
 
                   {/* 期日情報 */}
-                  <div className="pt-4 border-t border-gray-200">
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600">目標期日</span>
-                      <span className="font-medium text-gray-900">
+                      <span className="text-gray-600 dark:text-gray-300">目標期日</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
                         {new Date(goal.target_date).toLocaleDateString('ja-JP')}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-sm mt-1">
-                      <span className="text-gray-600">残り日数</span>
+                      <span className="text-gray-600 dark:text-gray-300">残り日数</span>
                       <span
                         className={`font-medium ${
                           daysRemaining < 30
                             ? 'text-error-600'
                             : daysRemaining < 90
                             ? 'text-warning-600'
-                            : 'text-gray-900'
+                            : 'text-gray-900 dark:text-white'
                         }`}
                       >
                         {daysRemaining > 0 ? `${daysRemaining}日` : '期限切れ'}
@@ -251,8 +251,8 @@ export default function GoalsPage() {
                     </div>
                     {goal.monthly_contribution > 0 && (
                       <div className="flex justify-between items-center text-sm mt-1">
-                        <span className="text-gray-600">月間積立額</span>
-                        <span className="font-medium text-gray-900">
+                        <span className="text-gray-600 dark:text-gray-300">月間積立額</span>
+                        <span className="font-medium text-gray-900 dark:text-white">
                           ¥{goal.monthly_contribution.toLocaleString()}
                         </span>
                       </div>
@@ -268,7 +268,7 @@ export default function GoalsPage() {
       {/* 非アクティブな目標 */}
       {inactiveGoals.length > 0 && (
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">非アクティブな目標</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">非アクティブな目標</h2>
           <div className="space-y-3">
             {inactiveGoals.map((goal) => {
               const progress = calculateProgress(goal);
@@ -276,7 +276,7 @@ export default function GoalsPage() {
               return (
                 <div
                   key={goal.id}
-                  className="card bg-gray-50 hover:bg-gray-100 transition-colors"
+                  className="card bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 transition-colors"
                 >
                   <div className="flex justify-between items-center">
                     <div className="flex-1">
@@ -289,7 +289,7 @@ export default function GoalsPage() {
                           {goalTypeLabels[goal.goal_type]}
                         </span>
                         <h3 className="text-base font-medium text-gray-700">{goal.title}</h3>
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
                           {progress.toFixed(0)}% 達成
                         </span>
                       </div>
@@ -358,8 +358,8 @@ export default function GoalsPage() {
               d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
             />
           </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">目標がありません</h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">目標がありません</h3>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             新しい財務目標を作成して、進捗を追跡しましょう
           </p>
           <div className="mt-6">
@@ -412,7 +412,7 @@ export default function GoalsPage() {
       >
         <div className="space-y-4">
           <p className="text-gray-700">この目標を削除してもよろしいですか？</p>
-          <p className="text-sm text-gray-500">この操作は取り消せません。</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">この操作は取り消せません。</p>
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setDeletingGoalId(null)}>
               キャンセル

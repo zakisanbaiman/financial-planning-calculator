@@ -70,8 +70,8 @@ export default function FinancialDataPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">財務データ管理</h1>
-        <p className="text-gray-600">収入、支出、貯蓄状況を入力・管理して、正確な将来予測の基盤を作成します</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">財務データ管理</h1>
+        <p className="text-gray-600 dark:text-gray-300">収入、支出、貯蓄状況を入力・管理して、正確な将来予測の基盤を作成します</p>
       </div>
 
       {/* Success Message */}
@@ -99,42 +99,42 @@ export default function FinancialDataPage() {
       <div className="grid lg:grid-cols-2 gap-8">
         {/* Current Data Display */}
         <div className="card">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">現在の財務状況</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">現在の財務状況</h2>
           {profile ? (
             <div className="space-y-4">
-              <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <span className="text-gray-600">月収</span>
-                <span className="font-medium text-gray-900">
+              <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+                <span className="text-gray-600 dark:text-gray-300">月収</span>
+                <span className="font-medium text-gray-900 dark:text-white">
                   ¥{(profile.monthly_income || 0).toLocaleString()}
                 </span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <span className="text-gray-600">月間支出</span>
-                <span className="font-medium text-gray-900">¥{totalExpenses.toLocaleString()}</span>
+              <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+                <span className="text-gray-600 dark:text-gray-300">月間支出</span>
+                <span className="font-medium text-gray-900 dark:text-white">¥{totalExpenses.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <span className="text-gray-600">月間純貯蓄</span>
+              <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+                <span className="text-gray-600 dark:text-gray-300">月間純貯蓄</span>
                 <span className={`font-medium ${netSavings >= 0 ? 'text-success-600' : 'text-error-600'}`}>
                   ¥{netSavings.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2">
-                <span className="text-gray-600">総資産</span>
-                <span className="font-medium text-gray-900">¥{totalSavings.toLocaleString()}</span>
+                <span className="text-gray-600 dark:text-gray-300">総資産</span>
+                <span className="font-medium text-gray-900 dark:text-white">¥{totalSavings.toLocaleString()}</span>
               </div>
-              <div className="pt-4 border-t border-gray-200">
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-600">投資利回り</span>
-                  <span className="font-medium text-gray-900">{profile.investment_return}%</span>
+                  <span className="text-gray-600 dark:text-gray-300">投資利回り</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{profile.investment_return}%</span>
                 </div>
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-600">インフレ率</span>
-                  <span className="font-medium text-gray-900">{profile.inflation_rate}%</span>
+                  <span className="text-gray-600 dark:text-gray-300">インフレ率</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{profile.inflation_rate}%</span>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               <div className="text-4xl mb-2">📊</div>
               <p>データがありません</p>
               <p className="text-sm">右側のフォームから入力してください</p>
@@ -151,7 +151,7 @@ export default function FinancialDataPage() {
               className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
                 activeTab === 'basic'
                   ? 'bg-primary-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:bg-gray-700'
               }`}
             >
               基本情報
@@ -161,7 +161,7 @@ export default function FinancialDataPage() {
               className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
                 activeTab === 'investment'
                   ? 'bg-primary-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:bg-gray-700'
               }`}
             >
               投資設定
@@ -196,7 +196,7 @@ export default function FinancialDataPage() {
       {profile && profile.monthly_expenses && profile.monthly_expenses.length > 0 && (
         <div className="mt-8">
           <div className="card">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">支出内訳</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">支出内訳</h2>
             <div className="grid md:grid-cols-2 gap-6">
               {profile.monthly_expenses.map((expense, index) => {
                 const percentage = totalExpenses > 0 ? (expense.amount / totalExpenses) * 100 : 0;
@@ -213,12 +213,12 @@ export default function FinancialDataPage() {
                 return (
                   <div key={index} className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600">{expense.category}</span>
-                      <span className="font-medium text-gray-900">
+                      <span className="text-gray-600 dark:text-gray-300">{expense.category}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
                         ¥{expense.amount.toLocaleString()} ({percentage.toFixed(0)}%)
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                       <div
                         className={`${colorClass} h-2 rounded-full`}
                         style={{ width: `${percentage}%` }}
