@@ -98,19 +98,17 @@ const tutorialSteps: TutorialStep[] = [
 export function TutorialProvider({ children }: { children: React.ReactNode }) {
   const [isActive, setIsActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const [hasCheckedStorage, setHasCheckedStorage] = useState(false);
 
   useEffect(() => {
     // 初回マウント時にチュートリアル完了状態をチェック
-    if (typeof window !== 'undefined' && !hasCheckedStorage) {
+    if (typeof window !== 'undefined') {
       const completed = localStorage.getItem(TUTORIAL_STORAGE_KEY);
       // 完了していない場合は自動的にチュートリアルを開始
       if (!completed) {
         setIsActive(true);
       }
-      setHasCheckedStorage(true);
     }
-  }, [hasCheckedStorage]);
+  }, []); // 空の依存配列で初回のみ実行
 
   const startTutorial = useCallback(() => {
     setCurrentStep(0);
