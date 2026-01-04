@@ -9,6 +9,9 @@ on:
 jobs:
   preview-info:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -52,6 +55,8 @@ jobs:
 
   build-check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         service: [frontend, backend]
