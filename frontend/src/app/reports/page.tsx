@@ -3,35 +3,9 @@
 import { useState } from 'react';
 import { LoadingSpinner } from '@/components';
 import AssetProjectionChart from '@/components/AssetProjectionChart';
-import type { AssetProjectionPoint } from '@/types/api';
+import { generateAssetProjections } from '@/lib/utils/projections';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
-
-// サンプル資産推移データを生成
-const generateSampleProjections = (years: number = 10): AssetProjectionPoint[] => {
-  const projections: AssetProjectionPoint[] = [];
-  const initialAssets = 1500000; // 初期資産150万円
-  const monthlyContribution = 120000; // 月間貯蓄額12万円
-  const investmentReturn = 0.05; // 投資利回り5%
-  const inflationRate = 0.02; // インフレ率2%
-  
-  for (let year = 0; year <= years; year++) {
-    const contributedAmount = initialAssets + (monthlyContribution * 12 * year);
-    const totalAssets = contributedAmount * Math.pow(1 + investmentReturn, year);
-    const realValue = totalAssets / Math.pow(1 + inflationRate, year);
-    const investmentGains = totalAssets - contributedAmount;
-    
-    projections.push({
-      year,
-      total_assets: Math.round(totalAssets),
-      real_value: Math.round(realValue),
-      contributed_amount: Math.round(contributedAmount),
-      investment_gains: Math.round(investmentGains),
-    });
-  }
-  
-  return projections;
-};
 
 export default function ReportsPage() {
   const [loading, setLoading] = useState(false);
@@ -46,7 +20,13 @@ export default function ReportsPage() {
     format: 'pdf',
   });
 
-  const sampleProjections = generateSampleProjections(reportSettings.years);
+  const sampleProjections = generateAssetProjections(
+    reportSettings.years,
+    1500000,      // initialAssets: ¥1,500,000
+    120000,       // monthlyContribution: ¥120,000
+    0.05,         // investmentReturn: 5%
+    0.02          // inflationRate: 2%
+  );
 
   const handleGenerateReport = async (reportType: string) => {
     setLoading(true);

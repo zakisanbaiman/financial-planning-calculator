@@ -7,7 +7,7 @@ import {
   EmergencyFundCalculator,
 } from '@/components';
 import AssetProjectionChart from '@/components/AssetProjectionChart';
-import type { AssetProjectionPoint } from '@/types/api';
+import { generateAssetProjections } from '@/lib/utils/projections';
 
 type CalculatorView = 'menu' | 'asset-projection' | 'retirement' | 'emergency';
 
@@ -16,32 +16,13 @@ export default function CalculationsPage() {
   const userId = 'user-001'; // TODO: 実際のユーザーIDを取得
 
   // サンプル資産推移データを生成（30年間）
-  const generateSampleProjections = (): AssetProjectionPoint[] => {
-    const projections: AssetProjectionPoint[] = [];
-    const initialAssets = 3000000; // 初期資産300万円
-    const monthlyContribution = 120000; // 月間貯蓄額12万円
-    const investmentReturn = 0.05; // 投資利回り5%
-    const inflationRate = 0.02; // インフレ率2%
-    
-    for (let year = 0; year <= 30; year++) {
-      const contributedAmount = initialAssets + (monthlyContribution * 12 * year);
-      const totalAssets = contributedAmount * Math.pow(1 + investmentReturn, year);
-      const realValue = totalAssets / Math.pow(1 + inflationRate, year);
-      const investmentGains = totalAssets - contributedAmount;
-      
-      projections.push({
-        year,
-        total_assets: Math.round(totalAssets),
-        real_value: Math.round(realValue),
-        contributed_amount: Math.round(contributedAmount),
-        investment_gains: Math.round(investmentGains),
-      });
-    }
-    
-    return projections;
-  };
-
-  const sampleProjections = generateSampleProjections();
+  const sampleProjections = generateAssetProjections(
+    30,           // years
+    3000000,      // initialAssets: ¥3,000,000
+    120000,       // monthlyContribution: ¥120,000
+    0.05,         // investmentReturn: 5%
+    0.02          // inflationRate: 2%
+  );
 
   if (activeView === 'asset-projection') {
     return (
