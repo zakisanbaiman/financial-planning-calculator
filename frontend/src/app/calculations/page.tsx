@@ -8,8 +8,16 @@ import {
 } from '@/components';
 import AssetProjectionChart from '@/components/AssetProjectionChart';
 import { generateAssetProjections } from '@/lib/utils/projections';
+import { formatCurrency } from '@/lib/utils/currency';
 
 type CalculatorView = 'menu' | 'asset-projection' | 'retirement' | 'emergency';
+
+// Sample data constants for asset projection preview
+const SAMPLE_INITIAL_ASSETS = 3000000; // ¥3,000,000
+const SAMPLE_MONTHLY_CONTRIBUTION = 120000; // ¥120,000
+const SAMPLE_INVESTMENT_RETURN = 0.05; // 5% annual
+const SAMPLE_INFLATION_RATE = 0.02; // 2% annual
+const SAMPLE_PROJECTION_YEARS = 30;
 
 export default function CalculationsPage() {
   const [activeView, setActiveView] = useState<CalculatorView>('menu');
@@ -17,11 +25,11 @@ export default function CalculationsPage() {
 
   // サンプル資産推移データを生成（30年間）
   const sampleProjections = generateAssetProjections(
-    30,           // years
-    3000000,      // initialAssets: ¥3,000,000
-    120000,       // monthlyContribution: ¥120,000
-    0.05,         // investmentReturn: 5%
-    0.02          // inflationRate: 2%
+    SAMPLE_PROJECTION_YEARS,
+    SAMPLE_INITIAL_ASSETS,
+    SAMPLE_MONTHLY_CONTRIBUTION,
+    SAMPLE_INVESTMENT_RETURN,
+    SAMPLE_INFLATION_RATE
   );
 
   if (activeView === 'asset-projection') {
@@ -151,31 +159,19 @@ export default function CalculationsPage() {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-300">10年後</p>
               <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                {new Intl.NumberFormat('ja-JP', {
-                  style: 'currency',
-                  currency: 'JPY',
-                  maximumFractionDigits: 0,
-                }).format(sampleProjections[10]?.total_assets || 0)}
+                {formatCurrency(sampleProjections[10]?.total_assets || 0)}
               </p>
             </div>
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-300">20年後</p>
               <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                {new Intl.NumberFormat('ja-JP', {
-                  style: 'currency',
-                  currency: 'JPY',
-                  maximumFractionDigits: 0,
-                }).format(sampleProjections[20]?.total_assets || 0)}
+                {formatCurrency(sampleProjections[20]?.total_assets || 0)}
               </p>
             </div>
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-300">30年後</p>
               <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                {new Intl.NumberFormat('ja-JP', {
-                  style: 'currency',
-                  currency: 'JPY',
-                  maximumFractionDigits: 0,
-                }).format(sampleProjections[30]?.total_assets || 0)}
+                {formatCurrency(sampleProjections[30]?.total_assets || 0)}
               </p>
             </div>
           </div>

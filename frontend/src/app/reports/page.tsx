@@ -7,6 +7,12 @@ import { generateAssetProjections } from '@/lib/utils/projections';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
+// Sample data constants for report preview
+const SAMPLE_INITIAL_ASSETS = 1500000; // ¥1,500,000
+const SAMPLE_MONTHLY_CONTRIBUTION = 120000; // ¥120,000
+const SAMPLE_INVESTMENT_RETURN = 0.05; // 5% annual
+const SAMPLE_INFLATION_RATE = 0.02; // 2% annual
+
 export default function ReportsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,10 +28,10 @@ export default function ReportsPage() {
 
   const sampleProjections = generateAssetProjections(
     reportSettings.years,
-    1500000,      // initialAssets: ¥1,500,000
-    120000,       // monthlyContribution: ¥120,000
-    0.05,         // investmentReturn: 5%
-    0.02          // inflationRate: 2%
+    SAMPLE_INITIAL_ASSETS,
+    SAMPLE_MONTHLY_CONTRIBUTION,
+    SAMPLE_INVESTMENT_RETURN,
+    SAMPLE_INFLATION_RATE
   );
 
   const handleGenerateReport = async (reportType: string) => {

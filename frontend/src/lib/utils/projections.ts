@@ -26,9 +26,15 @@ export function generateAssetProjections(
     // Initial assets compound, and each monthly contribution compounds from its deposit date
     let totalAssets = initialAssets * Math.pow(1 + monthlyRate, months);
     
-    // Add compounded monthly contributions using future value of annuity formula
-    if (months > 0 && monthlyRate > 0) {
-      totalAssets += monthlyContribution * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
+    // Add compounded monthly contributions
+    if (months > 0) {
+      if (monthlyRate > 0) {
+        // Use future value of annuity formula when there is a return rate
+        totalAssets += monthlyContribution * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
+      } else {
+        // Simple accumulation when return rate is 0%
+        totalAssets += monthlyContribution * months;
+      }
     }
     
     // Calculate total contributed amount (principal only)
