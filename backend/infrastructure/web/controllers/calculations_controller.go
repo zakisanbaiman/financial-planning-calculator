@@ -23,7 +23,7 @@ func NewCalculationsController(useCase usecases.CalculateProjectionUseCase) *Cal
 // AssetProjectionRequest は資産推移計算リクエスト
 type AssetProjectionRequest struct {
 	UserID string `json:"user_id" validate:"required"`
-	Years  int    `json:"years" validate:"required,gte=1,lte=50"`
+	Years  int    `json:"years" validate:"required,gte=1,lte=100"`
 }
 
 // RetirementCalculationRequest は退職資金計算リクエスト
@@ -39,7 +39,7 @@ type EmergencyFundCalculationRequest struct {
 // ComprehensiveProjectionRequest は包括的予測計算リクエスト
 type ComprehensiveProjectionRequest struct {
 	UserID string `json:"user_id" validate:"required"`
-	Years  int    `json:"years" validate:"required,gte=1,lte=50"`
+	Years  int    `json:"years" validate:"required,gte=1,lte=100"`
 }
 
 // GoalProjectionRequest は目標達成予測計算リクエスト
@@ -73,13 +73,13 @@ func (c *CalculationsController) CalculateAssetProjection(ctx echo.Context) erro
 	if err := ValidateBusinessLogic(ctx,
 		func() *BusinessLogicError {
 			// 要件2.4: 年数の妥当性チェック
-			if req.Years < 1 || req.Years > 50 {
+			if req.Years < 1 || req.Years > 100 {
 				return CreateBusinessLogicError(
 					"INVALID_PROJECTION_YEARS",
-					"予測年数は1年から50年の範囲で入力してください",
+					"予測年数は1年から100年の範囲で入力してください",
 					"現実的な予測期間を入力してください",
 					req.Years,
-					"1-50年",
+					"1-100年",
 				)
 			}
 			return nil
@@ -200,13 +200,13 @@ func (c *CalculationsController) CalculateComprehensiveProjection(ctx echo.Conte
 	// Business logic validation
 	if err := ValidateBusinessLogic(ctx,
 		func() *BusinessLogicError {
-			if req.Years < 1 || req.Years > 50 {
+			if req.Years < 1 || req.Years > 100 {
 				return CreateBusinessLogicError(
 					"INVALID_PROJECTION_YEARS",
-					"予測年数は1年から50年の範囲で入力してください",
+					"予測年数は1年から100年の範囲で入力してください",
 					"現実的な予測期間を入力してください",
 					req.Years,
-					"1-50年",
+					"1-100年",
 				)
 			}
 			return nil

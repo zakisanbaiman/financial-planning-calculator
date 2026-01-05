@@ -16,6 +16,7 @@ export default function DashboardPage() {
   const { userId } = useUser();
   const { goals, loading, fetchGoals } = useGoals();
   const [chartType, setChartType] = useState<'bar' | 'doughnut'>('bar');
+  const [projectionYears, setProjectionYears] = useState<number>(5);
 
   useEffect(() => {
     if (userId) {
@@ -32,15 +33,33 @@ export default function DashboardPage() {
   const totalCurrent = activeGoals.reduce((sum, g) => sum + g.current_amount, 0);
   const overallProgress = totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
 
-  // サンプルの資産推移データ（本番ではAPIから取得）
-  const sampleProjections: AssetProjectionPoint[] = [
-    { year: 0, total_assets: 3000000, real_value: 3000000, contributed_amount: 3000000, investment_gains: 0 },
-    { year: 1, total_assets: 4500000, real_value: 4410000, contributed_amount: 4440000, investment_gains: 60000 },
-    { year: 2, total_assets: 6100000, real_value: 5856000, contributed_amount: 5880000, investment_gains: 220000 },
-    { year: 3, total_assets: 7800000, real_value: 7332000, contributed_amount: 7320000, investment_gains: 480000 },
-    { year: 4, total_assets: 9600000, real_value: 8832000, contributed_amount: 8760000, investment_gains: 840000 },
-    { year: 5, total_assets: 11500000, real_value: 10350000, contributed_amount: 10200000, investment_gains: 1300000 },
-  ];
+  // 資産推移データを動的に生成（1〜100年の範囲で設定可能）
+  const generateProjections = (years: number): AssetProjectionPoint[] => {
+    const projections: AssetProjectionPoint[] = [];
+    const initialAssets = 3000000;
+    const monthlyContribution = 120000;
+    const investmentReturn = 0.05; // 5%
+    const inflationRate = 0.02; // 2%
+    
+    for (let year = 0; year <= years; year++) {
+      const contributedAmount = initialAssets + (monthlyContribution * 12 * year);
+      const totalAssets = contributedAmount * Math.pow(1 + investmentReturn, year);
+      const realValue = totalAssets / Math.pow(1 + inflationRate, year);
+      const investmentGains = totalAssets - contributedAmount;
+      
+      projections.push({
+        year,
+        total_assets: Math.round(totalAssets),
+        real_value: Math.round(realValue),
+        contributed_amount: Math.round(contributedAmount),
+        investment_gains: Math.round(investmentGains),
+      });
+    }
+    
+    return projections;
+  };
+
+  const sampleProjections = generateProjections(projectionYears);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -105,9 +124,30 @@ export default function DashboardPage() {
           <div className="card">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">資産推移予測</h2>
-              <Link href="/calculations" className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-                詳細計算 →
-              </Link>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <label htmlFor="projection-years" className="text-sm text-gray-600 dark:text-gray-300">
+                    期間:
+                  </label>
+                  <select
+                    id="projection-years"
+                    value={projectionYears}
+                    onChange={(e) => setProjectionYears(Number(e.target.value))}
+                    className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  >
+                    <option value={5}>5年</option>
+                    <option value={10}>10年</option>
+                    <option value={20}>20年</option>
+                    <option value={30}>30年</option>
+                    <option value={50}>50年</option>
+                    <option value={75}>75年</option>
+                    <option value={100}>100年</option>
+                  </select>
+                </div>
+                <Link href="/calculations" className="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                  詳細計算 →
+                </Link>
+              </div>
             </div>
             <AssetProjectionChart
               projections={sampleProjections}
@@ -115,6 +155,26 @@ export default function DashboardPage() {
               showContributions={true}
               height={256}
             />
+            <div className="mt-3 grid grid-cols-3 gap-4 text-center text-sm">
+              <div>
+                <p className="text-gray-600 dark:text-gray-400">最終資産額</p>
+                <p className="font-bold text-primary-600 dark:text-primary-400">
+                  ¥{sampleProjections[sampleProjections.length - 1]?.total_assets.toLocaleString() || 0}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-600 dark:text-gray-400">積立元本</p>
+                <p className="font-bold text-orange-600 dark:text-orange-400">
+                  ¥{sampleProjections[sampleProjections.length - 1]?.contributed_amount.toLocaleString() || 0}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-600 dark:text-gray-400">投資収益</p>
+                <p className="font-bold text-success-600 dark:text-success-400">
+                  ¥{sampleProjections[sampleProjections.length - 1]?.investment_gains.toLocaleString() || 0}
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Monthly Breakdown */}

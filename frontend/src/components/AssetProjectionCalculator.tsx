@@ -11,7 +11,7 @@ import { InputField, Button, LoadingSpinner } from './index';
 
 // バリデーションスキーマ
 const assetProjectionSchema = z.object({
-  years: z.number().min(1, '1年以上を指定してください').max(50, '50年以内で指定してください'),
+  years: z.number().min(1, '1年以上を指定してください').max(100, '100年以内で指定してください'),
   monthly_income: z.number().min(0, '0以上の値を入力してください'),
   monthly_expenses: z.number().min(0, '0以上の値を入力してください'),
   current_savings: z.number().min(0, '0以上の値を入力してください'),
