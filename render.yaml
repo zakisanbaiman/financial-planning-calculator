@@ -1,10 +1,9 @@
-services:
-  # PostgreSQL Database
-  - type: pserv
-    name: financial-planning-db
+databases:
+  - name: financial-planning-db
     plan: free
     region: oregon
 
+services:
   # Backend API Service
   - type: web
     name: financial-planning-backend
