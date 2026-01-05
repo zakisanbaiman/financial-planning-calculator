@@ -59,7 +59,3 @@ services:
     buildFilter:
       paths:
         - frontend/**
-
-# Preview environments for PRs
-previewsEnabled: true
-previewsExpireAfterDays: 7
