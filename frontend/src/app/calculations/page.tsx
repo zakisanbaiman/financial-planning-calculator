@@ -6,12 +6,42 @@ import {
   RetirementCalculator,
   EmergencyFundCalculator,
 } from '@/components';
+import AssetProjectionChart from '@/components/AssetProjectionChart';
+import type { AssetProjectionPoint } from '@/types/api';
 
 type CalculatorView = 'menu' | 'asset-projection' | 'retirement' | 'emergency';
 
 export default function CalculationsPage() {
   const [activeView, setActiveView] = useState<CalculatorView>('menu');
   const userId = 'user-001'; // TODO: 実際のユーザーIDを取得
+
+  // サンプル資産推移データを生成（30年間）
+  const generateSampleProjections = (): AssetProjectionPoint[] => {
+    const projections: AssetProjectionPoint[] = [];
+    const initialAssets = 3000000; // 初期資産300万円
+    const monthlyContribution = 120000; // 月間貯蓄額12万円
+    const investmentReturn = 0.05; // 投資利回り5%
+    const inflationRate = 0.02; // インフレ率2%
+    
+    for (let year = 0; year <= 30; year++) {
+      const contributedAmount = initialAssets + (monthlyContribution * 12 * year);
+      const totalAssets = contributedAmount * Math.pow(1 + investmentReturn, year);
+      const realValue = totalAssets / Math.pow(1 + inflationRate, year);
+      const investmentGains = totalAssets - contributedAmount;
+      
+      projections.push({
+        year,
+        total_assets: Math.round(totalAssets),
+        real_value: Math.round(realValue),
+        contributed_amount: Math.round(contributedAmount),
+        investment_gains: Math.round(investmentGains),
+      });
+    }
+    
+    return projections;
+  };
+
+  const sampleProjections = generateSampleProjections();
 
   if (activeView === 'asset-projection') {
     return (
@@ -130,25 +160,42 @@ export default function CalculationsPage() {
         {/* Asset Projection Chart */}
         <div className="card">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">資産推移予測（30年間）</h2>
-          <div className="h-64 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center mb-4">
-            <div className="text-center text-gray-500 dark:text-gray-400">
-              <div className="text-4xl mb-2">📊</div>
-              <p>資産推移グラフ</p>
-              <p className="text-sm">(タスク8.1で実装予定)</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <AssetProjectionChart
+            projections={sampleProjections}
+            showRealValue={true}
+            showContributions={true}
+            height={256}
+          />
+          <div className="grid grid-cols-3 gap-4 text-center mt-4">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-300">10年後</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">¥16,200,000</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                {new Intl.NumberFormat('ja-JP', {
+                  style: 'currency',
+                  currency: 'JPY',
+                  maximumFractionDigits: 0,
+                }).format(sampleProjections[10]?.total_assets || 0)}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-300">20年後</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">¥38,400,000</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                {new Intl.NumberFormat('ja-JP', {
+                  style: 'currency',
+                  currency: 'JPY',
+                  maximumFractionDigits: 0,
+                }).format(sampleProjections[20]?.total_assets || 0)}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-300">30年後</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">¥69,800,000</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                {new Intl.NumberFormat('ja-JP', {
+                  style: 'currency',
+                  currency: 'JPY',
+                  maximumFractionDigits: 0,
+                }).format(sampleProjections[30]?.total_assets || 0)}
+              </p>
             </div>
           </div>
         </div>
