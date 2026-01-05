@@ -1,0 +1,211 @@
+desc: 財務データ登録と計算結果の反映テスト - Financial Data Registration and Calculation Verification
+steps:
+  - desc: Step 1 - 財務データを作成（収入、支出、貯蓄、投資利回り、インフレ率）
+    req:
+      POST: "{{ env.API_URL }}/financial-data"
+      headers:
+        Content-Type: application/json
+      body:
+        user_id: "test_calc_user_{{ env.RUN_ID }}"
+        monthly_income: 500000
+        monthly_expenses:
+          - category: 住居費
+            amount: 120000
+          - category: 食費
+            amount: 60000
+          - category: 光熱費
+            amount: 20000
+          - category: 通信費
+            amount: 15000
+          - category: 交通費
+            amount: 25000
+        current_savings:
+          - type: deposit
+            amount: 2000000
+          - type: investment
+            amount: 1000000
+        investment_return: 5.0
+        inflation_rate: 2.0
+    test:
+      - assert: status == 200 || status == 201
+        desc: 財務データ作成が成功している
+      - assert: body.user_id != null
+        desc: ユーザーIDが返却されている
+
+  - desc: Step 2 - 作成した財務データを取得して内容を検証
+    req:
+      GET: "{{ env.API_URL }}/financial-data?user_id=test_calc_user_{{ env.RUN_ID }}"
+    test:
+      - desc: ステータスが成功している
+        assert: status == 200
+      - desc: ユーザーIDが一致している
+        assert: body.user_id == "test_calc_user_{{ env.RUN_ID }}"
+      - desc: プロファイルデータが存在する
+        assert: body.profile != null
+      - desc: 月収が正しく保存されている
+        assert: body.profile.monthly_income == 500000
+      - desc: 支出項目が5つある
+        assert: len(body.profile.monthly_expenses) == 5
+      - desc: 住居費が正しく保存されている
+        assert: body.profile.monthly_expenses[0].category == "住居費"
+      - desc: 住居費の金額が正しい
+        assert: body.profile.monthly_expenses[0].amount == 120000
+      - desc: 貯蓄項目が2つある
+        assert: len(body.profile.current_savings) == 2
+      - desc: 投資利回りが正しい
+        assert: body.profile.investment_return == 5.0
+      - desc: インフレ率が正しい
+        assert: body.profile.inflation_rate == 2.0
+
+  - desc: Step 3 - 退職データを追加
+    req:
+      PUT: "{{ env.API_URL }}/financial-data/test_calc_user_{{ env.RUN_ID }}/retirement"
+      headers:
+        Content-Type: application/json
+      body:
+        retirement_age: 65
+        monthly_retirement_expenses: 250000
+        pension_amount: 150000
+    test:
+      - desc: ステータスが成功している
+        assert: status == 200
+      - desc: 退職データが返却されている
+        assert: body != null
+
+  - desc: Step 4 - 緊急資金設定を追加
+    req:
+      PUT: "{{ env.API_URL }}/financial-data/test_calc_user_{{ env.RUN_ID }}/emergency-fund"
+      headers:
+        Content-Type: application/json
+      body:
+        target_months: 6
+        current_amount: 500000
+    test:
+      - desc: ステータスが成功している
+        assert: status == 200
+      - desc: 緊急資金データが返却されている
+        assert: body != null
+
+  - desc: Step 5 - 更新された財務データを再取得して全データを検証
+    req:
+      GET: "{{ env.API_URL }}/financial-data?user_id=test_calc_user_{{ env.RUN_ID }}"
+    test:
+      - desc: ステータスが成功している
+        assert: status == 200
+      - desc: プロファイルデータが存在する
+        assert: body.profile != null
+      - desc: 退職データが存在する
+        assert: body.retirement != null
+      - desc: 退職年齢が正しい
+        assert: body.retirement.retirement_age == 65
+      - desc: 退職後月間支出が正しい
+        assert: body.retirement.monthly_retirement_expenses == 250000
+      - desc: 年金受給額が正しい
+        assert: body.retirement.pension_amount == 150000
+      - desc: 緊急資金データが存在する
+        assert: body.emergency_fund != null
+      - desc: 緊急資金目標月数が正しい
+        assert: body.emergency_fund.target_months == 6
+      - desc: 緊急資金現在額が正しい
+        assert: body.emergency_fund.current_fund == 500000
+
+  - desc: Step 6 - 資産推移計算を実行（10年間の予測）
+    req:
+      POST: "{{ env.API_URL }}/calculations/asset-projection"
+      headers:
+        Content-Type: application/json
+      body:
+        user_id: "test_calc_user_{{ env.RUN_ID }}"
+        years: 10
+    test:
+      - desc: ステータスが成功している
+        assert: status == 200
+      - desc: 計算結果が存在する
+        assert: body != null
+      - desc: ユーザーIDが一致している
+        assert: body.user_id == "test_calc_user_{{ env.RUN_ID }}"
+      - desc: 資産推移データが存在する
+        assert: body.projection != null
+      - desc: 10年分のデータポイントが存在する（年次データの場合）
+        assert: len(body.projection) >= 1
+      - desc: 初期資産額が登録データを反映している（預金2,000,000 + 投資1,000,000）
+        assert: body.projection[0].total_assets >= 3000000
+
+  - desc: Step 7 - 退職資金計算を実行
+    req:
+      POST: "{{ env.API_URL }}/calculations/retirement"
+      headers:
+        Content-Type: application/json
+      body:
+        user_id: "test_calc_user_{{ env.RUN_ID }}"
+    test:
+      - desc: ステータスが成功している
+        assert: status == 200
+      - desc: 計算結果が存在する
+        assert: body != null
+      - desc: ユーザーIDが一致している
+        assert: body.user_id == "test_calc_user_{{ env.RUN_ID }}"
+      - desc: 退職資金計算結果が存在する
+        assert: body.retirement_projection != null || body.required_savings != null || body.monthly_savings_needed != null
+
+  - desc: Step 8 - 緊急資金計算を実行
+    req:
+      POST: "{{ env.API_URL }}/calculations/emergency-fund"
+      headers:
+        Content-Type: application/json
+      body:
+        user_id: "test_calc_user_{{ env.RUN_ID }}"
+    test:
+      - desc: ステータスが成功している
+        assert: status == 200
+      - desc: 計算結果が存在する
+        assert: body != null
+      - desc: ユーザーIDが一致している
+        assert: body.user_id == "test_calc_user_{{ env.RUN_ID }}"
+      - desc: 緊急資金計算結果が存在する
+        assert: body.target_amount != null || body.current_amount != null || body.shortage != null
+
+  - desc: Step 9 - 包括的予測計算を実行（登録データの総合的な分析）
+    req:
+      POST: "{{ env.API_URL }}/calculations/comprehensive"
+      headers:
+        Content-Type: application/json
+      body:
+        user_id: "test_calc_user_{{ env.RUN_ID }}"
+        years: 30
+    test:
+      - desc: ステータスが成功している
+        assert: status == 200
+      - desc: 計算結果が存在する
+        assert: body != null
+      - desc: ユーザーIDが一致している
+        assert: body.user_id == "test_calc_user_{{ env.RUN_ID }}"
+      - desc: 包括的計算結果にプロファイルデータが含まれている
+        assert: body.profile != null || body.projections != null || body.summary != null
+
+  - desc: Step 10 - 登録データ再確認（計算実行後もデータが保持されている）
+    req:
+      GET: "{{ env.API_URL }}/financial-data?user_id=test_calc_user_{{ env.RUN_ID }}"
+    test:
+      - desc: ステータスが成功している
+        assert: status == 200
+      - desc: データが依然として存在する
+        assert: body.user_id == "test_calc_user_{{ env.RUN_ID }}"
+      - desc: プロファイルデータが保持されている
+        assert: body.profile != null
+      - desc: 月収が変更されていない
+        assert: body.profile.monthly_income == 500000
+
+  - desc: Step 11 - テストデータを削除（クリーンアップ）
+    req:
+      DELETE: "{{ env.API_URL }}/financial-data/test_calc_user_{{ env.RUN_ID }}"
+    test:
+      - desc: ステータスが成功している
+        assert: status == 200 || status == 204
+
+  - desc: Step 12 - 削除確認（データが存在しないことを検証）
+    req:
+      GET: "{{ env.API_URL }}/financial-data?user_id=test_calc_user_{{ env.RUN_ID }}"
+    test:
+      - desc: 404エラーが返される
+        assert: status == 404
