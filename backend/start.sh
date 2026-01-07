@@ -6,18 +6,19 @@ wait_for_db() {
     MAX_RETRIES=${DB_WAIT_MAX_RETRIES:-30}
     RETRY_INTERVAL=${DB_WAIT_INTERVAL:-2}
     RETRY_COUNT=0
+    LOG_FILE="./migrate_status.log"
     
     while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
         # Try to connect using the migrate binary which will fail if DB is not ready
         # Temporarily disable exit on error for this check
         set +e
-        ./migrate -command=status > ./migrate_status.log 2>&1
+        ./migrate -command status > "$LOG_FILE" 2>&1
         MIGRATE_EXIT_CODE=$?
         set -e
         
         if [ $MIGRATE_EXIT_CODE -eq 0 ]; then
             echo "Database is ready!"
-            rm -f ./migrate_status.log
+            rm -f "$LOG_FILE"
             return 0
         fi
         
@@ -28,8 +29,9 @@ wait_for_db() {
     
     echo "ERROR: Database did not become ready after $MAX_RETRIES attempts"
     echo "Last migration status check output:"
-    if [ -f ./migrate_status.log ]; then
-        cat ./migrate_status.log
+    if [ -f "$LOG_FILE" ]; then
+        cat "$LOG_FILE"
+        rm -f "$LOG_FILE"
     else
         echo "No migration log available"
     fi
@@ -43,7 +45,7 @@ wait_for_db
 set -e
 
 echo "Running database migrations..."
-./migrate
+./migrate -command up
 
 echo "Starting application..."
 exec ./main
