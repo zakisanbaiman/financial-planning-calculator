@@ -1,12 +1,18 @@
 #!/bin/sh
 
+# Note: set -e is deferred until after database readiness check
+# to allow retry logic to handle connection failures gracefully
+
 # Function to wait for database to be ready
 wait_for_db() {
     echo "Waiting for database to be ready..."
+    # Default: 30 retries (60 seconds total with 2-second intervals)
     MAX_RETRIES=${DB_WAIT_MAX_RETRIES:-30}
+    # Default: 2 seconds between retry attempts
     RETRY_INTERVAL=${DB_WAIT_INTERVAL:-2}
     RETRY_COUNT=0
-    LOG_FILE="./migrate_status.log"
+    # Use unique log file with process ID to avoid conflicts
+    LOG_FILE="./migrate_status_$$.log"
     
     while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
         # Try to connect using the migrate binary which will fail if DB is not ready
@@ -41,7 +47,7 @@ wait_for_db() {
 # Wait for database to be ready
 wait_for_db
 
-# Now enable strict error checking for the rest of the script
+# Enable strict error checking for the rest of the script
 set -e
 
 echo "Running database migrations..."
