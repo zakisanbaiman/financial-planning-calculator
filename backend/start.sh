@@ -28,7 +28,11 @@ wait_for_db() {
     
     echo "ERROR: Database did not become ready after $MAX_RETRIES attempts"
     echo "Last migration status check output:"
-    cat ./migrate_status.log
+    if [ -f ./migrate_status.log ]; then
+        cat ./migrate_status.log
+    else
+        echo "No migration log available"
+    fi
     exit 1
 }
 
