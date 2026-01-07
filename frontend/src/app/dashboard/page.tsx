@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useGoals } from '@/lib/contexts/GoalsContext';
+import { useFinancialData } from '@/lib/contexts/FinancialDataContext';
 import { useUser } from '@/lib/hooks/useUser';
 import GoalProgressTracker from '@/components/GoalProgressTracker';
 import GoalsSummaryChart from '@/components/GoalsSummaryChart';
@@ -14,15 +15,82 @@ import type { Goal, AssetProjectionPoint } from '@/types/api';
 export default function DashboardPage() {
   const router = useRouter();
   const { userId } = useUser();
-  const { goals, loading, fetchGoals } = useGoals();
+  const { goals, loading: goalsLoading, fetchGoals } = useGoals();
+  const { financialData, loading: financialLoading, fetchFinancialData } = useFinancialData();
   const [chartType, setChartType] = useState<'bar' | 'doughnut'>('bar');
-  const [projectionYears, setProjectionYears] = useState<number>(5);
+  const [projectionYears, setProjectionYears] = useState<number>(30);
 
   useEffect(() => {
     if (userId) {
       fetchGoals(userId);
+      fetchFinancialData(userId).catch(() => {
+        // 財務データがまだない場合はエラーを無視
+      });
     }
-  }, [userId, fetchGoals]);
+  }, [userId, fetchGoals, fetchFinancialData]);
+
+  // 財務データから値を計算
+  const financialStats = useMemo(() => {
+    const profile = financialData?.profile;
+    const retirement = financialData?.retirement;
+    const emergencyFund = financialData?.emergency_fund;
+
+    // 月収（配列の場合は合計）
+    const monthlyIncome = profile?.monthly_income || 0;
+
+    // 月間支出の合計
+    const monthlyExpenses = profile?.monthly_expenses?.reduce((sum, item) => sum + item.amount, 0) || 0;
+
+    // 月間純貯蓄
+    const monthlySavings = monthlyIncome - monthlyExpenses;
+
+    // 総資産（貯蓄の合計）
+    const totalAssets = profile?.current_savings?.reduce((sum, item) => sum + item.amount, 0) || 0;
+
+    // 老後資金充足率の計算
+    let retirementSufficiency = 0;
+    if (retirement) {
+      const yearsInRetirement = retirement.life_expectancy - retirement.retirement_age;
+      const monthsInRetirement = yearsInRetirement * 12;
+      const requiredAmount = (retirement.monthly_retirement_expenses - retirement.pension_amount) * monthsInRetirement;
+      if (requiredAmount > 0) {
+        retirementSufficiency = Math.min((totalAssets / requiredAmount) * 100, 100);
+      }
+    }
+
+    // 緊急資金の月数計算
+    let emergencyMonths = 0;
+    if (emergencyFund && emergencyFund.monthly_expenses > 0) {
+      emergencyMonths = emergencyFund.current_amount / emergencyFund.monthly_expenses;
+    } else if (monthlyExpenses > 0) {
+      emergencyMonths = totalAssets / monthlyExpenses;
+    }
+
+    // 投資利回り・インフレ率
+    const investmentReturn = (profile?.investment_return || 5) / 100;
+    const inflationRate = (profile?.inflation_rate || 2) / 100;
+
+    return {
+      monthlyIncome,
+      monthlyExpenses,
+      monthlySavings,
+      totalAssets,
+      retirementSufficiency,
+      emergencyMonths,
+      investmentReturn,
+      inflationRate,
+      hasData: !!financialData,
+    };
+  }, [financialData]);
+
+  // 支出の内訳を取得
+  const expenseBreakdown = useMemo(() => {
+    const expenses = financialData?.profile?.monthly_expenses || [];
+    return expenses.map(item => ({
+      category: item.category,
+      amount: item.amount,
+    }));
+  }, [financialData]);
 
   const handleGoalClick = (goal: Goal) => {
     router.push('/goals');
@@ -33,13 +101,13 @@ export default function DashboardPage() {
   const totalCurrent = activeGoals.reduce((sum, g) => sum + g.current_amount, 0);
   const overallProgress = totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
 
-  // 資産推移データを動的に生成（1〜100年の範囲で設定可能）
+  // 資産推移データを動的に生成（財務データを使用）
   const generateProjections = (years: number): AssetProjectionPoint[] => {
     const projections: AssetProjectionPoint[] = [];
-    const initialAssets = 3000000;
-    const monthlyContribution = 120000;
-    const investmentReturn = 0.05; // 5%
-    const inflationRate = 0.02; // 2%
+    const initialAssets = financialStats.totalAssets || 3000000;
+    const monthlyContribution = financialStats.monthlySavings > 0 ? financialStats.monthlySavings : 120000;
+    const investmentReturn = financialStats.investmentReturn || 0.05;
+    const inflationRate = financialStats.inflationRate || 0.02;
     
     for (let year = 0; year <= years; year++) {
       const contributedAmount = initialAssets + (monthlyContribution * 12 * year);
@@ -61,6 +129,8 @@ export default function DashboardPage() {
 
   const sampleProjections = generateProjections(projectionYears);
 
+  const loading = goalsLoading || financialLoading;
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
@@ -75,44 +145,78 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-300">月間純貯蓄</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">¥120,000</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {financialStats.hasData ? `¥${financialStats.monthlySavings.toLocaleString()}` : '---'}
+              </p>
             </div>
             <div className="text-2xl">💰</div>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">前月比 +5%</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            {financialStats.hasData ? `収入 ¥${financialStats.monthlyIncome.toLocaleString()} - 支出 ¥${financialStats.monthlyExpenses.toLocaleString()}` : '財務データを入力してください'}
+          </p>
         </div>
 
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-300">総資産</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">¥1,500,000</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {financialStats.hasData ? `¥${financialStats.totalAssets.toLocaleString()}` : '---'}
+              </p>
             </div>
             <div className="text-2xl">📈</div>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">前月比 +8%</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            {financialStats.hasData ? '現在の貯蓄合計' : '財務データを入力してください'}
+          </p>
         </div>
 
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-300">老後資金充足率</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">65%</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {financialStats.hasData && financialStats.retirementSufficiency > 0 
+                  ? `${financialStats.retirementSufficiency.toFixed(0)}%` 
+                  : '---'}
+              </p>
             </div>
             <div className="text-2xl">🏖️</div>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">目標まで35%</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            {financialStats.hasData && financialStats.retirementSufficiency > 0
+              ? `目標まで${(100 - financialStats.retirementSufficiency).toFixed(0)}%`
+              : '退職データを入力してください'}
+          </p>
         </div>
 
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-300">緊急資金</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">6ヶ月分</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {financialStats.hasData && financialStats.emergencyMonths > 0
+                  ? `${financialStats.emergencyMonths.toFixed(1)}ヶ月分`
+                  : '---'}
+              </p>
             </div>
             <div className="text-2xl">🚨</div>
           </div>
-          <p className="text-xs text-success-600 mt-2">十分確保済み</p>
+          <p className={`text-xs mt-2 ${
+            financialStats.emergencyMonths >= 6 
+              ? 'text-success-600' 
+              : financialStats.emergencyMonths >= 3 
+                ? 'text-warning-600' 
+                : 'text-gray-500 dark:text-gray-400'
+          }`}>
+            {financialStats.hasData && financialStats.emergencyMonths > 0
+              ? financialStats.emergencyMonths >= 6 
+                ? '十分確保済み' 
+                : financialStats.emergencyMonths >= 3
+                  ? '最低限確保'
+                  : '積み増しを推奨'
+              : '財務データを入力してください'}
+          </p>
         </div>
       </div>
 
@@ -180,28 +284,36 @@ export default function DashboardPage() {
           {/* Monthly Breakdown */}
           <div className="card">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">月間収支内訳</h2>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
-                <span className="text-gray-600 dark:text-gray-300">月収</span>
-                <span className="font-medium text-gray-900 dark:text-white">¥400,000</span>
+            {financialStats.hasData ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                  <span className="text-gray-600 dark:text-gray-300">月収</span>
+                  <span className="font-medium text-gray-900 dark:text-white">¥{financialStats.monthlyIncome.toLocaleString()}</span>
+                </div>
+                {expenseBreakdown.map((expense, index) => (
+                  <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                    <span className="text-gray-600 dark:text-gray-300">{expense.category}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">¥{expense.amount.toLocaleString()}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between py-2 font-semibold">
+                  <span className="text-gray-900 dark:text-white">純貯蓄</span>
+                  <span className={financialStats.monthlySavings >= 0 ? 'text-success-600' : 'text-red-600'}>
+                    ¥{financialStats.monthlySavings.toLocaleString()}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
-                <span className="text-gray-600 dark:text-gray-300">住居費</span>
-                <span className="font-medium text-gray-900 dark:text-white">¥120,000</span>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-3">財務データが入力されていません</p>
+                <Link
+                  href="/financial-data"
+                  className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                >
+                  財務データを入力 →
+                </Link>
               </div>
-              <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
-                <span className="text-gray-600 dark:text-gray-300">食費</span>
-                <span className="font-medium text-gray-900 dark:text-white">¥60,000</span>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
-                <span className="text-gray-600 dark:text-gray-300">その他支出</span>
-                <span className="font-medium text-gray-900 dark:text-white">¥100,000</span>
-              </div>
-              <div className="flex items-center justify-between py-2 font-semibold">
-                <span className="text-gray-900 dark:text-white">純貯蓄</span>
-                <span className="text-success-600">¥120,000</span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -320,15 +432,45 @@ export default function DashboardPage() {
           <div className="card">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">推奨事項</h2>
             <div className="space-y-3">
-              <div className="p-3 bg-success-50 border border-success-200 rounded-lg">
-                <p className="text-sm font-medium text-success-800">✅ 緊急資金は十分確保されています</p>
-              </div>
-              <div className="p-3 bg-warning-50 border border-warning-200 rounded-lg">
-                <p className="text-sm font-medium text-warning-800">⚠️ 老後資金の積立を月額¥50,000増やすことを推奨</p>
-              </div>
-              <div className="p-3 bg-primary-50 border border-primary-200 rounded-lg">
-                <p className="text-sm font-medium text-primary-800">💡 投資利回りを5%→6%に改善すると目標達成が2年早まります</p>
-              </div>
+              {!financialStats.hasData ? (
+                <div className="p-3 bg-primary-50 border border-primary-200 rounded-lg">
+                  <p className="text-sm font-medium text-primary-800">💡 財務データを入力すると、パーソナライズされた推奨事項が表示されます</p>
+                </div>
+              ) : (
+                <>
+                  {financialStats.emergencyMonths >= 6 ? (
+                    <div className="p-3 bg-success-50 border border-success-200 rounded-lg">
+                      <p className="text-sm font-medium text-success-800">✅ 緊急資金は十分確保されています（{financialStats.emergencyMonths.toFixed(1)}ヶ月分）</p>
+                    </div>
+                  ) : financialStats.emergencyMonths >= 3 ? (
+                    <div className="p-3 bg-warning-50 border border-warning-200 rounded-lg">
+                      <p className="text-sm font-medium text-warning-800">⚠️ 緊急資金を6ヶ月分まで増やすことを推奨（現在{financialStats.emergencyMonths.toFixed(1)}ヶ月分）</p>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-sm font-medium text-red-800">🚨 緊急資金が不足しています。最低3ヶ月分の確保を優先してください</p>
+                    </div>
+                  )}
+
+                  {financialStats.retirementSufficiency > 0 && financialStats.retirementSufficiency < 100 && (
+                    <div className="p-3 bg-warning-50 border border-warning-200 rounded-lg">
+                      <p className="text-sm font-medium text-warning-800">
+                        ⚠️ 老後資金の充足率は{financialStats.retirementSufficiency.toFixed(0)}%です。積立額の増額を検討してください
+                      </p>
+                    </div>
+                  )}
+
+                  {financialStats.monthlySavings <= 0 ? (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-sm font-medium text-red-800">🚨 支出が収入を上回っています。支出の見直しを検討してください</p>
+                    </div>
+                  ) : financialStats.monthlySavings < financialStats.monthlyIncome * 0.2 && (
+                    <div className="p-3 bg-primary-50 border border-primary-200 rounded-lg">
+                      <p className="text-sm font-medium text-primary-800">💡 収入の20%以上を貯蓄に回すことで、目標達成が早まります</p>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>

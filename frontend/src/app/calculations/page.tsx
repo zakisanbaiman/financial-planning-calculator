@@ -6,12 +6,31 @@ import {
   RetirementCalculator,
   EmergencyFundCalculator,
 } from '@/components';
+import AssetProjectionChart from '@/components/AssetProjectionChart';
+import { generateAssetProjections } from '@/lib/utils/projections';
+import { formatCurrency } from '@/lib/utils/currency';
 
 type CalculatorView = 'menu' | 'asset-projection' | 'retirement' | 'emergency';
+
+// Sample data constants for asset projection preview
+const SAMPLE_INITIAL_ASSETS = 3000000; // ¥3,000,000
+const SAMPLE_MONTHLY_CONTRIBUTION = 120000; // ¥120,000
+const SAMPLE_INVESTMENT_RETURN = 0.05; // 5% annual
+const SAMPLE_INFLATION_RATE = 0.02; // 2% annual
+const SAMPLE_PROJECTION_YEARS = 30;
 
 export default function CalculationsPage() {
   const [activeView, setActiveView] = useState<CalculatorView>('menu');
   const userId = 'user-001'; // TODO: 実際のユーザーIDを取得
+
+  // サンプル資産推移データを生成（30年間）
+  const sampleProjections = generateAssetProjections(
+    SAMPLE_PROJECTION_YEARS,
+    SAMPLE_INITIAL_ASSETS,
+    SAMPLE_MONTHLY_CONTRIBUTION,
+    SAMPLE_INVESTMENT_RETURN,
+    SAMPLE_INFLATION_RATE
+  );
 
   if (activeView === 'asset-projection') {
     return (
@@ -130,25 +149,30 @@ export default function CalculationsPage() {
         {/* Asset Projection Chart */}
         <div className="card">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">資産推移予測（30年間）</h2>
-          <div className="h-64 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center mb-4">
-            <div className="text-center text-gray-500 dark:text-gray-400">
-              <div className="text-4xl mb-2">📊</div>
-              <p>資産推移グラフ</p>
-              <p className="text-sm">(タスク8.1で実装予定)</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <AssetProjectionChart
+            projections={sampleProjections}
+            showRealValue={true}
+            showContributions={true}
+            height={256}
+          />
+          <div className="grid grid-cols-3 gap-4 text-center mt-4">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-300">10年後</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">¥16,200,000</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                {formatCurrency(sampleProjections[10]?.total_assets || 0)}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-300">20年後</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">¥38,400,000</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                {formatCurrency(sampleProjections[20]?.total_assets || 0)}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-300">30年後</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">¥69,800,000</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                {formatCurrency(sampleProjections[30]?.total_assets || 0)}
+              </p>
             </div>
           </div>
         </div>

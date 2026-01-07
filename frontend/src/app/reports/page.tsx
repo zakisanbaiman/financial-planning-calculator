@@ -2,8 +2,16 @@
 
 import { useState } from 'react';
 import { LoadingSpinner } from '@/components';
+import AssetProjectionChart from '@/components/AssetProjectionChart';
+import { generateAssetProjections } from '@/lib/utils/projections';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+
+// Sample data constants for report preview
+const SAMPLE_INITIAL_ASSETS = 1500000; // ¥1,500,000
+const SAMPLE_MONTHLY_CONTRIBUTION = 120000; // ¥120,000
+const SAMPLE_INVESTMENT_RETURN = 0.05; // 5% annual
+const SAMPLE_INFLATION_RATE = 0.02; // 2% annual
 
 export default function ReportsPage() {
   const [loading, setLoading] = useState(false);
@@ -17,6 +25,14 @@ export default function ReportsPage() {
     includeRecommendations: true,
     format: 'pdf',
   });
+
+  const sampleProjections = generateAssetProjections(
+    reportSettings.years,
+    SAMPLE_INITIAL_ASSETS,
+    SAMPLE_MONTHLY_CONTRIBUTION,
+    SAMPLE_INVESTMENT_RETURN,
+    SAMPLE_INFLATION_RATE
+  );
 
   const handleGenerateReport = async (reportType: string) => {
     setLoading(true);
@@ -246,9 +262,12 @@ export default function ReportsPage() {
 
                 <section>
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">将来予測</h2>
-                  <div className="h-32 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center">
-                    <span className="text-gray-500 dark:text-gray-400">資産推移グラフ</span>
-                  </div>
+                  <AssetProjectionChart
+                    projections={sampleProjections}
+                    showRealValue={false}
+                    showContributions={false}
+                    height={128}
+                  />
                 </section>
 
                 <section>
