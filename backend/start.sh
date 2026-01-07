@@ -12,17 +12,12 @@ wait_for_db() {
     RETRY_INTERVAL=${DB_WAIT_INTERVAL:-2}
     RETRY_COUNT=0
     # Use unique log file with process ID to avoid conflicts
-    LOG_FILE="./migrate_status_$$.log"
+    LOG_FILE="/tmp/migrate_status_$$.log"
     
     while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-        # Try to connect using the migrate binary which will fail if DB is not ready
-        # Temporarily disable exit on error for this check
-        set +e
-        ./migrate -command status > "$LOG_FILE" 2>&1
-        MIGRATE_EXIT_CODE=$?
-        set -e
-        
-        if [ $MIGRATE_EXIT_CODE -eq 0 ]; then
+        # Try to connect using the migrate binary
+        # Use explicit if-then to handle errors without toggling set -e
+        if ./migrate -command status > "$LOG_FILE" 2>&1; then
             echo "Database is ready!"
             rm -f "$LOG_FILE"
             return 0
