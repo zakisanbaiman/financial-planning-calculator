@@ -26,6 +26,13 @@ type ServerConfig struct {
 	TempFileSecret      string
 	TempFileExpiry      time.Duration
 	CleanupInterval     time.Duration
+	// Basic Authentication
+	EnableBasicAuth     bool
+	BasicAuthUsername   string
+	BasicAuthPassword   string
+	// JWT Authentication
+	JWTSecret           string
+	JWTExpiration       time.Duration
 }
 
 // LoadServerConfig loads server configuration from environment variables
@@ -48,6 +55,13 @@ func LoadServerConfig() *ServerConfig {
 		TempFileSecret:      getEnv("TEMP_FILE_SECRET", "change-this-secret-in-production"),
 		TempFileExpiry:      getEnvDuration("TEMP_FILE_EXPIRY", 24*time.Hour),
 		CleanupInterval:     getEnvDuration("CLEANUP_INTERVAL", 1*time.Hour),
+		// Basic Authentication
+		EnableBasicAuth:     getEnvBool("ENABLE_BASIC_AUTH", false),
+		BasicAuthUsername:   getEnv("BASIC_AUTH_USERNAME", "admin"),
+		BasicAuthPassword:   getEnv("BASIC_AUTH_PASSWORD", "change-me"),
+		// JWT Authentication
+		JWTSecret:           getEnv("JWT_SECRET", "change-this-secret-in-production"),
+		JWTExpiration:       getEnvDuration("JWT_EXPIRATION", 24*time.Hour),
 	}
 
 	return config
