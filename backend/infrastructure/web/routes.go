@@ -11,6 +11,7 @@ import (
 
 // Controllers holds all controller instances
 type Controllers struct {
+	Auth          *controllers.AuthController
 	FinancialData *controllers.FinancialDataController
 	Calculations  *controllers.CalculationsController
 	Goals         *controllers.GoalsController
@@ -41,6 +42,9 @@ func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencie
 	// API情報エンドポイント
 	api.GET("/", APIInfoHandler)
 
+	// 認証エンドポイント（認証不要）
+	setupAuthRoutes(api, controllers.Auth)
+
 	// 財務データ管理エンドポイント
 	setupFinancialDataRoutes(api, controllers.FinancialData)
 
@@ -52,6 +56,14 @@ func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencie
 
 	// レポート生成エンドポイント
 	setupReportRoutes(api, controllers.Reports)
+}
+
+// setupAuthRoutes sets up authentication routes
+func setupAuthRoutes(api *echo.Group, controller *controllers.AuthController) {
+	auth := api.Group("/auth")
+
+	auth.POST("/register", controller.Register) // POST /api/auth/register
+	auth.POST("/login", controller.Login)       // POST /api/auth/login
 }
 
 // setupFinancialDataRoutes sets up financial data management routes

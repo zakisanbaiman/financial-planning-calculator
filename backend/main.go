@@ -87,6 +87,7 @@ func initializeDependencies() *web.ServerDependencies {
 	// Initialize repositories
 	repoFactory := repositories.NewRepositoryFactory(db)
 
+	userRepo := repoFactory.NewUserRepository()
 	financialPlanRepo := repoFactory.NewFinancialPlanRepository()
 	goalRepo := repoFactory.NewGoalRepository()
 
@@ -94,11 +95,17 @@ func initializeDependencies() *web.ServerDependencies {
 	calculationService := services.NewFinancialCalculationService()
 	recommendationService := services.NewGoalRecommendationService(calculationService)
 
+	// Load server config for JWT settings
+	serverCfg := config.LoadServerConfig()
+
 	return &web.ServerDependencies{
+		UserRepo:              userRepo,
 		FinancialPlanRepo:     financialPlanRepo,
 		GoalRepo:              goalRepo,
 		CalculationService:    calculationService,
 		RecommendationService: recommendationService,
+		JWTSecret:             serverCfg.JWTSecret,
+		JWTExpiration:         serverCfg.JWTExpiration,
 	}
 }
 
@@ -114,6 +121,11 @@ func checkSecurityWarnings(serverCfg *config.ServerConfig, dbCfg *config.Databas
 	// Check temporary file secret
 	if serverCfg.TempFileSecret == "change-this-secret-in-production" {
 		warnings = append(warnings, "⚠️  TEMP_FILE_SECRET is set to default value. Change it in production!")
+	}
+
+	// Check JWT secret
+	if serverCfg.JWTSecret == "change-this-secret-in-production" {
+		warnings = append(warnings, "⚠️  JWT_SECRET is set to default value. Change it in production!")
 	}
 
 	// Check SSL mode

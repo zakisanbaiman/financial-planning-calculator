@@ -21,6 +21,11 @@ func (f *RepositoryFactory) NewFinancialPlanRepository() repositories.FinancialP
 	return NewPostgreSQLFinancialPlanRepository(f.db)
 }
 
+// NewUserRepository はユーザーリポジトリを作成する
+func (f *RepositoryFactory) NewUserRepository() repositories.UserRepository {
+	return NewPostgreSQLUserRepository(f.db)
+}
+
 // NewGoalRepository は目標リポジトリを作成する
 func (f *RepositoryFactory) NewGoalRepository() repositories.GoalRepository {
 	return NewPostgreSQLGoalRepository(f.db)
