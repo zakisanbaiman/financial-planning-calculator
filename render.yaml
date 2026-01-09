@@ -39,6 +39,10 @@ services:
         value: require
       - key: GIN_MODE
         value: release
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRATION
+        value: 24h
     buildFilter:
       paths:
         - backend/**

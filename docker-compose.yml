@@ -43,6 +43,8 @@ services:
       GIN_MODE: debug
       ENABLE_PPROF: "true"  # 開発環境でpprofを有効化
       PPROF_PORT: "6060"
+      JWT_SECRET: "docker-dev-jwt-secret-change-in-production"
+      JWT_EXPIRATION: "24h"
     depends_on:
       postgres:
         condition: service_healthy

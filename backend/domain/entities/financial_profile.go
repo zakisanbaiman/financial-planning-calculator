@@ -18,9 +18,6 @@ func NewFinancialProfileID() FinancialProfileID {
 	return FinancialProfileID(uuid.New().String())
 }
 
-// UserID はユーザーの一意識別子
-type UserID string
-
 // ExpenseItem は支出項目を表す
 type ExpenseItem struct {
 	Category    string             `json:"category"`
