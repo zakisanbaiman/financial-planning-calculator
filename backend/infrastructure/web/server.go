@@ -7,6 +7,7 @@ import (
 	"github.com/financial-planning-calculator/backend/domain/repositories"
 	"github.com/financial-planning-calculator/backend/domain/services"
 	"github.com/financial-planning-calculator/backend/infrastructure/web/controllers"
+	"github.com/labstack/echo/v4"
 )
 
 // ServerDependencies holds all dependencies needed for the web server
@@ -23,6 +24,12 @@ type ServerDependencies struct {
 	// Auth Config
 	JWTSecret     string
 	JWTExpiration time.Duration
+
+	// AuthUseCase (ミドルウェア用、NewControllersで初期化される)
+	AuthUseCase usecases.AuthUseCase
+
+	// SkipAuth テスト用：認証をスキップする
+	SkipAuth bool
 }
 
 // NewControllers creates all controller instances with their dependencies
@@ -33,6 +40,9 @@ func NewControllers(deps *ServerDependencies) *Controllers {
 		deps.JWTSecret,
 		deps.JWTExpiration,
 	)
+
+	// Store auth use case for middleware
+	deps.AuthUseCase = authUseCase
 
 	manageFinancialDataUseCase := usecases.NewManageFinancialDataUseCase(
 		deps.FinancialPlanRepo,
@@ -66,4 +76,13 @@ func NewControllers(deps *ServerDependencies) *Controllers {
 		Goals:         controllers.NewGoalsController(manageGoalsUseCase),
 		Reports:       controllers.NewReportsController(generateReportsUseCase),
 	}
+}
+
+// JWTAuthMiddlewareFunc returns the JWT authentication middleware
+// Returns nil if SkipAuth is true (for testing)
+func (deps *ServerDependencies) JWTAuthMiddlewareFunc() echo.MiddlewareFunc {
+	if deps.SkipAuth {
+		return nil
+	}
+	return JWTAuthMiddleware(deps.AuthUseCase)
 }

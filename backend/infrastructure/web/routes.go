@@ -45,17 +45,23 @@ func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencie
 	// 認証エンドポイント（認証不要）
 	setupAuthRoutes(api, controllers.Auth)
 
+	// 認証が必要なエンドポイント用グループ
+	protected := api.Group("")
+	if authMiddleware := deps.JWTAuthMiddlewareFunc(); authMiddleware != nil {
+		protected.Use(authMiddleware)
+	}
+
 	// 財務データ管理エンドポイント
-	setupFinancialDataRoutes(api, controllers.FinancialData)
+	setupFinancialDataRoutes(protected, controllers.FinancialData)
 
 	// 計算エンドポイント
-	setupCalculationRoutes(api, controllers.Calculations)
+	setupCalculationRoutes(protected, controllers.Calculations)
 
 	// 目標管理エンドポイント
-	setupGoalRoutes(api, controllers.Goals)
+	setupGoalRoutes(protected, controllers.Goals)
 
 	// レポート生成エンドポイント
-	setupReportRoutes(api, controllers.Reports)
+	setupReportRoutes(protected, controllers.Reports)
 }
 
 // setupAuthRoutes sets up authentication routes
