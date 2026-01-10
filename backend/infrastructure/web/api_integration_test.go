@@ -258,6 +258,7 @@ func setupTestServer() (*echo.Echo, *MockManageFinancialDataUseCase, *MockCalcul
 		GoalRepo:              nil,
 		CalculationService:    nil,
 		RecommendationService: nil,
+		SkipAuth:              true, // テスト用に認証をスキップ
 	}
 
 	// Setup routes
