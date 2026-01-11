@@ -3,11 +3,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTutorial } from '@/lib/contexts/TutorialContext';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import ThemeToggle from './ThemeToggle';
 
 const Navigation = () => {
   const pathname = usePathname();
   const { startTutorial } = useTutorial();
+  const { isAuthenticated, user, logout } = useAuth();
 
   const navItems = [
     { href: '/', label: 'ホーム', icon: '🏠' },
@@ -53,6 +55,33 @@ const Navigation = () => {
               <span>ヘルプ</span>
             </button>
             <ThemeToggle />
+            
+            {/* 認証状態に応じた表示 */}
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-2 ml-2 pl-2 border-l border-gray-300 dark:border-gray-600">
+                <span className="text-sm text-gray-600 dark:text-gray-300">
+                  {user?.email}
+                </span>
+                <button
+                  onClick={logout}
+                  className="flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700"
+                  title="ログアウト"
+                >
+                  <span>🚪</span>
+                  <span>ログアウト</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2 ml-2 pl-2 border-l border-gray-300 dark:border-gray-600">
+                <Link
+                  href="/login"
+                  className="flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700"
+                >
+                  <span>🔐</span>
+                  <span>ログイン</span>
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -93,6 +122,30 @@ const Navigation = () => {
             <span>🎓</span>
             <span>ヘルプ</span>
           </button>
+          
+          {/* モバイル認証メニュー */}
+          {isAuthenticated ? (
+            <>
+              <div className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300 border-t border-gray-200 dark:border-gray-700 mt-2 pt-2">
+                {user?.email}
+              </div>
+              <button
+                onClick={logout}
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 w-full"
+              >
+                <span>🚪</span>
+                <span>ログアウト</span>
+              </button>
+            </>
+          ) : (
+            <Link
+              href="/login"
+              className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 border-t border-gray-200 dark:border-gray-700 mt-2 pt-2"
+            >
+              <span>🔐</span>
+              <span>ログイン</span>
+            </Link>
+          )}
         </div>
       </div>
     </nav>
