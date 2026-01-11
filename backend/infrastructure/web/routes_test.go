@@ -52,6 +52,7 @@ func TestSetupRoutes(t *testing.T) {
 		GoalRepo:              nil,
 		CalculationService:    nil,
 		RecommendationService: nil,
+		SkipAuth:              true, // テスト用に認証をスキップ
 	}
 
 	// This should not panic
