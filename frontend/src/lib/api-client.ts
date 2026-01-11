@@ -18,6 +18,7 @@ import type {
   FinancialSummaryReport,
   APIResponse,
 } from '@/types/api';
+import { getAuthToken, isAuthTokenValid } from './contexts/AuthContext';
 
 // API ベースURL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
@@ -41,16 +42,32 @@ async function request<T>(
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   
+  // 認証トークンを取得
+  const token = getAuthToken();
+  
   const config: RequestInit = {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
       ...options.headers,
     },
   };
 
   try {
     const response = await fetch(url, config);
+    
+    // 401エラー（未認証）の場合、ログインページにリダイレクト
+    if (response.status === 401) {
+      // トークンが無効なのでクリア
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+        localStorage.removeItem('auth_expires');
+        window.location.href = '/login';
+      }
+      throw new APIError('認証が必要です。ログインしてください。', 401);
+    }
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));

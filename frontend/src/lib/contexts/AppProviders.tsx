@@ -1,6 +1,7 @@
 'use client';
 
 import React, { ReactNode } from 'react';
+import { AuthProvider } from './AuthContext';
 import { FinancialDataProvider } from './FinancialDataContext';
 import { GoalsProvider } from './GoalsContext';
 import { CalculationsProvider } from './CalculationsContext';
@@ -17,16 +18,18 @@ interface AppProvidersProps {
  */
 export function AppProviders({ children }: AppProvidersProps) {
   return (
-    <ThemeProvider>
-      <TutorialProvider>
-        <FinancialDataProvider>
-          <GoalsProvider>
-            <CalculationsProvider>
-              {children}
-            </CalculationsProvider>
-          </GoalsProvider>
-        </FinancialDataProvider>
-      </TutorialProvider>
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <TutorialProvider>
+          <FinancialDataProvider>
+            <GoalsProvider>
+              <CalculationsProvider>
+                {children}
+              </CalculationsProvider>
+            </GoalsProvider>
+          </FinancialDataProvider>
+        </TutorialProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
