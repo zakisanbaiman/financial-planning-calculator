@@ -70,6 +70,7 @@ func setupAuthRoutes(api *echo.Group, controller *controllers.AuthController) {
 
 	auth.POST("/register", controller.Register) // POST /api/auth/register
 	auth.POST("/login", controller.Login)       // POST /api/auth/login
+	auth.POST("/refresh", controller.Refresh)   // POST /api/auth/refresh
 }
 
 // setupFinancialDataRoutes sets up financial data management routes

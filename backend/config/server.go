@@ -31,8 +31,9 @@ type ServerConfig struct {
 	BasicAuthUsername   string
 	BasicAuthPassword   string
 	// JWT Authentication
-	JWTSecret           string
-	JWTExpiration       time.Duration
+	JWTSecret                string
+	JWTExpiration            time.Duration
+	RefreshTokenExpiration   time.Duration
 }
 
 // LoadServerConfig loads server configuration from environment variables
@@ -60,8 +61,9 @@ func LoadServerConfig() *ServerConfig {
 		BasicAuthUsername:   getEnv("BASIC_AUTH_USERNAME", "admin"),
 		BasicAuthPassword:   getEnv("BASIC_AUTH_PASSWORD", "change-me"),
 		// JWT Authentication
-		JWTSecret:           getEnv("JWT_SECRET", "change-this-secret-in-production"),
-		JWTExpiration:       getEnvDuration("JWT_EXPIRATION", 24*time.Hour),
+		JWTSecret:              getEnv("JWT_SECRET", "change-this-secret-in-production"),
+		JWTExpiration:          getEnvDuration("JWT_EXPIRATION", 24*time.Hour),
+		RefreshTokenExpiration: getEnvDuration("REFRESH_TOKEN_EXPIRATION", 7*24*time.Hour), // 7日間
 	}
 
 	return config

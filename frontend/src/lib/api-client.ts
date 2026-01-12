@@ -23,6 +23,10 @@ import { getAuthToken, isAuthTokenValid } from './contexts/AuthContext';
 // API ベースURL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
+// リフレッシュ中フラグ（複数のリクエストが同時にリフレッシュするのを防ぐ）
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
 // エラークラス
 export class APIError extends Error {
   constructor(
@@ -32,6 +36,43 @@ export class APIError extends Error {
   ) {
     super(message);
     this.name = 'APIError';
+  }
+}
+
+// リフレッシュトークンで新しいアクセストークンを取得
+async function refreshAccessToken(): Promise<boolean> {
+  const refreshToken = typeof window !== 'undefined' 
+    ? localStorage.getItem('refresh_token')
+    : null;
+
+  if (!refreshToken) {
+    return false;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const data = await response.json();
+    
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('auth_token', data.token);
+      localStorage.setItem('auth_expires', data.expires_at);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('トークンリフレッシュに失敗しました:', error);
+    return false;
   }
 }
 
@@ -57,13 +98,44 @@ async function request<T>(
   try {
     const response = await fetch(url, config);
     
-    // 401エラー（未認証）の場合、ログインページにリダイレクト
+    // 401エラー（未認証）の場合、リフレッシュトークンで自動更新を試みる
     if (response.status === 401) {
-      // トークンが無効なのでクリア
+      // リフレッシュ中でない場合、リフレッシュを開始
+      if (!isRefreshing) {
+        isRefreshing = true;
+        refreshPromise = refreshAccessToken().finally(() => {
+          isRefreshing = false;
+          refreshPromise = null;
+        });
+      }
+
+      // リフレッシュ完了を待つ
+      const refreshed = await refreshPromise;
+
+      if (refreshed) {
+        // 新しいトークンでリトライ
+        const newToken = getAuthToken();
+        const retryConfig: RequestInit = {
+          ...config,
+          headers: {
+            ...config.headers,
+            'Authorization': `Bearer ${newToken}`,
+          },
+        };
+        
+        const retryResponse = await fetch(url, retryConfig);
+        
+        if (retryResponse.ok) {
+          return await retryResponse.json();
+        }
+      }
+
+      // リフレッシュ失敗またはリトライ失敗の場合、ログインページにリダイレクト
       if (typeof window !== 'undefined') {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
         localStorage.removeItem('auth_expires');
+        localStorage.removeItem('refresh_token');
         window.location.href = '/login';
       }
       throw new APIError('認証が必要です。ログインしてください。', 401);

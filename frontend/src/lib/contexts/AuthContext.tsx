@@ -27,6 +27,7 @@ interface AuthResponse {
   user_id: string;
   email: string;
   token: string;
+  refresh_token: string;
   expires_at: string;
 }
 
@@ -36,6 +37,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'auth_user';
 const EXPIRES_KEY = 'auth_expires';
+const REFRESH_TOKEN_KEY = 'refresh_token';
 
 // API ベースURL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
@@ -94,6 +96,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     localStorage.setItem(TOKEN_KEY, response.token);
     localStorage.setItem(USER_KEY, JSON.stringify(authUser));
     localStorage.setItem(EXPIRES_KEY, response.expires_at);
+    localStorage.setItem(REFRESH_TOKEN_KEY, response.refresh_token);
 
     setToken(response.token);
     setUser(authUser);
@@ -104,6 +107,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(EXPIRES_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
     setToken(null);
     setUser(null);
   }, []);

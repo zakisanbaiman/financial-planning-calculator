@@ -26,6 +26,11 @@ func (f *RepositoryFactory) NewUserRepository() repositories.UserRepository {
 	return NewPostgreSQLUserRepository(f.db)
 }
 
+// NewRefreshTokenRepository はリフレッシュトークンリポジトリを作成する
+func (f *RepositoryFactory) NewRefreshTokenRepository() repositories.RefreshTokenRepository {
+	return NewPostgreSQLRefreshTokenRepository(f.db)
+}
+
 // NewGoalRepository は目標リポジトリを作成する
 func (f *RepositoryFactory) NewGoalRepository() repositories.GoalRepository {
 	return NewPostgreSQLGoalRepository(f.db)

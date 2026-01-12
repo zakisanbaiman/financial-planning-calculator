@@ -14,6 +14,7 @@ import (
 type ServerDependencies struct {
 	// Repositories
 	UserRepo          repositories.UserRepository
+	RefreshTokenRepo  repositories.RefreshTokenRepository
 	FinancialPlanRepo repositories.FinancialPlanRepository
 	GoalRepo          repositories.GoalRepository
 
@@ -22,8 +23,9 @@ type ServerDependencies struct {
 	RecommendationService *services.GoalRecommendationService
 
 	// Auth Config
-	JWTSecret     string
-	JWTExpiration time.Duration
+	JWTSecret              string
+	JWTExpiration          time.Duration
+	RefreshTokenExpiration time.Duration
 
 	// AuthUseCase (ミドルウェア用、NewControllersで初期化される)
 	AuthUseCase usecases.AuthUseCase
@@ -37,8 +39,10 @@ func NewControllers(deps *ServerDependencies) *Controllers {
 	// Create use cases
 	authUseCase := usecases.NewAuthUseCase(
 		deps.UserRepo,
+		deps.RefreshTokenRepo,
 		deps.JWTSecret,
 		deps.JWTExpiration,
+		deps.RefreshTokenExpiration,
 	)
 
 	// Store auth use case for middleware

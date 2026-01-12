@@ -2,6 +2,8 @@ package usecases
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -23,6 +25,12 @@ type AuthUseCase interface {
 
 	// VerifyToken はJWTトークンを検証する
 	VerifyToken(ctx context.Context, tokenString string) (*TokenClaims, error)
+
+	// RefreshAccessToken はリフレッシュトークンを使用して新しいアクセストークンを発行する
+	RefreshAccessToken(ctx context.Context, refreshToken string) (*RefreshOutput, error)
+
+	// RevokeRefreshToken はリフレッシュトークンを失効させる（ログアウト時に使用）
+	RevokeRefreshToken(ctx context.Context, userID string) error
 }
 
 // RegisterInput はユーザー登録の入力
@@ -33,10 +41,11 @@ type RegisterInput struct {
 
 // RegisterOutput はユーザー登録の出力
 type RegisterOutput struct {
-	UserID    string `json:"user_id"`
-	Email     string `json:"email"`
-	Token     string `json:"token"`
-	ExpiresAt string `json:"expires_at"`
+	UserID       string `json:"user_id"`
+	Email        string `json:"email"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresAt    string `json:"expires_at"`
 }
 
 // LoginInput はログインの入力
@@ -47,8 +56,15 @@ type LoginInput struct {
 
 // LoginOutput はログインの出力
 type LoginOutput struct {
-	UserID    string `json:"user_id"`
-	Email     string `json:"email"`
+	UserID       string `json:"user_id"`
+	Email        string `json:"email"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresAt    string `json:"expires_at"`
+}
+
+// RefreshOutput はトークンリフレッシュの出力
+type RefreshOutput struct {
 	Token     string `json:"token"`
 	ExpiresAt string `json:"expires_at"`
 }
@@ -62,21 +78,27 @@ type TokenClaims struct {
 
 // authUseCase は認証ユースケースの実装
 type authUseCase struct {
-	userRepo      repositories.UserRepository
-	jwtSecret     string
-	jwtExpiration time.Duration
+	userRepo                repositories.UserRepository
+	refreshTokenRepo        repositories.RefreshTokenRepository
+	jwtSecret               string
+	jwtExpiration           time.Duration
+	refreshTokenExpiration  time.Duration
 }
 
 // NewAuthUseCase は新しい認証ユースケースを作成する
 func NewAuthUseCase(
 	userRepo repositories.UserRepository,
+	refreshTokenRepo repositories.RefreshTokenRepository,
 	jwtSecret string,
 	jwtExpiration time.Duration,
+	refreshTokenExpiration time.Duration,
 ) AuthUseCase {
 	return &authUseCase{
-		userRepo:      userRepo,
-		jwtSecret:     jwtSecret,
-		jwtExpiration: jwtExpiration,
+		userRepo:               userRepo,
+		refreshTokenRepo:       refreshTokenRepo,
+		jwtSecret:              jwtSecret,
+		jwtExpiration:          jwtExpiration,
+		refreshTokenExpiration: refreshTokenExpiration,
 	}
 }
 
@@ -129,13 +151,21 @@ func (uc *authUseCase) Register(ctx context.Context, input RegisterInput) (*Regi
 		return nil, fmt.Errorf("トークンの生成に失敗しました: %w", err)
 	}
 
+	// リフレッシュトークンを生成
+	refreshToken, err := uc.generateRefreshToken(ctx, user.ID())
+	if err != nil {
+		logger.ErrorContext(ctx, "リフレッシュトークンの生成に失敗しました", "error", err)
+		return nil, fmt.Errorf("リフレッシュトークンの生成に失敗しました: %w", err)
+	}
+
 	logger.InfoContext(ctx, "ユーザー登録が完了しました", "user_id", userID)
 
 	return &RegisterOutput{
-		UserID:    userID,
-		Email:     input.Email,
-		Token:     token,
-		ExpiresAt: expiresAt.Format(time.RFC3339),
+		UserID:       userID,
+		Email:        input.Email,
+		Token:        token,
+		RefreshToken: refreshToken,
+		ExpiresAt:    expiresAt.Format(time.RFC3339),
 	}, nil
 }
 
@@ -177,13 +207,21 @@ func (uc *authUseCase) Login(ctx context.Context, input LoginInput) (*LoginOutpu
 		return nil, fmt.Errorf("トークンの生成に失敗しました: %w", err)
 	}
 
+	// リフレッシュトークンを生成
+	refreshToken, err := uc.generateRefreshToken(ctx, user.ID())
+	if err != nil {
+		logger.ErrorContext(ctx, "リフレッシュトークンの生成に失敗しました", "error", err)
+		return nil, fmt.Errorf("リフレッシュトークンの生成に失敗しました: %w", err)
+	}
+
 	logger.InfoContext(ctx, "ログインが完了しました", "user_id", user.ID())
 
 	return &LoginOutput{
-		UserID:    user.ID().String(),
-		Email:     user.Email().String(),
-		Token:     token,
-		ExpiresAt: expiresAt.Format(time.RFC3339),
+		UserID:       user.ID().String(),
+		Email:        user.Email().String(),
+		Token:        token,
+		RefreshToken: refreshToken,
+		ExpiresAt:    expiresAt.Format(time.RFC3339),
 	}, nil
 }
 
@@ -229,4 +267,98 @@ func (uc *authUseCase) generateToken(user *entities.User) (string, time.Time, er
 	}
 
 	return tokenString, expiresAt, nil
+}
+
+// generateRefreshToken はリフレッシュトークンを生成してDBに保存する
+func (uc *authUseCase) generateRefreshToken(ctx context.Context, userID entities.UserID) (string, error) {
+	expiresAt := time.Now().Add(uc.refreshTokenExpiration)
+
+	refreshToken, token, err := entities.NewRefreshToken(userID, expiresAt)
+	if err != nil {
+		return "", fmt.Errorf("リフレッシュトークンの生成に失敗しました: %w", err)
+	}
+
+	if err := uc.refreshTokenRepo.Save(ctx, refreshToken); err != nil {
+		return "", fmt.Errorf("リフレッシュトークンの保存に失敗しました: %w", err)
+	}
+
+	return token, nil
+}
+
+// RefreshAccessToken はリフレッシュトークンを使用して新しいアクセストークンを発行する
+func (uc *authUseCase) RefreshAccessToken(ctx context.Context, refreshTokenString string) (*RefreshOutput, error) {
+	logger := slog.With("usecase", "RefreshAccessToken")
+	logger.InfoContext(ctx, "トークンリフレッシュを開始します")
+
+	// リフレッシュトークンをハッシュ化して検索
+	tokenHash := hashRefreshToken(refreshTokenString)
+	refreshToken, err := uc.refreshTokenRepo.FindByTokenHash(ctx, tokenHash)
+	if err != nil {
+		logger.WarnContext(ctx, "リフレッシュトークンが見つかりません", "error", err)
+		return nil, errors.New("無効なリフレッシュトークンです")
+	}
+
+	// トークンを検証
+	if !refreshToken.VerifyToken(refreshTokenString) {
+		logger.WarnContext(ctx, "リフレッシュトークンの検証に失敗しました")
+		return nil, errors.New("無効なリフレッシュトークンです")
+	}
+
+	if !refreshToken.IsValid() {
+		logger.WarnContext(ctx, "リフレッシュトークンが無効です", "expired", refreshToken.IsExpired(), "revoked", refreshToken.IsRevoked())
+		return nil, errors.New("リフレッシュトークンの有効期限が切れているか、失効されています")
+	}
+
+	// ユーザーを取得
+	user, err := uc.userRepo.FindByID(ctx, refreshToken.UserID())
+	if err != nil {
+		logger.ErrorContext(ctx, "ユーザーが見つかりません", "error", err)
+		return nil, errors.New("ユーザーが見つかりません")
+	}
+
+	// 新しいアクセストークンを生成
+	token, expiresAt, err := uc.generateToken(user)
+	if err != nil {
+		logger.ErrorContext(ctx, "トークンの生成に失敗しました", "error", err)
+		return nil, fmt.Errorf("トークンの生成に失敗しました: %w", err)
+	}
+
+	// リフレッシュトークンの最終使用日時を更新
+	refreshToken.UpdateLastUsedAt()
+	if err := uc.refreshTokenRepo.Update(ctx, refreshToken); err != nil {
+		logger.ErrorContext(ctx, "リフレッシュトークンの更新に失敗しました", "error", err)
+		// エラーをログに記録するが、処理は続行
+	}
+
+	logger.InfoContext(ctx, "トークンリフレッシュが完了しました", "user_id", user.ID())
+
+	return &RefreshOutput{
+		Token:     token,
+		ExpiresAt: expiresAt.Format(time.RFC3339),
+	}, nil
+}
+
+// RevokeRefreshToken はリフレッシュトークンを失効させる（ログアウト時に使用）
+func (uc *authUseCase) RevokeRefreshToken(ctx context.Context, userID string) error {
+	logger := slog.With("usecase", "RevokeRefreshToken", "user_id", userID)
+	logger.InfoContext(ctx, "リフレッシュトークンの失効を開始します")
+
+	uid, err := entities.NewUserID(userID)
+	if err != nil {
+		return fmt.Errorf("無効なユーザーIDです: %w", err)
+	}
+
+	if err := uc.refreshTokenRepo.RevokeByUserID(ctx, uid); err != nil {
+		logger.ErrorContext(ctx, "リフレッシュトークンの失効に失敗しました", "error", err)
+		return fmt.Errorf("リフレッシュトークンの失効に失敗しました: %w", err)
+	}
+
+	logger.InfoContext(ctx, "リフレッシュトークンの失効が完了しました")
+	return nil
+}
+
+// hashRefreshToken はリフレッシュトークンをハッシュ化する（entities.RefreshTokenと同じロジック）
+func hashRefreshToken(token string) string {
+	hash := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(hash[:])
 }
