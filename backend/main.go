@@ -88,6 +88,7 @@ func initializeDependencies() *web.ServerDependencies {
 	repoFactory := repositories.NewRepositoryFactory(db)
 
 	userRepo := repoFactory.NewUserRepository()
+	refreshTokenRepo := repoFactory.NewRefreshTokenRepository()
 	financialPlanRepo := repoFactory.NewFinancialPlanRepository()
 	goalRepo := repoFactory.NewGoalRepository()
 
@@ -99,13 +100,15 @@ func initializeDependencies() *web.ServerDependencies {
 	serverCfg := config.LoadServerConfig()
 
 	return &web.ServerDependencies{
-		UserRepo:              userRepo,
-		FinancialPlanRepo:     financialPlanRepo,
-		GoalRepo:              goalRepo,
-		CalculationService:    calculationService,
-		RecommendationService: recommendationService,
-		JWTSecret:             serverCfg.JWTSecret,
-		JWTExpiration:         serverCfg.JWTExpiration,
+		UserRepo:                 userRepo,
+		RefreshTokenRepo:         refreshTokenRepo,
+		FinancialPlanRepo:        financialPlanRepo,
+		GoalRepo:                 goalRepo,
+		CalculationService:       calculationService,
+		RecommendationService:    recommendationService,
+		JWTSecret:                serverCfg.JWTSecret,
+		JWTExpiration:            serverCfg.JWTExpiration,
+		RefreshTokenExpiration:   serverCfg.RefreshTokenExpiration,
 	}
 }
 

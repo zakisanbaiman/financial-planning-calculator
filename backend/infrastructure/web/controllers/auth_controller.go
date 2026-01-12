@@ -33,8 +33,20 @@ type LoginRequest struct {
 
 // AuthResponse は認証レスポンス
 type AuthResponse struct {
-	UserID    string `json:"user_id"`
-	Email     string `json:"email"`
+	UserID       string `json:"user_id"`
+	Email        string `json:"email"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresAt    string `json:"expires_at"`
+}
+
+// RefreshRequest はトークンリフレッシュリクエスト
+type RefreshRequest struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
+// RefreshResponse はトークンリフレッシュレスポンス
+type RefreshResponse struct {
 	Token     string `json:"token"`
 	ExpiresAt string `json:"expires_at"`
 }
@@ -82,10 +94,11 @@ func (c *AuthController) Register(ctx echo.Context) error {
 	}
 
 	response := AuthResponse{
-		UserID:    output.UserID,
-		Email:     output.Email,
-		Token:     output.Token,
-		ExpiresAt: output.ExpiresAt,
+		UserID:       output.UserID,
+		Email:        output.Email,
+		Token:        output.Token,
+		RefreshToken: output.RefreshToken,
+		ExpiresAt:    output.ExpiresAt,
 	}
 
 	return ctx.JSON(http.StatusCreated, response)
@@ -130,8 +143,50 @@ func (c *AuthController) Login(ctx echo.Context) error {
 	}
 
 	response := AuthResponse{
-		UserID:    output.UserID,
-		Email:     output.Email,
+		UserID:       output.UserID,
+		Email:        output.Email,
+		Token:        output.Token,
+		RefreshToken: output.RefreshToken,
+		ExpiresAt:    output.ExpiresAt,
+	}
+
+	return ctx.JSON(http.StatusOK, response)
+}
+
+// Refresh はリフレッシュトークンを使用して新しいアクセストークンを発行する
+// @Summary トークンリフレッシュ
+// @Description リフレッシュトークンを使用して新しいアクセストークンを発行します
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body RefreshRequest true "リフレッシュリクエスト"
+// @Success 200 {object} RefreshResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse "無効なリフレッシュトークンです"
+// @Failure 500 {object} ErrorResponse
+// @Router /auth/refresh [post]
+func (c *AuthController) Refresh(ctx echo.Context) error {
+	var req RefreshRequest
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "リクエストの解析に失敗しました", err.Error()))
+	}
+
+	if err := ctx.Validate(&req); err != nil {
+		return err // Validator already returns proper error response
+	}
+
+	// トークンリフレッシュ
+	output, err := c.authUseCase.RefreshAccessToken(ctx.Request().Context(), req.RefreshToken)
+	if err != nil {
+		// リフレッシュトークンが無効または期限切れ
+		if err.Error() == "無効なリフレッシュトークンです" || err.Error() == "リフレッシュトークンの有効期限が切れているか、失効されています" {
+			return ctx.JSON(http.StatusUnauthorized, NewErrorResponse(ctx, ErrorCodeUnauthorized, err.Error(), nil))
+		}
+		// その他のエラー
+		return ctx.JSON(http.StatusInternalServerError, NewErrorResponse(ctx, ErrorCodeInternalServer, "トークンリフレッシュに失敗しました", err.Error()))
+	}
+
+	response := RefreshResponse{
 		Token:     output.Token,
 		ExpiresAt: output.ExpiresAt,
 	}
