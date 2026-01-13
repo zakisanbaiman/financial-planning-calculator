@@ -23,13 +23,41 @@ func NewPostgreSQLUserRepository(db *sql.DB) repositories.UserRepository {
 // Save は新しいユーザーを保存する
 func (r *PostgreSQLUserRepository) Save(ctx context.Context, user *entities.User) error {
 	query := `
-		INSERT INTO users (id, email, password_hash, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5)`
+		INSERT INTO users (id, email, password_hash, provider, provider_user_id, name, avatar_url, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+
+	var passwordHash *string
+	if user.PasswordHash().String() != "" {
+		pwdHash := user.PasswordHash().String()
+		passwordHash = &pwdHash
+	}
+
+	var providerUserID *string
+	if user.ProviderUserID() != "" {
+		pid := user.ProviderUserID()
+		providerUserID = &pid
+	}
+
+	var name *string
+	if user.Name() != "" {
+		n := user.Name()
+		name = &n
+	}
+
+	var avatarURL *string
+	if user.AvatarURL() != "" {
+		au := user.AvatarURL()
+		avatarURL = &au
+	}
 
 	_, err := r.db.ExecContext(ctx, query,
 		user.ID().String(),
 		user.Email().String(),
-		user.PasswordHash().String(),
+		passwordHash,
+		string(user.Provider()),
+		providerUserID,
+		name,
+		avatarURL,
 		user.CreatedAt(),
 		user.UpdatedAt(),
 	)
@@ -42,12 +70,13 @@ func (r *PostgreSQLUserRepository) Save(ctx context.Context, user *entities.User
 
 // FindByID は指定されたIDのユーザーを取得する
 func (r *PostgreSQLUserRepository) FindByID(ctx context.Context, id entities.UserID) (*entities.User, error) {
-	var userID, email, passwordHash string
+	var userID, email string
+	var passwordHash, provider, providerUserID, name, avatarURL sql.NullString
 	var createdAt, updatedAt time.Time
 
-	query := `SELECT id, email, password_hash, created_at, updated_at FROM users WHERE id = $1`
+	query := `SELECT id, email, password_hash, provider, provider_user_id, name, avatar_url, created_at, updated_at FROM users WHERE id = $1`
 	err := r.db.QueryRowContext(ctx, query, id.String()).Scan(
-		&userID, &email, &passwordHash, &createdAt, &updatedAt,
+		&userID, &email, &passwordHash, &provider, &providerUserID, &name, &avatarURL, &createdAt, &updatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -56,17 +85,28 @@ func (r *PostgreSQLUserRepository) FindByID(ctx context.Context, id entities.Use
 		return nil, fmt.Errorf("ユーザーの取得に失敗しました: %w", err)
 	}
 
-	return entities.ReconstructUser(userID, email, passwordHash, createdAt, updatedAt)
+	return entities.ReconstructUserWithOAuth(
+		userID,
+		email,
+		passwordHash.String,
+		provider.String,
+		providerUserID.String,
+		name.String,
+		avatarURL.String,
+		createdAt,
+		updatedAt,
+	)
 }
 
 // FindByEmail はメールアドレスからユーザーを取得する
 func (r *PostgreSQLUserRepository) FindByEmail(ctx context.Context, email entities.Email) (*entities.User, error) {
-	var userID, emailStr, passwordHash string
+	var userID, emailStr string
+	var passwordHash, provider, providerUserID, name, avatarURL sql.NullString
 	var createdAt, updatedAt time.Time
 
-	query := `SELECT id, email, password_hash, created_at, updated_at FROM users WHERE email = $1`
+	query := `SELECT id, email, password_hash, provider, provider_user_id, name, avatar_url, created_at, updated_at FROM users WHERE email = $1`
 	err := r.db.QueryRowContext(ctx, query, email.String()).Scan(
-		&userID, &emailStr, &passwordHash, &createdAt, &updatedAt,
+		&userID, &emailStr, &passwordHash, &provider, &providerUserID, &name, &avatarURL, &createdAt, &updatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -75,7 +115,17 @@ func (r *PostgreSQLUserRepository) FindByEmail(ctx context.Context, email entiti
 		return nil, fmt.Errorf("ユーザーの取得に失敗しました: %w", err)
 	}
 
-	return entities.ReconstructUser(userID, emailStr, passwordHash, createdAt, updatedAt)
+	return entities.ReconstructUserWithOAuth(
+		userID,
+		emailStr,
+		passwordHash.String,
+		provider.String,
+		providerUserID.String,
+		name.String,
+		avatarURL.String,
+		createdAt,
+		updatedAt,
+	)
 }
 
 // Update は既存のユーザー情報を更新する
@@ -152,4 +202,36 @@ func (r *PostgreSQLUserRepository) ExistsByEmail(ctx context.Context, email enti
 	}
 
 	return exists, nil
+}
+
+// FindByProviderUserID はOAuthプロバイダーのユーザーIDからユーザーを取得する
+func (r *PostgreSQLUserRepository) FindByProviderUserID(ctx context.Context, provider entities.AuthProvider, providerUserID string) (*entities.User, error) {
+	var userID, email string
+	var passwordHash, providerStr, providerUID, name, avatarURL sql.NullString
+	var createdAt, updatedAt time.Time
+
+	query := `SELECT id, email, password_hash, provider, provider_user_id, name, avatar_url, created_at, updated_at 
+			  FROM users 
+			  WHERE provider = $1 AND provider_user_id = $2`
+	err := r.db.QueryRowContext(ctx, query, string(provider), providerUserID).Scan(
+		&userID, &email, &passwordHash, &providerStr, &providerUID, &name, &avatarURL, &createdAt, &updatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("ユーザーが見つかりません: provider=%s, providerUserID=%s", provider, providerUserID)
+		}
+		return nil, fmt.Errorf("ユーザーの取得に失敗しました: %w", err)
+	}
+
+	return entities.ReconstructUserWithOAuth(
+		userID,
+		email,
+		passwordHash.String,
+		providerStr.String,
+		providerUID.String,
+		name.String,
+		avatarURL.String,
+		createdAt,
+		updatedAt,
+	)
 }

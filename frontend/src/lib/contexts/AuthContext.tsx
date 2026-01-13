@@ -20,6 +20,7 @@ interface AuthContextType {
   logout: () => void;
   error: string | null;
   clearError: () => void;
+  setAuthData: (data: { token: string; refreshToken: string; user: AuthUser }) => void; // Issue: #67
 }
 
 // 認証レスポンスの型
@@ -191,16 +192,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setError(null);
   }, []);
 
-  const value: AuthContextType = {
+  // OAuth用：外部から認証データを設定（Issue: #67）
+  const setAuthData = useCallback((data: { token: string; refreshToken: string; user: AuthUser }) => {
+    // トークン有効期限を24時間後に設定（バックエンドのデフォルト値）
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+    localStorage.setItem(TOKEN_KEY, data.token);
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+    localStorage.setItem(EXPIRES_KEY, expiresAt);
+    localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+
+    setToken(data.token);
+    setUser(data.user);
+    setError(null);
+  }, []);
+
+  const value = {
     user,
     token,
-    isAuthenticated: !!token && !!user,
+    isAuthenticated: !!user && !!token,
     isLoading,
     login,
     register,
     logout,
     error,
     clearError,
+    setAuthData, // Issue: #67
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

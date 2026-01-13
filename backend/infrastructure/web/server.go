@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/financial-planning-calculator/backend/application/usecases"
+	"github.com/financial-planning-calculator/backend/config"
 	"github.com/financial-planning-calculator/backend/domain/repositories"
 	"github.com/financial-planning-calculator/backend/domain/services"
 	"github.com/financial-planning-calculator/backend/infrastructure/web/controllers"
@@ -26,6 +27,9 @@ type ServerDependencies struct {
 	JWTSecret              string
 	JWTExpiration          time.Duration
 	RefreshTokenExpiration time.Duration
+
+	// Server Config (for OAuth)
+	ServerConfig *config.ServerConfig
 
 	// AuthUseCase (ミドルウェア用、NewControllersで初期化される)
 	AuthUseCase usecases.AuthUseCase

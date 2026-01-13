@@ -31,6 +31,17 @@ type AuthUseCase interface {
 
 	// RevokeRefreshToken はリフレッシュトークンを失効させる（ログアウト時に使用）
 	RevokeRefreshToken(ctx context.Context, userID string) error
+
+	// GitHubOAuthLogin はGitHubからのユーザー情報でログイン/登録を行う（Issue: #67）
+	GitHubOAuthLogin(ctx context.Context, input GitHubOAuthInput) (*LoginOutput, error)
+}
+
+// GitHubOAuthInput はGitHub OAuthログインの入力
+type GitHubOAuthInput struct {
+	GitHubUserID string `json:"github_user_id"`
+	Email        string `json:"email"`
+	Name         string `json:"name"`
+	AvatarURL    string `json:"avatar_url"`
 }
 
 // RegisterInput はユーザー登録の入力
@@ -361,4 +372,89 @@ func (uc *authUseCase) RevokeRefreshToken(ctx context.Context, userID string) er
 func hashRefreshToken(token string) string {
 	hash := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(hash[:])
+}
+
+// GitHubOAuthLogin はGitHubからのユーザー情報でログイン/登録を行う（Issue: #67）
+func (uc *authUseCase) GitHubOAuthLogin(ctx context.Context, input GitHubOAuthInput) (*LoginOutput, error) {
+	logger := slog.With("usecase", "GitHubOAuthLogin", "github_user_id", input.GitHubUserID, "email", input.Email)
+	logger.InfoContext(ctx, "GitHub OAuthログインを開始します")
+
+	// バリデーション
+	if input.GitHubUserID == "" {
+		return nil, errors.New("GitHub user IDは必須です")
+	}
+	if input.Email == "" {
+		return nil, errors.New("メールアドレスは必須です")
+	}
+
+	// GitHubプロバイダーIDで既存ユーザーを検索
+	existingUser, err := uc.userRepo.FindByProviderUserID(ctx, entities.AuthProviderGitHub, input.GitHubUserID)
+	if err == nil {
+		// 既存のGitHubユーザーが見つかった - ログイン処理
+		logger.InfoContext(ctx, "既存のGitHubユーザーでログインします", "user_id", existingUser.ID())
+		return uc.generateAuthTokens(ctx, existingUser)
+	}
+
+	// GitHubユーザーが見つからない - メールアドレスで既存ユーザーを検索（自動リンク）
+	email, err := entities.NewEmail(input.Email)
+	if err != nil {
+		return nil, fmt.Errorf("無効なメールアドレスです: %w", err)
+	}
+
+	existingUserByEmail, err := uc.userRepo.FindByEmail(ctx, email)
+	if err == nil {
+		// 同一メールアドレスの既存ユーザーが見つかった
+		// GitHubのメールは検証済みなので、既存アカウントでログインを許可
+		logger.InfoContext(ctx, "同一メールアドレスの既存ユーザーでログインします", "existing_user_id", existingUserByEmail.ID())
+		return uc.generateAuthTokens(ctx, existingUserByEmail)
+	}
+
+	// 新規ユーザーを作成
+	userID := uuid.New().String()
+	newUser, err := entities.NewOAuthUser(
+		userID,
+		input.Email,
+		entities.AuthProviderGitHub,
+		input.GitHubUserID,
+		input.Name,
+		input.AvatarURL,
+	)
+	if err != nil {
+		logger.ErrorContext(ctx, "ユーザーエンティティの作成に失敗しました", "error", err)
+		return nil, fmt.Errorf("ユーザーの作成に失敗しました: %w", err)
+	}
+
+	// ユーザーを保存
+	if err := uc.userRepo.Save(ctx, newUser); err != nil {
+		logger.ErrorContext(ctx, "ユーザーの保存に失敗しました", "error", err)
+		return nil, fmt.Errorf("ユーザーの保存に失敗しました: %w", err)
+	}
+
+	logger.InfoContext(ctx, "新規GitHubユーザーを作成しました", "user_id", newUser.ID())
+
+	// トークンを生成して返す
+	return uc.generateAuthTokens(ctx, newUser)
+}
+
+// generateAuthTokens はユーザーの認証トークンを生成する（共通処理）
+func (uc *authUseCase) generateAuthTokens(ctx context.Context, user *entities.User) (*LoginOutput, error) {
+	// JWTトークンを生成
+	token, expiresAt, err := uc.generateToken(user)
+	if err != nil {
+		return nil, fmt.Errorf("トークンの生成に失敗しました: %w", err)
+	}
+
+	// リフレッシュトークンを生成してDBに保存
+	refreshTokenValue, err := uc.generateRefreshToken(ctx, user.ID())
+	if err != nil {
+		return nil, fmt.Errorf("リフレッシュトークンの生成に失敗しました: %w", err)
+	}
+
+	return &LoginOutput{
+		UserID:       user.ID().String(),
+		Email:        user.Email().String(),
+		Token:        token,
+		RefreshToken: refreshTokenValue,
+		ExpiresAt:    expiresAt.Format(time.RFC3339),
+	}, nil
 }

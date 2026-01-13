@@ -82,13 +82,26 @@ func (ph PasswordHash) String() string {
 	return string(ph)
 }
 
+// AuthProvider は認証プロバイダーを表す
+type AuthProvider string
+
+const (
+	AuthProviderLocal  AuthProvider = "local"
+	AuthProviderGitHub AuthProvider = "github"
+	AuthProviderGoogle AuthProvider = "google"
+)
+
 // User はユーザーエンティティ
 type User struct {
-	id           UserID
-	email        Email
-	passwordHash PasswordHash
-	createdAt    time.Time
-	updatedAt    time.Time
+	id             UserID
+	email          Email
+	passwordHash   PasswordHash
+	provider       AuthProvider
+	providerUserID string
+	name           string
+	avatarURL      string
+	createdAt      time.Time
+	updatedAt      time.Time
 }
 
 // NewUser は新しいユーザーを作成する（新規登録用）
@@ -115,6 +128,7 @@ func NewUser(id string, email string, plainPassword string) (*User, error) {
 		id:           userID,
 		email:        emailVO,
 		passwordHash: passwordHash,
+		provider:     AuthProviderLocal,
 		createdAt:    now,
 		updatedAt:    now,
 	}, nil
@@ -136,8 +150,69 @@ func ReconstructUser(id string, email string, passwordHash string, createdAt, up
 		id:           userID,
 		email:        emailVO,
 		passwordHash: NewPasswordHashFromHash(passwordHash),
+		provider:     AuthProviderLocal,
 		createdAt:    createdAt,
 		updatedAt:    updatedAt,
+	}, nil
+}
+
+// ReconstructUserWithOAuth はDBから取得したOAuthユーザーデータからUserを再構築する
+func ReconstructUserWithOAuth(id string, email string, passwordHash string, provider string, providerUserID string, name string, avatarURL string, createdAt, updatedAt time.Time) (*User, error) {
+	userID, err := NewUserID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	emailVO, err := NewEmail(email)
+	if err != nil {
+		return nil, err
+	}
+
+	var pwdHash PasswordHash
+	if passwordHash != "" {
+		pwdHash = NewPasswordHashFromHash(passwordHash)
+	}
+
+	return &User{
+		id:             userID,
+		email:          emailVO,
+		passwordHash:   pwdHash,
+		provider:       AuthProvider(provider),
+		providerUserID: providerUserID,
+		name:           name,
+		avatarURL:      avatarURL,
+		createdAt:      createdAt,
+		updatedAt:      updatedAt,
+	}, nil
+}
+
+// NewOAuthUser はOAuth認証で新しいユーザーを作成する
+func NewOAuthUser(id string, email string, provider AuthProvider, providerUserID string, name string, avatarURL string) (*User, error) {
+	userID, err := NewUserID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	emailVO, err := NewEmail(email)
+	if err != nil {
+		return nil, err
+	}
+
+	if providerUserID == "" {
+		return nil, errors.New("プロバイダーユーザーIDは必須です")
+	}
+
+	now := time.Now()
+
+	return &User{
+		id:             userID,
+		email:          emailVO,
+		provider:       provider,
+		providerUserID: providerUserID,
+		name:           name,
+		avatarURL:      avatarURL,
+		createdAt:      now,
+		updatedAt:      now,
 	}, nil
 }
 
@@ -166,6 +241,31 @@ func (u *User) CreatedAt() time.Time {
 // UpdatedAt は更新日時を返す
 func (u *User) UpdatedAt() time.Time {
 	return u.updatedAt
+}
+
+// Provider は認証プロバイダーを返す
+func (u *User) Provider() AuthProvider {
+	return u.provider
+}
+
+// ProviderUserID はプロバイダーのユーザーIDを返す
+func (u *User) ProviderUserID() string {
+	return u.providerUserID
+}
+
+// Name はユーザー名を返す
+func (u *User) Name() string {
+	return u.name
+}
+
+// AvatarURL はアバターURLを返す
+func (u *User) AvatarURL() string {
+	return u.avatarURL
+}
+
+// IsOAuthUser はOAuthユーザーかどうかを返す
+func (u *User) IsOAuthUser() bool {
+	return u.provider != AuthProviderLocal
 }
 
 // VerifyPassword はパスワードが正しいか検証する
