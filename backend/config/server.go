@@ -74,8 +74,8 @@ func LoadServerConfig() *ServerConfig {
 		GitHubClientID:       getEnv("GITHUB_CLIENT_ID", ""),
 		GitHubClientSecret:   getEnv("GITHUB_CLIENT_SECRET", ""),
 		GitHubCallbackURL:    getEnv("GITHUB_CALLBACK_URL", "http://localhost:8080/api/auth/github/callback"),
-		OAuthSuccessRedirect: getEnv("OAUTH_SUCCESS_REDIRECT", "http://localhost:3000/dashboard"),
-		OAuthFailureRedirect: getEnv("OAUTH_FAILURE_REDIRECT", "http://localhost:3000/login?error=oauth_failed"),
+		OAuthSuccessRedirect: getEnv("OAUTH_SUCCESS_REDIRECT", "http://localhost:3000/auth/callback"),
+		OAuthFailureRedirect: getEnv("OAUTH_FAILURE_REDIRECT", "http://localhost:3000/login"),
 	}
 
 	return config
