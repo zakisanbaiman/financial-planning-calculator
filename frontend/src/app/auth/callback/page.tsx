@@ -1,15 +1,14 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
 
 /**
- * OAuthコールバックページ（Issue: #67）
- * GitHub OAuth認証後のリダイレクト先
- * URLパラメータからトークンを取得してAuthContextに保存
+ * OAuthコールバック処理コンポーネント（Issue: #67）
+ * useSearchParams()を使用するため、Suspenseでラップ
  */
-export default function AuthCallbackPage() {
+function CallbackHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setAuthData } = useAuth();
@@ -63,5 +62,29 @@ export default function AuthCallbackPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+/**
+ * OAuthコールバックページ（Issue: #67）
+ * GitHub OAuth認証後のリダイレクト先
+ * URLパラメータからトークンを取得してAuthContextに保存
+ */
+export default function AuthCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">
+              読み込み中...
+            </p>
+          </div>
+        </div>
+      }
+    >
+      <CallbackHandler />
+    </Suspense>
   );
 }
