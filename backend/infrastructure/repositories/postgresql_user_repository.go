@@ -23,8 +23,8 @@ func NewPostgreSQLUserRepository(db *sql.DB) repositories.UserRepository {
 // Save は新しいユーザーを保存する
 func (r *PostgreSQLUserRepository) Save(ctx context.Context, user *entities.User) error {
 	query := `
-		INSERT INTO users (id, email, password_hash, provider, provider_user_id, name, avatar_url, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+		INSERT INTO users (id, email, password_hash, provider, provider_user_id, name, avatar_url, email_verified, email_verified_at, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
 
 	var passwordHash *string
 	if user.PasswordHash().String() != "" {
@@ -58,6 +58,8 @@ func (r *PostgreSQLUserRepository) Save(ctx context.Context, user *entities.User
 		providerUserID,
 		name,
 		avatarURL,
+		user.EmailVerified(),
+		user.EmailVerifiedAt(),
 		user.CreatedAt(),
 		user.UpdatedAt(),
 	)
@@ -72,17 +74,24 @@ func (r *PostgreSQLUserRepository) Save(ctx context.Context, user *entities.User
 func (r *PostgreSQLUserRepository) FindByID(ctx context.Context, id entities.UserID) (*entities.User, error) {
 	var userID, email string
 	var passwordHash, provider, providerUserID, name, avatarURL sql.NullString
+	var emailVerified bool
+	var emailVerifiedAt sql.NullTime
 	var createdAt, updatedAt time.Time
 
-	query := `SELECT id, email, password_hash, provider, provider_user_id, name, avatar_url, created_at, updated_at FROM users WHERE id = $1`
+	query := `SELECT id, email, password_hash, provider, provider_user_id, name, avatar_url, email_verified, email_verified_at, created_at, updated_at FROM users WHERE id = $1`
 	err := r.db.QueryRowContext(ctx, query, id.String()).Scan(
-		&userID, &email, &passwordHash, &provider, &providerUserID, &name, &avatarURL, &createdAt, &updatedAt,
+		&userID, &email, &passwordHash, &provider, &providerUserID, &name, &avatarURL, &emailVerified, &emailVerifiedAt, &createdAt, &updatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("ユーザーが見つかりません: %s", id)
 		}
 		return nil, fmt.Errorf("ユーザーの取得に失敗しました: %w", err)
+	}
+
+	var emailVerifiedAtPtr *time.Time
+	if emailVerifiedAt.Valid {
+		emailVerifiedAtPtr = &emailVerifiedAt.Time
 	}
 
 	return entities.ReconstructUserWithOAuth(
@@ -93,6 +102,8 @@ func (r *PostgreSQLUserRepository) FindByID(ctx context.Context, id entities.Use
 		providerUserID.String,
 		name.String,
 		avatarURL.String,
+		emailVerified,
+		emailVerifiedAtPtr,
 		createdAt,
 		updatedAt,
 	)
@@ -102,17 +113,24 @@ func (r *PostgreSQLUserRepository) FindByID(ctx context.Context, id entities.Use
 func (r *PostgreSQLUserRepository) FindByEmail(ctx context.Context, email entities.Email) (*entities.User, error) {
 	var userID, emailStr string
 	var passwordHash, provider, providerUserID, name, avatarURL sql.NullString
+	var emailVerified bool
+	var emailVerifiedAt sql.NullTime
 	var createdAt, updatedAt time.Time
 
-	query := `SELECT id, email, password_hash, provider, provider_user_id, name, avatar_url, created_at, updated_at FROM users WHERE email = $1`
+	query := `SELECT id, email, password_hash, provider, provider_user_id, name, avatar_url, email_verified, email_verified_at, created_at, updated_at FROM users WHERE email = $1`
 	err := r.db.QueryRowContext(ctx, query, email.String()).Scan(
-		&userID, &emailStr, &passwordHash, &provider, &providerUserID, &name, &avatarURL, &createdAt, &updatedAt,
+		&userID, &emailStr, &passwordHash, &provider, &providerUserID, &name, &avatarURL, &emailVerified, &emailVerifiedAt, &createdAt, &updatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("ユーザーが見つかりません: %s", email)
 		}
 		return nil, fmt.Errorf("ユーザーの取得に失敗しました: %w", err)
+	}
+
+	var emailVerifiedAtPtr *time.Time
+	if emailVerifiedAt.Valid {
+		emailVerifiedAtPtr = &emailVerifiedAt.Time
 	}
 
 	return entities.ReconstructUserWithOAuth(
@@ -123,6 +141,8 @@ func (r *PostgreSQLUserRepository) FindByEmail(ctx context.Context, email entiti
 		providerUserID.String,
 		name.String,
 		avatarURL.String,
+		emailVerified,
+		emailVerifiedAtPtr,
 		createdAt,
 		updatedAt,
 	)
@@ -208,19 +228,26 @@ func (r *PostgreSQLUserRepository) ExistsByEmail(ctx context.Context, email enti
 func (r *PostgreSQLUserRepository) FindByProviderUserID(ctx context.Context, provider entities.AuthProvider, providerUserID string) (*entities.User, error) {
 	var userID, email string
 	var passwordHash, providerStr, providerUID, name, avatarURL sql.NullString
+	var emailVerified bool
+	var emailVerifiedAt sql.NullTime
 	var createdAt, updatedAt time.Time
 
-	query := `SELECT id, email, password_hash, provider, provider_user_id, name, avatar_url, created_at, updated_at 
+	query := `SELECT id, email, password_hash, provider, provider_user_id, name, avatar_url, email_verified, email_verified_at, created_at, updated_at 
 			  FROM users 
 			  WHERE provider = $1 AND provider_user_id = $2`
 	err := r.db.QueryRowContext(ctx, query, string(provider), providerUserID).Scan(
-		&userID, &email, &passwordHash, &providerStr, &providerUID, &name, &avatarURL, &createdAt, &updatedAt,
+		&userID, &email, &passwordHash, &providerStr, &providerUID, &name, &avatarURL, &emailVerified, &emailVerifiedAt, &createdAt, &updatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("ユーザーが見つかりません: provider=%s, providerUserID=%s", provider, providerUserID)
 		}
 		return nil, fmt.Errorf("ユーザーの取得に失敗しました: %w", err)
+	}
+
+	var emailVerifiedAtPtr *time.Time
+	if emailVerifiedAt.Valid {
+		emailVerifiedAtPtr = &emailVerifiedAt.Time
 	}
 
 	return entities.ReconstructUserWithOAuth(
@@ -231,6 +258,8 @@ func (r *PostgreSQLUserRepository) FindByProviderUserID(ctx context.Context, pro
 		providerUID.String,
 		name.String,
 		avatarURL.String,
+		emailVerified,
+		emailVerifiedAtPtr,
 		createdAt,
 		updatedAt,
 	)

@@ -395,7 +395,7 @@ func (uc *authUseCase) GitHubOAuthLogin(ctx context.Context, input GitHubOAuthIn
 		return uc.generateAuthTokens(ctx, existingUser)
 	}
 
-	// GitHubユーザーが見つからない - メールアドレスで既存ユーザーを検索（自動リンク）
+	// GitHubユーザーが見つからない - メールアドレスで既存ユーザーを検索
 	email, err := entities.NewEmail(input.Email)
 	if err != nil {
 		return nil, fmt.Errorf("無効なメールアドレスです: %w", err)
@@ -404,9 +404,12 @@ func (uc *authUseCase) GitHubOAuthLogin(ctx context.Context, input GitHubOAuthIn
 	existingUserByEmail, err := uc.userRepo.FindByEmail(ctx, email)
 	if err == nil {
 		// 同一メールアドレスの既存ユーザーが見つかった
-		// GitHubのメールは検証済みなので、既存アカウントでログインを許可
-		logger.InfoContext(ctx, "同一メールアドレスの既存ユーザーでログインします", "existing_user_id", existingUserByEmail.ID())
-		return uc.generateAuthTokens(ctx, existingUserByEmail)
+		// セキュリティ上の理由から、自動リンクは行わない
+		// ユーザーは既存のアカウントでログインする必要がある
+		logger.WarnContext(ctx, "同一メールアドレスの既存アカウントが見つかりました",
+			"existing_user_id", existingUserByEmail.ID(),
+			"existing_provider", existingUserByEmail.Provider())
+		return nil, fmt.Errorf("このメールアドレスは既に登録されています。既存のアカウント（%s）でログインしてください", existingUserByEmail.Provider())
 	}
 
 	// 新規ユーザーを作成
