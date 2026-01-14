@@ -162,7 +162,7 @@ func getOAuthSuccessRedirect(ctx echo.Context) string {
 	if url := ctx.Get("oauth_success_redirect"); url != nil {
 		return url.(string)
 	}
-	return "http://localhost:3000/dashboard"
+	return "http://localhost:3000/auth/callback"
 }
 
 func getOAuthFailureRedirect(ctx echo.Context) string {
