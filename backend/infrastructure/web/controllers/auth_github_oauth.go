@@ -12,6 +12,12 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// Default OAuth redirect URLs used as fallback when not configured
+const (
+	DefaultOAuthSuccessRedirect = "http://localhost:3000/dashboard"
+	DefaultOAuthFailureRedirect = "http://localhost:3000/login"
+)
+
 // GitHubLogin はGitHubでのログイン開始（OAuth認証画面へリダイレクト）
 // @Summary GitHub OAuth認証開始
 // @Description GitHubの認証画面にリダイレクトします（Issue: #67）
@@ -162,12 +168,12 @@ func getOAuthSuccessRedirect(ctx echo.Context) string {
 	if url := ctx.Get("oauth_success_redirect"); url != nil {
 		return url.(string)
 	}
-	return "http://localhost:3000/dashboard"
+	return DefaultOAuthSuccessRedirect
 }
 
 func getOAuthFailureRedirect(ctx echo.Context) string {
 	if url := ctx.Get("oauth_failure_redirect"); url != nil {
 		return url.(string)
 	}
-	return "http://localhost:3000/login"
+	return DefaultOAuthFailureRedirect
 }
