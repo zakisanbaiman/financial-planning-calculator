@@ -14,7 +14,7 @@ import (
 
 // Default OAuth redirect URLs used as fallback when not configured
 const (
-	DefaultOAuthSuccessRedirect = "http://localhost:3000/dashboard"
+	DefaultOAuthSuccessRedirect = "http://localhost:3000/auth/callback"
 	DefaultOAuthFailureRedirect = "http://localhost:3000/login"
 )
 
