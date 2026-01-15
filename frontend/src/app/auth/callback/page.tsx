@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
 
@@ -11,9 +11,13 @@ import { useAuth } from '@/lib/contexts/AuthContext';
 function CallbackHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { setAuthData } = useAuth();
+  const { setAuthData, isAuthenticated, isLoading } = useAuth();
+  const hasProcessed = useRef(false);
 
+  // トークン情報をAuthContextに保存
   useEffect(() => {
+    if (hasProcessed.current) return;
+
     const handleCallback = async () => {
       // URLパラメータからトークン情報を取得
       const token = searchParams.get('token');
@@ -31,6 +35,9 @@ function CallbackHandler() {
 
       // トークンが存在する場合
       if (token && refreshToken && userId && email) {
+        // URLからトークン情報をクリア（ブラウザ履歴に残さない）
+        window.history.replaceState({}, '', '/auth/callback');
+
         // AuthContextに認証情報を保存
         setAuthData({
           token,
@@ -41,8 +48,7 @@ function CallbackHandler() {
           },
         });
 
-        // ダッシュボードにリダイレクト
-        router.push('/dashboard');
+        hasProcessed.current = true;
       } else {
         // トークン情報が不足している場合
         console.error('Missing authentication data in callback');
@@ -52,6 +58,13 @@ function CallbackHandler() {
 
     handleCallback();
   }, [searchParams, router, setAuthData]);
+
+  // 認証状態が更新されたらダッシュボードにリダイレクト
+  useEffect(() => {
+    if (hasProcessed.current && isAuthenticated && !isLoading) {
+      router.push('/dashboard');
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
