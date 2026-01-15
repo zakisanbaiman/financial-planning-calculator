@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/financial-planning-calculator/backend/application/usecases"
+	"github.com/financial-planning-calculator/backend/config"
 	"github.com/financial-planning-calculator/backend/domain/entities"
 	"github.com/financial-planning-calculator/backend/domain/services"
 	"github.com/financial-planning-calculator/backend/infrastructure/web/controllers"
@@ -259,6 +260,13 @@ func setupTestServer() (*echo.Echo, *MockManageFinancialDataUseCase, *MockCalcul
 		CalculationService:    nil,
 		RecommendationService: nil,
 		SkipAuth:              true, // テスト用に認証をスキップ
+		ServerConfig: &config.ServerConfig{
+			GitHubClientID:       "test-client-id",
+			GitHubClientSecret:   "test-client-secret",
+			GitHubCallbackURL:    "http://localhost:8080/api/auth/github/callback",
+			OAuthSuccessRedirect: "/auth/callback",
+			OAuthFailureRedirect: "/login?error=oauth_failed",
+		},
 	}
 
 	// Setup routes

@@ -34,6 +34,12 @@ type ServerConfig struct {
 	JWTSecret                string
 	JWTExpiration            time.Duration
 	RefreshTokenExpiration   time.Duration
+	// GitHub OAuth
+	GitHubClientID           string
+	GitHubClientSecret       string
+	GitHubCallbackURL        string
+	OAuthSuccessRedirect     string
+	OAuthFailureRedirect     string
 }
 
 // LoadServerConfig loads server configuration from environment variables
@@ -64,6 +70,12 @@ func LoadServerConfig() *ServerConfig {
 		JWTSecret:              getEnv("JWT_SECRET", "change-this-secret-in-production"),
 		JWTExpiration:          getEnvDuration("JWT_EXPIRATION", 24*time.Hour),
 		RefreshTokenExpiration: getEnvDuration("REFRESH_TOKEN_EXPIRATION", 7*24*time.Hour), // 7日間
+		// GitHub OAuth
+		GitHubClientID:       getEnv("GITHUB_CLIENT_ID", ""),
+		GitHubClientSecret:   getEnv("GITHUB_CLIENT_SECRET", ""),
+		GitHubCallbackURL:    getEnv("GITHUB_CALLBACK_URL", "http://localhost:8080/api/auth/github/callback"),
+		OAuthSuccessRedirect: getEnv("OAUTH_SUCCESS_REDIRECT", "http://localhost:3000/auth/callback"),
+		OAuthFailureRedirect: getEnv("OAUTH_FAILURE_REDIRECT", "http://localhost:3000/login?error=oauth_failed"),
 	}
 
 	return config

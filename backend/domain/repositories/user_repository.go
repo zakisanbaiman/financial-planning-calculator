@@ -28,4 +28,7 @@ type UserRepository interface {
 
 	// ExistsByEmail はメールアドレスが既に使用されているか確認する
 	ExistsByEmail(ctx context.Context, email entities.Email) (bool, error)
+
+	// FindByProviderUserID はOAuthプロバイダーのユーザーIDからユーザーを取得する
+	FindByProviderUserID(ctx context.Context, provider entities.AuthProvider, providerUserID string) (*entities.User, error)
 }

@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/financial-planning-calculator/backend/config"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 )
@@ -53,6 +54,13 @@ func TestSetupRoutes(t *testing.T) {
 		CalculationService:    nil,
 		RecommendationService: nil,
 		SkipAuth:              true, // テスト用に認証をスキップ
+		ServerConfig: &config.ServerConfig{
+			GitHubClientID:       "test-client-id",
+			GitHubClientSecret:   "test-client-secret",
+			GitHubCallbackURL:    "http://localhost:8080/api/auth/github/callback",
+			OAuthSuccessRedirect: "/auth/callback",
+			OAuthFailureRedirect: "/login?error=oauth_failed",
+		},
 	}
 
 	// This should not panic

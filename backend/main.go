@@ -109,6 +109,7 @@ func initializeDependencies() *web.ServerDependencies {
 		JWTSecret:                serverCfg.JWTSecret,
 		JWTExpiration:            serverCfg.JWTExpiration,
 		RefreshTokenExpiration:   serverCfg.RefreshTokenExpiration,
+		ServerConfig:             serverCfg, // OAuth設定用 (Issue: #67)
 	}
 }
 

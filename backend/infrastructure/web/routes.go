@@ -38,6 +38,8 @@ func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencie
 	api.Use(ErrorRecoveryMiddleware)
 	api.Use(RequestValidationMiddleware)
 	api.Use(ResponseEnhancementMiddleware)
+	// GitHub OAuth middleware (Issue: #67)
+	api.Use(GitHubOAuthMiddleware(deps.ServerConfig))
 
 	// API情報エンドポイント
 	api.GET("/", APIInfoHandler)
@@ -71,6 +73,10 @@ func setupAuthRoutes(api *echo.Group, controller *controllers.AuthController) {
 	auth.POST("/register", controller.Register) // POST /api/auth/register
 	auth.POST("/login", controller.Login)       // POST /api/auth/login
 	auth.POST("/refresh", controller.Refresh)   // POST /api/auth/refresh
+
+	// GitHub OAuth (Issue: #67)
+	auth.GET("/github", controller.GitHubLogin)          // GET /api/auth/github
+	auth.GET("/github/callback", controller.GitHubCallback) // GET /api/auth/github/callback
 }
 
 // setupFinancialDataRoutes sets up financial data management routes
