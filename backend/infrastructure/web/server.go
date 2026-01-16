@@ -78,7 +78,7 @@ func NewControllers(deps *ServerDependencies) *Controllers {
 
 	// Create controllers
 	return &Controllers{
-		Auth:          controllers.NewAuthController(authUseCase),
+		Auth:          controllers.NewAuthController(authUseCase, deps.ServerConfig),
 		FinancialData: controllers.NewFinancialDataController(manageFinancialDataUseCase),
 		Calculations:  controllers.NewCalculationsController(calculateProjectionUseCase),
 		Goals:         controllers.NewGoalsController(manageGoalsUseCase),

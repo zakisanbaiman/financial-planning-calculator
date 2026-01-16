@@ -36,7 +36,7 @@ func (c *AuthController) GitHubLogin(ctx echo.Context) error {
 		Path:     "/",
 		MaxAge:   300, // 5分間有効
 		HttpOnly: true,
-		Secure:   false, // 開発環境ではfalse、本番ではtrue
+		Secure:   c.serverConfig.CookieSecure, // 環境変数 COOKIE_SECURE で制御
 		SameSite: http.SameSiteLaxMode,
 	})
 

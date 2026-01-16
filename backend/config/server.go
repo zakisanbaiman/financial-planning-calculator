@@ -40,6 +40,8 @@ type ServerConfig struct {
 	GitHubCallbackURL        string
 	OAuthSuccessRedirect     string
 	OAuthFailureRedirect     string
+	// Cookie Security
+	CookieSecure             bool
 }
 
 // LoadServerConfig loads server configuration from environment variables
@@ -76,6 +78,8 @@ func LoadServerConfig() *ServerConfig {
 		GitHubCallbackURL:    getEnv("GITHUB_CALLBACK_URL", "http://localhost:8080/api/auth/github/callback"),
 		OAuthSuccessRedirect: getEnv("OAUTH_SUCCESS_REDIRECT", "http://localhost:3000/auth/callback"),
 		OAuthFailureRedirect: getEnv("OAUTH_FAILURE_REDIRECT", "http://localhost:3000/login?error=oauth_failed"),
+		// Cookie Security
+		CookieSecure:         getEnvBool("COOKIE_SECURE", false),
 	}
 
 	return config

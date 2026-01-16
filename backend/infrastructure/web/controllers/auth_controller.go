@@ -4,18 +4,21 @@ import (
 	"net/http"
 
 	"github.com/financial-planning-calculator/backend/application/usecases"
+	"github.com/financial-planning-calculator/backend/config"
 	"github.com/labstack/echo/v4"
 )
 
 // AuthController は認証関連のコントローラー
 type AuthController struct {
-	authUseCase usecases.AuthUseCase
+	authUseCase  usecases.AuthUseCase
+	serverConfig *config.ServerConfig
 }
 
 // NewAuthController は新しいAuthControllerを作成する
-func NewAuthController(authUseCase usecases.AuthUseCase) *AuthController {
+func NewAuthController(authUseCase usecases.AuthUseCase, serverConfig *config.ServerConfig) *AuthController {
 	return &AuthController{
-		authUseCase: authUseCase,
+		authUseCase:  authUseCase,
+		serverConfig: serverConfig,
 	}
 }
 
