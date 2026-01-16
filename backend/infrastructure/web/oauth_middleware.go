@@ -9,6 +9,15 @@ import (
 
 // GitHubOAuthMiddleware はGitHub OAuth設定をコンテキストに注入するミドルウェア
 func GitHubOAuthMiddleware(cfg *config.ServerConfig) echo.MiddlewareFunc {
+	// Defensive check for nil config (e.g., in tests)
+	if cfg == nil {
+		return func(next echo.HandlerFunc) echo.HandlerFunc {
+			return func(c echo.Context) error {
+				return next(c)
+			}
+		}
+	}
+
 	githubOAuthConfig := &oauth2.Config{
 		ClientID:     cfg.GitHubClientID,
 		ClientSecret: cfg.GitHubClientSecret,
