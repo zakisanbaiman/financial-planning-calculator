@@ -38,14 +38,12 @@ func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencie
 	api.Use(ErrorRecoveryMiddleware)
 	api.Use(RequestValidationMiddleware)
 	api.Use(ResponseEnhancementMiddleware)
-	// GitHub OAuth middleware (Issue: #67)
-	api.Use(GitHubOAuthMiddleware(deps.ServerConfig))
 
 	// API情報エンドポイント
 	api.GET("/", APIInfoHandler)
 
 	// 認証エンドポイント（認証不要）
-	setupAuthRoutes(api, controllers.Auth)
+	setupAuthRoutes(api, controllers.Auth, deps)
 
 	// 認証が必要なエンドポイント用グループ
 	protected := api.Group("")
@@ -67,16 +65,18 @@ func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencie
 }
 
 // setupAuthRoutes sets up authentication routes
-func setupAuthRoutes(api *echo.Group, controller *controllers.AuthController) {
+func setupAuthRoutes(api *echo.Group, controller *controllers.AuthController, deps *ServerDependencies) {
 	auth := api.Group("/auth")
 
 	auth.POST("/register", controller.Register) // POST /api/auth/register
 	auth.POST("/login", controller.Login)       // POST /api/auth/login
 	auth.POST("/refresh", controller.Refresh)   // POST /api/auth/refresh
 
-	// GitHub OAuth (Issue: #67)
-	auth.GET("/github", controller.GitHubLogin)          // GET /api/auth/github
-	auth.GET("/github/callback", controller.GitHubCallback) // GET /api/auth/github/callback
+	// GitHub OAuth routes with middleware (Issue: #67)
+	githubOAuth := auth.Group("/github")
+	githubOAuth.Use(GitHubOAuthMiddleware(deps.ServerConfig))
+	githubOAuth.GET("", controller.GitHubLogin)            // GET /api/auth/github
+	githubOAuth.GET("/callback", controller.GitHubCallback) // GET /api/auth/github/callback
 }
 
 // setupFinancialDataRoutes sets up financial data management routes
