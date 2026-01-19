@@ -26,9 +26,7 @@ interface AuthContextType {
 interface AuthResponse {
   user_id: string;
   email: string;
-  token: string; // レスポンスには含まれるが使用しない（Cookieで管理）
-  refresh_token: string; // レスポンスには含まれるが使用しない（Cookieで管理）
-  expires_at: string;
+  // token と refresh_token はレスポンスに含まれるが、Cookieで管理されるため使用しない
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

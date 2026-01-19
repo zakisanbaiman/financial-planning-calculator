@@ -39,7 +39,7 @@ export class APIError extends Error {
 }
 
 // リフレッシュトークンで新しいアクセストークンを取得
-// トークンはCookieで管理されるため、引数は不要
+// トークンはhttpOnly Cookieで管理されるため、自動的に送信される
 async function refreshAccessToken(): Promise<boolean> {
   try {
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
