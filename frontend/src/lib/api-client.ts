@@ -18,7 +18,6 @@ import type {
   FinancialSummaryReport,
   APIResponse,
 } from '@/types/api';
-import { getAuthToken, isAuthTokenValid } from './contexts/AuthContext';
 
 // API ベースURL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
@@ -40,35 +39,19 @@ export class APIError extends Error {
 }
 
 // リフレッシュトークンで新しいアクセストークンを取得
+// トークンはCookieで管理されるため、引数は不要
 async function refreshAccessToken(): Promise<boolean> {
-  const refreshToken = typeof window !== 'undefined' 
-    ? localStorage.getItem('refresh_token')
-    : null;
-
-  if (!refreshToken) {
-    return false;
-  }
-
   try {
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ refresh_token: refreshToken }),
+      credentials: 'include', // Cookieを送信
     });
 
     if (!response.ok) {
       return false;
     }
 
-    const data = await response.json();
-    
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('auth_token', data.token);
-      localStorage.setItem('auth_expires', data.expires_at);
-    }
-
+    // 新しいトークンはCookieで自動的に設定される
     return true;
   } catch (error) {
     console.error('トークンリフレッシュに失敗しました:', error);
@@ -83,16 +66,13 @@ async function request<T>(
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   
-  // 認証トークンを取得
-  const token = getAuthToken();
-  
   const config: RequestInit = {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
       ...options.headers,
     },
+    credentials: 'include', // Cookieを送受信
   };
 
   try {
@@ -113,17 +93,8 @@ async function request<T>(
       const refreshed = await refreshPromise;
 
       if (refreshed) {
-        // 新しいトークンでリトライ
-        const newToken = getAuthToken();
-        const retryConfig: RequestInit = {
-          ...config,
-          headers: {
-            ...config.headers,
-            'Authorization': `Bearer ${newToken}`,
-          },
-        };
-        
-        const retryResponse = await fetch(url, retryConfig);
+        // 新しいトークンでリトライ（Cookieで自動的に送信される）
+        const retryResponse = await fetch(url, config);
         
         if (retryResponse.ok) {
           return await retryResponse.json();
@@ -132,10 +103,7 @@ async function request<T>(
 
       // リフレッシュ失敗またはリトライ失敗の場合、ログインページにリダイレクト
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
-        localStorage.removeItem('auth_expires');
-        localStorage.removeItem('refresh_token');
         window.location.href = '/login';
       }
       throw new APIError('認証が必要です。ログインしてください。', 401);
@@ -346,6 +314,8 @@ export const reportsAPI = {
 // ヘルスチェック
 export const healthCheck = async (): Promise<{ status: string; message: string }> => {
   const url = `${API_BASE_URL.replace('/api', '')}/health`;
-  const response = await fetch(url);
+  const response = await fetch(url, {
+    credentials: 'include',
+  });
   return await response.json();
 };

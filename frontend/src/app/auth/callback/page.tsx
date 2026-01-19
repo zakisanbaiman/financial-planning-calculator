@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/contexts/AuthContext';
 /**
  * OAuthコールバック処理コンポーネント（Issue: #67）
  * useSearchParams()を使用するため、Suspenseでラップ
+ * トークンはhttpOnly Cookieで管理されるため、ユーザー情報のみを処理
  */
 function CallbackHandler() {
   const router = useRouter();
@@ -19,9 +20,7 @@ function CallbackHandler() {
     if (hasProcessed.current) return;
 
     const handleCallback = async () => {
-      // URLパラメータからトークン情報を取得
-      const token = searchParams.get('token');
-      const refreshToken = searchParams.get('refresh_token');
+      // URLパラメータからユーザー情報を取得（トークンはCookieで管理）
       const userId = searchParams.get('user_id');
       const email = searchParams.get('email');
       const error = searchParams.get('error');
@@ -33,15 +32,13 @@ function CallbackHandler() {
         return;
       }
 
-      // トークンが存在する場合
-      if (token && refreshToken && userId && email) {
-        // URLからトークン情報をクリア（ブラウザ履歴に残さない）
+      // ユーザー情報が存在する場合
+      if (userId && email) {
+        // URLからユーザー情報をクリア（ブラウザ履歴に残さない）
         window.history.replaceState({}, '', '/auth/callback');
 
-        // AuthContextに認証情報を保存
+        // AuthContextにユーザー情報を保存（トークンはCookieで管理されている）
         setAuthData({
-          token,
-          refreshToken,
           user: {
             userId,
             email,
@@ -50,8 +47,8 @@ function CallbackHandler() {
 
         hasProcessed.current = true;
       } else {
-        // トークン情報が不足している場合
-        console.error('Missing authentication data in callback');
+        // ユーザー情報が不足している場合
+        console.error('Missing user data in callback');
         router.push('/login?error=missing_data');
       }
     };
@@ -81,7 +78,8 @@ function CallbackHandler() {
 /**
  * OAuthコールバックページ（Issue: #67）
  * GitHub OAuth認証後のリダイレクト先
- * URLパラメータからトークンを取得してAuthContextに保存
+ * URLパラメータからユーザー情報を取得してAuthContextに保存
+ * トークンはhttpOnly Cookieで管理されるため、URLには含まれない
  */
 export default function AuthCallbackPage() {
   return (
