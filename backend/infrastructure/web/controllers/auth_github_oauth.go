@@ -139,12 +139,13 @@ func (c *AuthController) GitHubCallback(ctx echo.Context) error {
 		return ctx.Redirect(http.StatusTemporaryRedirect, getOAuthFailureRedirect(ctx)+"?error=login_failed")
 	}
 
-	// 成功時、トークンをクッキーに保存してフロントエンドにリダイレクト
-	// 本来はフロントエンドが適切にトークンを受け取る仕組みが必要
+	// トークンをhttpOnly Cookieに設定
+	setAuthCookies(ctx, output.Token, output.RefreshToken, c.serverConfig)
+
+	// 成功時、ユーザー情報のみをクエリパラメータで渡してフロントエンドにリダイレクト
+	// トークンはCookieで送信されるため、URLに含めない
 	successURL := getOAuthSuccessRedirect(ctx) +
-		"?token=" + output.Token +
-		"&refresh_token=" + output.RefreshToken +
-		"&user_id=" + output.UserID +
+		"?user_id=" + output.UserID +
 		"&email=" + output.Email
 
 	return ctx.Redirect(http.StatusTemporaryRedirect, successURL)

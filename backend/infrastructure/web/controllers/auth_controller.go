@@ -96,6 +96,9 @@ func (c *AuthController) Register(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, NewErrorResponse(ctx, ErrorCodeInternalServer, "ユーザー登録に失敗しました", err.Error()))
 	}
 
+	// トークンをhttpOnly Cookieに設定
+	setAuthCookies(ctx, output.Token, output.RefreshToken, c.serverConfig)
+
 	response := AuthResponse{
 		UserID:       output.UserID,
 		Email:        output.Email,
@@ -145,6 +148,9 @@ func (c *AuthController) Login(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, NewErrorResponse(ctx, ErrorCodeInternalServer, "ログインに失敗しました", err.Error()))
 	}
 
+	// トークンをhttpOnly Cookieに設定
+	setAuthCookies(ctx, output.Token, output.RefreshToken, c.serverConfig)
+
 	response := AuthResponse{
 		UserID:       output.UserID,
 		Email:        output.Email,
@@ -158,28 +164,43 @@ func (c *AuthController) Login(ctx echo.Context) error {
 
 // Refresh はリフレッシュトークンを使用して新しいアクセストークンを発行する
 // @Summary トークンリフレッシュ
-// @Description リフレッシュトークンを使用して新しいアクセストークンを発行します
+// @Description リフレッシュトークンを使用して新しいアクセストークンを発行します（Cookieまたはリクエストボディから取得）
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param request body RefreshRequest true "リフレッシュリクエスト"
+// @Param request body RefreshRequest false "リフレッシュリクエスト（Cookieがない場合のみ必要）"
 // @Success 200 {object} RefreshResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse "無効なリフレッシュトークンです"
 // @Failure 500 {object} ErrorResponse
 // @Router /auth/refresh [post]
 func (c *AuthController) Refresh(ctx echo.Context) error {
-	var req RefreshRequest
-	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "リクエストの解析に失敗しました", err.Error()))
+	var refreshToken string
+
+	// まずCookieからリフレッシュトークンを取得
+	cookie, err := ctx.Cookie("refresh_token")
+	if err == nil && cookie.Value != "" {
+		refreshToken = cookie.Value
+	} else {
+		// Cookieにない場合はリクエストボディから取得（後方互換性のため）
+		var req RefreshRequest
+		if err := ctx.Bind(&req); err != nil {
+			return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "リクエストの解析に失敗しました", err.Error()))
+		}
+
+		if err := ctx.Validate(&req); err != nil {
+			return err // Validator already returns proper error response
+		}
+
+		refreshToken = req.RefreshToken
 	}
 
-	if err := ctx.Validate(&req); err != nil {
-		return err // Validator already returns proper error response
+	if refreshToken == "" {
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "リフレッシュトークンが必要です", nil))
 	}
 
 	// トークンリフレッシュ
-	output, err := c.authUseCase.RefreshAccessToken(ctx.Request().Context(), req.RefreshToken)
+	output, err := c.authUseCase.RefreshAccessToken(ctx.Request().Context(), refreshToken)
 	if err != nil {
 		// リフレッシュトークンが無効または期限切れ
 		if err.Error() == "無効なリフレッシュトークンです" || err.Error() == "リフレッシュトークンの有効期限が切れているか、失効されています" {
@@ -189,10 +210,85 @@ func (c *AuthController) Refresh(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, NewErrorResponse(ctx, ErrorCodeInternalServer, "トークンリフレッシュに失敗しました", err.Error()))
 	}
 
+	// トークンをhttpOnly Cookieに設定（アクセストークンのみ更新）
+	setAccessTokenCookie(ctx, output.Token, c.serverConfig)
+
 	response := RefreshResponse{
 		Token:     output.Token,
 		ExpiresAt: output.ExpiresAt,
 	}
 
 	return ctx.JSON(http.StatusOK, response)
+}
+
+// setAuthCookies はアクセストークンとリフレッシュトークンをCookieに設定する
+func setAuthCookies(ctx echo.Context, accessToken, refreshToken string, config *config.ServerConfig) {
+	// アクセストークンをCookieに設定
+	ctx.SetCookie(&http.Cookie{
+		Name:     "access_token",
+		Value:    accessToken,
+		Path:     "/",
+		MaxAge:   int(config.JWTExpiration.Seconds()),
+		HttpOnly: true,
+		Secure:   config.CookieSecure,
+		SameSite: http.SameSiteStrictMode,
+	})
+
+	// リフレッシュトークンをCookieに設定
+	ctx.SetCookie(&http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Path:     "/",
+		MaxAge:   int(config.RefreshTokenExpiration.Seconds()),
+		HttpOnly: true,
+		Secure:   config.CookieSecure,
+		SameSite: http.SameSiteStrictMode,
+	})
+}
+
+// setAccessTokenCookie はアクセストークンのみをCookieに設定する
+func setAccessTokenCookie(ctx echo.Context, accessToken string, config *config.ServerConfig) {
+	ctx.SetCookie(&http.Cookie{
+		Name:     "access_token",
+		Value:    accessToken,
+		Path:     "/",
+		MaxAge:   int(config.JWTExpiration.Seconds()),
+		HttpOnly: true,
+		Secure:   config.CookieSecure,
+		SameSite: http.SameSiteStrictMode,
+	})
+}
+
+// Logout はユーザーをログアウトし、認証Cookieをクリアする
+// @Summary ログアウト
+// @Description ユーザーをログアウトし、認証Cookieをクリアします
+// @Tags auth
+// @Success 200 {object} map[string]string
+// @Router /auth/logout [post]
+func (c *AuthController) Logout(ctx echo.Context) error {
+	// アクセストークンCookieをクリア
+	ctx.SetCookie(&http.Cookie{
+		Name:     "access_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   c.serverConfig.CookieSecure,
+		SameSite: http.SameSiteStrictMode,
+	})
+
+	// リフレッシュトークンCookieをクリア
+	ctx.SetCookie(&http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   c.serverConfig.CookieSecure,
+		SameSite: http.SameSiteStrictMode,
+	})
+
+	return ctx.JSON(http.StatusOK, map[string]string{
+		"message": "ログアウトしました",
+	})
 }

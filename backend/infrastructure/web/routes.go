@@ -71,6 +71,7 @@ func setupAuthRoutes(api *echo.Group, controller *controllers.AuthController, de
 	auth.POST("/register", controller.Register) // POST /api/auth/register
 	auth.POST("/login", controller.Login)       // POST /api/auth/login
 	auth.POST("/refresh", controller.Refresh)   // POST /api/auth/refresh
+	auth.POST("/logout", controller.Logout)     // POST /api/auth/logout
 
 	// GitHub OAuth routes with middleware (Issue: #67)
 	githubOAuth := auth.Group("/github")

@@ -10,25 +10,34 @@ import (
 )
 
 // JWTAuthMiddleware はJWT認証ミドルウェア
+// Cookieからトークンを取得し、なければAuthorizationヘッダーから取得（後方互換性のため）
 func JWTAuthMiddleware(authUseCase usecases.AuthUseCase) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			// Authorizationヘッダーを取得
-			authHeader := c.Request().Header.Get("Authorization")
-			if authHeader == "" {
-				return echo.NewHTTPError(http.StatusUnauthorized, "認証トークンが必要です")
-			}
+			var tokenString string
 
-			// "Bearer "プレフィックスを確認
-			const bearerPrefix = "Bearer "
-			if !strings.HasPrefix(authHeader, bearerPrefix) {
-				return echo.NewHTTPError(http.StatusUnauthorized, "無効な認証形式です")
-			}
+			// まずCookieからトークンを取得
+			cookie, err := c.Cookie("access_token")
+			if err == nil && cookie.Value != "" {
+				tokenString = cookie.Value
+			} else {
+				// Cookieにトークンがない場合、Authorizationヘッダーから取得（後方互換性のため）
+				authHeader := c.Request().Header.Get("Authorization")
+				if authHeader == "" {
+					return echo.NewHTTPError(http.StatusUnauthorized, "認証トークンが必要です")
+				}
 
-			// トークンを抽出
-			tokenString := strings.TrimPrefix(authHeader, bearerPrefix)
-			if tokenString == "" {
-				return echo.NewHTTPError(http.StatusUnauthorized, "認証トークンが必要です")
+				// "Bearer "プレフィックスを確認
+				const bearerPrefix = "Bearer "
+				if !strings.HasPrefix(authHeader, bearerPrefix) {
+					return echo.NewHTTPError(http.StatusUnauthorized, "無効な認証形式です")
+				}
+
+				// トークンを抽出
+				tokenString = strings.TrimPrefix(authHeader, bearerPrefix)
+				if tokenString == "" {
+					return echo.NewHTTPError(http.StatusUnauthorized, "認証トークンが必要です")
+				}
 			}
 
 			// トークンを検証

@@ -12,7 +12,6 @@ export interface AuthUser {
 // 認証コンテキストの型
 interface AuthContextType {
   user: AuthUser | null;
-  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -20,25 +19,20 @@ interface AuthContextType {
   logout: () => void;
   error: string | null;
   clearError: () => void;
-  setAuthData: (data: { token: string; refreshToken: string; user: AuthUser }) => void; // Issue: #67
+  setAuthData: (data: { user: AuthUser }) => void; // Issue: #67 - トークン情報を削除
 }
 
 // 認証レスポンスの型
 interface AuthResponse {
   user_id: string;
   email: string;
-  token: string;
-  refresh_token: string;
-  expires_at: string;
+  // token と refresh_token はレスポンスに含まれるが、Cookieで管理されるため使用しない
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// ローカルストレージのキー
-const TOKEN_KEY = 'auth_token';
+// ローカルストレージのキー（ユーザー情報のみ保存）
 const USER_KEY = 'auth_user';
-const EXPIRES_KEY = 'auth_expires';
-const REFRESH_TOKEN_KEY = 'refresh_token';
 
 // API ベースURL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
@@ -49,33 +43,19 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // トークンの有効期限チェック
-  const isTokenExpired = useCallback((expiresAt: string | null): boolean => {
-    if (!expiresAt) return true;
-    return new Date(expiresAt) <= new Date();
-  }, []);
-
-  // 初期化時にローカルストレージから認証情報を復元
+  // 初期化時にローカルストレージからユーザー情報を復元
+  // トークンはCookieで管理されるため、ここでは復元しない
   useEffect(() => {
     const initAuth = () => {
       try {
-        const storedToken = localStorage.getItem(TOKEN_KEY);
         const storedUser = localStorage.getItem(USER_KEY);
-        const storedExpires = localStorage.getItem(EXPIRES_KEY);
 
-        if (storedToken && storedUser && !isTokenExpired(storedExpires)) {
-          setToken(storedToken);
+        if (storedUser) {
           setUser(JSON.parse(storedUser));
-        } else {
-          // トークンが無効な場合はクリア
-          localStorage.removeItem(TOKEN_KEY);
-          localStorage.removeItem(USER_KEY);
-          localStorage.removeItem(EXPIRES_KEY);
         }
       } catch (e) {
         console.error('Failed to restore auth state:', e);
@@ -85,31 +65,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
 
     initAuth();
-  }, [isTokenExpired]);
+  }, []);
 
-  // 認証情報を保存
+  // 認証情報を保存（ユーザー情報のみ）
   const saveAuthData = useCallback((response: AuthResponse) => {
     const authUser: AuthUser = {
       userId: response.user_id,
       email: response.email,
     };
 
-    localStorage.setItem(TOKEN_KEY, response.token);
     localStorage.setItem(USER_KEY, JSON.stringify(authUser));
-    localStorage.setItem(EXPIRES_KEY, response.expires_at);
-    localStorage.setItem(REFRESH_TOKEN_KEY, response.refresh_token);
-
-    setToken(response.token);
     setUser(authUser);
   }, []);
 
   // 認証情報をクリア
   const clearAuthData = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
-    localStorage.removeItem(EXPIRES_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    setToken(null);
     setUser(null);
   }, []);
 
@@ -125,6 +96,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
+        credentials: 'include', // Cookieを送受信
       });
 
       if (!response.ok) {
@@ -159,6 +131,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
+        credentials: 'include', // Cookieを送受信
       });
 
       if (!response.ok) {
@@ -182,7 +155,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [router, saveAuthData]);
 
   // ログアウト
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try {
+      // バックエンドのログアウトエンドポイントを呼び出してCookieをクリア
+      await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (e) {
+      console.error('Logout API call failed:', e);
+      // エラーが発生してもローカルの状態はクリアする
+    }
+    
     clearAuthData();
     router.push('/login');
   }, [clearAuthData, router]);
@@ -192,25 +176,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setError(null);
   }, []);
 
-  // OAuth用：外部から認証データを設定（Issue: #67）
-  const setAuthData = useCallback((data: { token: string; refreshToken: string; user: AuthUser }) => {
-    // トークン有効期限を24時間後に設定（バックエンドのデフォルト値）
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-
-    localStorage.setItem(TOKEN_KEY, data.token);
+  // OAuth用：外部からユーザーデータを設定（Issue: #67）
+  // トークンはCookieで管理されるため、ユーザー情報のみを受け取る
+  const setAuthData = useCallback((data: { user: AuthUser }) => {
     localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-    localStorage.setItem(EXPIRES_KEY, expiresAt);
-    localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
-
-    setToken(data.token);
     setUser(data.user);
     setError(null);
   }, []);
 
   const value = {
     user,
-    token,
-    isAuthenticated: !!user && !!token,
+    isAuthenticated: !!user,
     isLoading,
     login,
     register,
@@ -230,18 +206,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
-
-// トークンを取得するヘルパー関数（APIクライアント用）
-export function getAuthToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-// トークンの有効期限をチェックするヘルパー関数
-export function isAuthTokenValid(): boolean {
-  if (typeof window === 'undefined') return false;
-  const expiresAt = localStorage.getItem(EXPIRES_KEY);
-  if (!expiresAt) return false;
-  return new Date(expiresAt) > new Date();
 }
