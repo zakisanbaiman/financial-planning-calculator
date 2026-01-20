@@ -34,3 +34,8 @@
 - refactor: リファクタリング
 - docs: ドキュメント更新
 - 必ず Issue 番号を含める（例: Issue: #66）
+
+### ブランチ保護ルール
+- **mainブランチへの直接pushは禁止**（リポジトリルールで保護）
+- 変更はフィーチャーブランチを作成してPRを経由すること
+- ブランチ命名例: `fix/oauth-auth-state`, `feat/new-feature`, `refactor/cleanup`

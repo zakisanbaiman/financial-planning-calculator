@@ -93,17 +93,20 @@ const (
 
 // User はユーザーエンティティ
 type User struct {
-	id              UserID
-	email           Email
-	passwordHash    PasswordHash
-	provider        AuthProvider
-	providerUserID  string
-	name            string
-	avatarURL       string
-	emailVerified   bool
-	emailVerifiedAt *time.Time
-	createdAt       time.Time
-	updatedAt       time.Time
+	id                   UserID
+	email                Email
+	passwordHash         PasswordHash
+	provider             AuthProvider
+	providerUserID       string
+	name                 string
+	avatarURL            string
+	emailVerified        bool
+	emailVerifiedAt      *time.Time
+	twoFactorEnabled     bool
+	twoFactorSecret      string
+	twoFactorBackupCodes []string
+	createdAt            time.Time
+	updatedAt            time.Time
 }
 
 // NewUser は新しいユーザーを作成する（新規登録用）
@@ -127,18 +130,19 @@ func NewUser(id string, email string, plainPassword string) (*User, error) {
 	now := time.Now()
 
 	return &User{
-		id:            userID,
-		email:         emailVO,
-		passwordHash:  passwordHash,
-		provider:      AuthProviderLocal,
-		emailVerified: false, // Local users need to verify their email
-		createdAt:     now,
-		updatedAt:     now,
+		id:               userID,
+		email:            emailVO,
+		passwordHash:     passwordHash,
+		provider:         AuthProviderLocal,
+		emailVerified:    false, // Local users need to verify their email
+		twoFactorEnabled: false,
+		createdAt:        now,
+		updatedAt:        now,
 	}, nil
 }
 
 // ReconstructUser はDBから取得したデータからUserを再構築する（リポジトリ用）
-func ReconstructUser(id string, email string, passwordHash string, emailVerified bool, emailVerifiedAt *time.Time, createdAt, updatedAt time.Time) (*User, error) {
+func ReconstructUser(id string, email string, passwordHash string, emailVerified bool, emailVerifiedAt *time.Time, twoFactorEnabled bool, twoFactorSecret string, twoFactorBackupCodes []string, createdAt, updatedAt time.Time) (*User, error) {
 	userID, err := NewUserID(id)
 	if err != nil {
 		return nil, err
@@ -150,19 +154,22 @@ func ReconstructUser(id string, email string, passwordHash string, emailVerified
 	}
 
 	return &User{
-		id:              userID,
-		email:           emailVO,
-		passwordHash:    NewPasswordHashFromHash(passwordHash),
-		provider:        AuthProviderLocal,
-		emailVerified:   emailVerified,
-		emailVerifiedAt: emailVerifiedAt,
-		createdAt:       createdAt,
-		updatedAt:       updatedAt,
+		id:                   userID,
+		email:                emailVO,
+		passwordHash:         NewPasswordHashFromHash(passwordHash),
+		provider:             AuthProviderLocal,
+		emailVerified:        emailVerified,
+		emailVerifiedAt:      emailVerifiedAt,
+		twoFactorEnabled:     twoFactorEnabled,
+		twoFactorSecret:      twoFactorSecret,
+		twoFactorBackupCodes: twoFactorBackupCodes,
+		createdAt:            createdAt,
+		updatedAt:            updatedAt,
 	}, nil
 }
 
 // ReconstructUserWithOAuth はDBから取得したOAuthユーザーデータからUserを再構築する
-func ReconstructUserWithOAuth(id string, email string, passwordHash string, provider string, providerUserID string, name string, avatarURL string, emailVerified bool, emailVerifiedAt *time.Time, createdAt, updatedAt time.Time) (*User, error) {
+func ReconstructUserWithOAuth(id string, email string, passwordHash string, provider string, providerUserID string, name string, avatarURL string, emailVerified bool, emailVerifiedAt *time.Time, twoFactorEnabled bool, twoFactorSecret string, twoFactorBackupCodes []string, createdAt, updatedAt time.Time) (*User, error) {
 	userID, err := NewUserID(id)
 	if err != nil {
 		return nil, err
@@ -179,17 +186,20 @@ func ReconstructUserWithOAuth(id string, email string, passwordHash string, prov
 	}
 
 	return &User{
-		id:              userID,
-		email:           emailVO,
-		passwordHash:    pwdHash,
-		provider:        AuthProvider(provider),
-		providerUserID:  providerUserID,
-		name:            name,
-		avatarURL:       avatarURL,
-		emailVerified:   emailVerified,
-		emailVerifiedAt: emailVerifiedAt,
-		createdAt:       createdAt,
-		updatedAt:       updatedAt,
+		id:                   userID,
+		email:                emailVO,
+		passwordHash:         pwdHash,
+		provider:             AuthProvider(provider),
+		providerUserID:       providerUserID,
+		name:                 name,
+		avatarURL:            avatarURL,
+		emailVerified:        emailVerified,
+		emailVerifiedAt:      emailVerifiedAt,
+		twoFactorEnabled:     twoFactorEnabled,
+		twoFactorSecret:      twoFactorSecret,
+		twoFactorBackupCodes: twoFactorBackupCodes,
+		createdAt:            createdAt,
+		updatedAt:            updatedAt,
 	}, nil
 }
 
@@ -212,16 +222,17 @@ func NewOAuthUser(id string, email string, provider AuthProvider, providerUserID
 	now := time.Now()
 
 	return &User{
-		id:              userID,
-		email:           emailVO,
-		provider:        provider,
-		providerUserID:  providerUserID,
-		name:            name,
-		avatarURL:       avatarURL,
-		emailVerified:   true, // OAuth providers are trusted for email verification
-		emailVerifiedAt: &now,
-		createdAt:       now,
-		updatedAt:       now,
+		id:               userID,
+		email:            emailVO,
+		provider:         provider,
+		providerUserID:   providerUserID,
+		name:             name,
+		avatarURL:        avatarURL,
+		emailVerified:    true, // OAuth providers are trusted for email verification
+		emailVerifiedAt:  &now,
+		twoFactorEnabled: false,
+		createdAt:        now,
+		updatedAt:        now,
 	}, nil
 }
 
@@ -303,4 +314,76 @@ func (u *User) UpdatePassword(newPlainPassword string) error {
 	u.updatedAt = time.Now()
 
 	return nil
+}
+
+// TwoFactorEnabled は2FAが有効かどうかを返す
+func (u *User) TwoFactorEnabled() bool {
+	return u.twoFactorEnabled
+}
+
+// TwoFactorSecret は2FAシークレットを返す
+func (u *User) TwoFactorSecret() string {
+	return u.twoFactorSecret
+}
+
+// TwoFactorBackupCodes はバックアップコードを返す
+func (u *User) TwoFactorBackupCodes() []string {
+	return u.twoFactorBackupCodes
+}
+
+// EnableTwoFactor は2FAを有効化する
+func (u *User) EnableTwoFactor(secret string, backupCodes []string) error {
+	if secret == "" {
+		return errors.New("2FAシークレットは必須です")
+	}
+	if len(backupCodes) == 0 {
+		return errors.New("バックアップコードは必須です")
+	}
+
+	u.twoFactorEnabled = true
+	u.twoFactorSecret = secret
+	u.twoFactorBackupCodes = backupCodes
+	u.updatedAt = time.Now()
+
+	return nil
+}
+
+// DisableTwoFactor は2FAを無効化する
+func (u *User) DisableTwoFactor() {
+	u.twoFactorEnabled = false
+	u.twoFactorSecret = ""
+	u.twoFactorBackupCodes = nil
+	u.updatedAt = time.Now()
+}
+
+// RegenerateBackupCodes はバックアップコードを再生成する
+func (u *User) RegenerateBackupCodes(backupCodes []string) error {
+	if !u.twoFactorEnabled {
+		return errors.New("2FAが有効になっていません")
+	}
+	if len(backupCodes) == 0 {
+		return errors.New("バックアップコードは必須です")
+	}
+
+	u.twoFactorBackupCodes = backupCodes
+	u.updatedAt = time.Now()
+
+	return nil
+}
+
+// RemoveBackupCode は使用済みのバックアップコードを削除する
+func (u *User) RemoveBackupCode(usedCode string) error {
+	if !u.twoFactorEnabled {
+		return errors.New("2FAが有効になっていません")
+	}
+
+	for i, code := range u.twoFactorBackupCodes {
+		if code == usedCode {
+			u.twoFactorBackupCodes = append(u.twoFactorBackupCodes[:i], u.twoFactorBackupCodes[i+1:]...)
+			u.updatedAt = time.Now()
+			return nil
+		}
+	}
+
+	return errors.New("指定されたバックアップコードは存在しません")
 }

@@ -7,6 +7,25 @@ export interface APIResponse<T> {
   message?: string;
 }
 
+// 認証関連型
+export interface AuthResponse {
+  user_id: string;
+  email: string;
+  token: string;
+  refresh_token: string;
+  expires_at: string;
+}
+
+export interface Setup2FAResponse {
+  secret: string;
+  qr_code_url: string;
+  backup_codes: string[];
+}
+
+export interface RegenerateBackupCodesResponse {
+  backup_codes: string[];
+}
+
 // 財務データ型
 export interface ExpenseItem {
   category: string;

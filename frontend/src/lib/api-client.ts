@@ -17,6 +17,9 @@ import type {
   ReportRequest,
   FinancialSummaryReport,
   APIResponse,
+  AuthResponse,
+  Setup2FAResponse,
+  RegenerateBackupCodesResponse,
 } from '@/types/api';
 import { getAuthToken, isAuthTokenValid } from './contexts/AuthContext';
 
@@ -340,6 +343,54 @@ export const reportsAPI = {
     }
     
     return await response.blob();
+  },
+};
+
+// 2段階認証API
+export const twoFactorAPI = {
+  // 2FAステータス取得
+  getStatus: async (): Promise<{ enabled: boolean }> => {
+    return request<{ enabled: boolean }>('/auth/2fa/status', {
+      method: 'GET',
+    });
+  },
+
+  // 2FA設定開始（QRコード取得）
+  setup: async (): Promise<Setup2FAResponse> => {
+    return request<Setup2FAResponse>('/auth/2fa/setup', {
+      method: 'POST',
+    });
+  },
+
+  // 2FA有効化
+  enable: async (code: string, secret: string): Promise<{ message: string }> => {
+    return request<{ message: string }>('/auth/2fa/enable', {
+      method: 'POST',
+      body: JSON.stringify({ code, secret }),
+    });
+  },
+
+  // 2FA検証（ログイン時）
+  verify: async (code: string, useBackup: boolean = false): Promise<AuthResponse> => {
+    return request<AuthResponse>('/auth/2fa/verify', {
+      method: 'POST',
+      body: JSON.stringify({ code, use_backup: useBackup }),
+    });
+  },
+
+  // 2FA無効化
+  disable: async (password: string): Promise<{ message: string }> => {
+    return request<{ message: string }>('/auth/2fa', {
+      method: 'DELETE',
+      body: JSON.stringify({ password }),
+    });
+  },
+
+  // バックアップコード再生成
+  regenerateBackupCodes: async (): Promise<RegenerateBackupCodesResponse> => {
+    return request<RegenerateBackupCodesResponse>('/auth/2fa/backup-codes', {
+      method: 'POST',
+    });
   },
 };
 

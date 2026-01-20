@@ -136,8 +136,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       const data: AuthResponse = await response.json();
-      saveAuthData(data);
-      router.push('/dashboard');
+      
+      // リフレッシュトークンが空の場合は2FA検証が必要
+      if (!data.refresh_token) {
+        // 仮トークンを一時保存
+        localStorage.setItem(TOKEN_KEY, data.token);
+        localStorage.setItem(EXPIRES_KEY, data.expires_at);
+        setToken(data.token);
+        // 2FA検証ページにリダイレクト
+        router.push('/auth/2fa-verify');
+      } else {
+        // 通常のログイン
+        saveAuthData(data);
+        router.push('/dashboard');
+      }
     } catch (e) {
       const message = e instanceof Error ? e.message : 'ログインに失敗しました';
       setError(message);
