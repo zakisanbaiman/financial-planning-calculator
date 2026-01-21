@@ -1,15 +1,15 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { twoFactorAPI } from '@/lib/api-client';
 import { useAuth } from '@/lib/contexts/AuthContext';
 
 function TwoFactorVerifyContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { setAuthData } = useAuth();
   const [code, setCode] = useState('');
+  const [useBackup, setUseBackup] = useState(false);
   const [useBackup, setUseBackup] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
