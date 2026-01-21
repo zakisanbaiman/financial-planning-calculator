@@ -10,5 +10,5 @@ CREATE INDEX idx_users_two_factor_enabled ON users(two_factor_enabled);
 
 -- コメント追加
 COMMENT ON COLUMN users.two_factor_enabled IS '2段階認証が有効かどうか';
-COMMENT ON COLUMN users.two_factor_secret IS 'TOTP用のシークレット（暗号化して保存）';
+COMMENT ON COLUMN users.two_factor_secret IS 'TOTP用のシークレット（アプリケーション側で暗号化した値を保存）';
 COMMENT ON COLUMN users.two_factor_backup_codes IS 'リカバリー用バックアップコード（ハッシュ化して保存）';
