@@ -10,7 +10,6 @@ function TwoFactorVerifyContent() {
   const { setAuthData } = useAuth();
   const [code, setCode] = useState('');
   const [useBackup, setUseBackup] = useState(false);
-  const [useBackup, setUseBackup] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
