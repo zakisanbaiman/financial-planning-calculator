@@ -89,12 +89,19 @@ cd backend
 goenv install 1.24.0
 ```
 
-**asdf（Go + Node.js）**
+**mise（Go + Node.js）- asdfの後継、高速・高機能**
 ```bash
-# .tool-versionsファイルが自動的に読み込まれます
-asdf plugin add golang
-asdf plugin add nodejs
-asdf install
+# .mise.tomlファイルが自動的に読み込まれます
+# miseのインストール
+brew install mise
+
+# シェルに統合（.zshrcまたは.bashrcに追加）
+echo 'eval "$(mise activate zsh)"' >> ~/.zshrc  # zshの場合
+echo 'eval "$(mise activate bash)"' >> ~/.bashrc # bashの場合
+
+# プロジェクトディレクトリでツールをインストール
+cd financial-planning-calculator
+mise install
 ```
 
 **手動インストール**
