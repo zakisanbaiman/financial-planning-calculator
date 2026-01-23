@@ -1,0 +1,7 @@
+# mise configuration for financial-planning-calculator
+# miseは、asdfの後継となる高速なバージョン管理ツールです
+# https://mise.jdx.dev/
+
+[tools]
+golang = "1.21.0"
+nodejs = "20.18.1"

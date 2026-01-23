@@ -87,4 +87,4 @@ go run main.go
 
 ### Version Control
 
-This project supports `direnv`, `goenv`, and `asdf` for managing Go and Node.js versions. `direnv` is the recommended tool for automatically using the Go version specified in the Docker container.
+This project supports `direnv`, `goenv`, and `mise` for managing Go and Node.js versions. `direnv` is the recommended tool for automatically using the Go version specified in the Docker container.
