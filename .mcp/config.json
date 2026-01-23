@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "render": {
+      "command": "node",
+      "args": [
+        "/home/runner/work/financial-planning-calculator/financial-planning-calculator/scripts/mcp-server-render.js"
+      ],
+      "env": {
+        "RENDER_API_KEY": "${RENDER_API_KEY}",
+        "RENDER_OWNER_ID": "${RENDER_OWNER_ID}"
+      },
+      "description": "Render.com MCP server for monitoring deployments and detecting errors"
+    }
+  }
+}
