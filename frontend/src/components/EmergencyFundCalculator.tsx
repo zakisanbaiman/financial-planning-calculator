@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { calculationsAPI } from '@/lib/api-client';
 import type { EmergencyFundRequest, EmergencyFundResponse } from '@/types/api';
 import { InputField, Button, LoadingSpinner } from './index';
+import CurrencyInputWithPresets from './CurrencyInputWithPresets';
 
 // バリデーションスキーマ
 const emergencyFundSchema = z.object({
@@ -38,6 +39,7 @@ export default function EmergencyFundCalculator({
     handleSubmit,
     formState: { errors },
     watch,
+    setValue,
   } = useForm<EmergencyFundFormData>({
     resolver: zodResolver(emergencyFundSchema),
     defaultValues: {
@@ -49,6 +51,7 @@ export default function EmergencyFundCalculator({
 
   const monthlyExpenses = watch('monthly_expenses');
   const targetMonths = watch('target_months');
+  const currentSavings = watch('current_savings');
   const targetAmount = monthlyExpenses * targetMonths;
 
   const onSubmit = async (data: EmergencyFundFormData) => {
@@ -74,36 +77,41 @@ export default function EmergencyFundCalculator({
     <div className="space-y-6">
       {/* 計算フォーム */}
       <div className="card">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">緊急資金計算</h2>
-        <p className="text-gray-600 mb-6">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">緊急資金計算</h2>
+        <p className="text-gray-600 dark:text-gray-300 mb-6">
           万が一の時（失業、病気など）に必要な緊急資金を計算します
         </p>
 
         {/* 緊急資金の説明 */}
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="text-sm font-semibold text-gray-900 mb-2">
+        <div className="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
             💡 緊急資金とは？
           </h3>
-          <p className="text-sm text-gray-700 mb-2">
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
             予期せぬ出来事（失業、病気、事故など）に備えて、すぐに使える形で
             確保しておくべき資金です。
           </p>
-          <ul className="text-sm text-gray-700 space-y-1 ml-4">
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 ml-4">
             <li>• 一般的には生活費の3〜6ヶ月分が推奨されます</li>
             <li>• 自営業や収入が不安定な場合は6〜12ヶ月分が理想的です</li>
             <li>• 預金など、すぐに引き出せる形で保管することが重要です</li>
           </ul>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <InputField
-              label="月間生活費（円）"
-              type="number"
-              {...register('monthly_expenses', { valueAsNumber: true })}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CurrencyInputWithPresets
+              label="月間生活費"
+              value={monthlyExpenses}
+              onChange={(value) => setValue('monthly_expenses', value)}
               error={errors.monthly_expenses?.message}
-              placeholder="280000"
               helperText="家賃、食費、光熱費など必要最低限の支出"
+              presets={[
+                { label: '15万', value: 150000 },
+                { label: '20万', value: 200000 },
+                { label: '30万', value: 300000 },
+                { label: '40万', value: 400000 },
+              ]}
             />
 
             <InputField
@@ -113,23 +121,29 @@ export default function EmergencyFundCalculator({
               error={errors.target_months?.message}
               placeholder="6"
               helperText="3〜6ヶ月が一般的"
+              className="text-base py-3"
             />
 
-            <InputField
-              label="現在の緊急資金（円）"
-              type="number"
-              {...register('current_savings', { valueAsNumber: true })}
+            <CurrencyInputWithPresets
+              label="現在の緊急資金"
+              value={currentSavings}
+              onChange={(value) => setValue('current_savings', value)}
               error={errors.current_savings?.message}
-              placeholder="600000"
               helperText="すぐに引き出せる預金額"
+              presets={[
+                { label: '50万', value: 500000 },
+                { label: '100万', value: 1000000 },
+                { label: '200万', value: 2000000 },
+                { label: '300万', value: 3000000 },
+              ]}
             />
           </div>
 
           {/* 目標額表示 */}
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700 font-medium">目標緊急資金額</span>
-              <span className="text-2xl font-bold text-purple-600">
+          <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+              <span className="text-gray-700 dark:text-gray-300 font-medium">目標緊急資金額</span>
+              <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                 {new Intl.NumberFormat('ja-JP', {
                   style: 'currency',
                   currency: 'JPY',
@@ -137,7 +151,7 @@ export default function EmergencyFundCalculator({
                 }).format(targetAmount)}
               </span>
             </div>
-            <p className="text-sm text-gray-600 mt-2">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
               月間生活費 {new Intl.NumberFormat('ja-JP').format(monthlyExpenses)}円 ×{' '}
               {targetMonths}ヶ月
             </p>
@@ -149,7 +163,7 @@ export default function EmergencyFundCalculator({
             </div>
           )}
 
-          <Button type="submit" disabled={isCalculating} className="w-full">
+          <Button type="submit" disabled={isCalculating} className="w-full py-3 text-lg min-h-[48px]">
             {isCalculating ? <LoadingSpinner size="sm" /> : '計算する'}
           </Button>
         </form>
