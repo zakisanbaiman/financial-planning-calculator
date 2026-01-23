@@ -3,7 +3,7 @@
     "render": {
       "command": "node",
       "args": [
-        "/home/runner/work/financial-planning-calculator/financial-planning-calculator/scripts/mcp-server-render.js"
+        "scripts/mcp-server-render.js"
       ],
       "env": {
         "RENDER_API_KEY": "${RENDER_API_KEY}",

@@ -270,6 +270,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 });
 
 /**
+ * Find a service by name
+ */
+async function findServiceByName(serviceName) {
+  const services = await listServices();
+  const service = services.find((s) => s.service.name === serviceName);
+  
+  if (!service) {
+    throw new Error(`Service "${serviceName}" not found`);
+  }
+  
+  return service;
+}
+
+/**
  * Handle tool calls
  */
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
@@ -290,23 +304,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'get_service_status': {
-        const services = await listServices();
-        const service = services.find(
-          (s) => s.service.name === args.serviceName
-        );
-
-        if (!service) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Service "${args.serviceName}" not found`,
-              },
-            ],
-            isError: true,
-          };
-        }
-
+        const service = await findServiceByName(args.serviceName);
         const serviceDetails = await getService(service.service.id);
         return {
           content: [
@@ -319,23 +317,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'list_recent_deploys': {
-        const services = await listServices();
-        const service = services.find(
-          (s) => s.service.name === args.serviceName
-        );
-
-        if (!service) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Service "${args.serviceName}" not found`,
-              },
-            ],
-            isError: true,
-          };
-        }
-
+        const service = await findServiceByName(args.serviceName);
         const deploys = await listDeployments(
           service.service.id,
           args.limit || 10
@@ -351,22 +333,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'get_deployment_logs': {
-        const services = await listServices();
-        const service = services.find(
-          (s) => s.service.name === args.serviceName
-        );
-
-        if (!service) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Service "${args.serviceName}" not found`,
-              },
-            ],
-            isError: true,
-          };
-        }
+        const service = await findServiceByName(args.serviceName);
 
         let deployId = args.deployId;
         if (!deployId) {
@@ -397,22 +364,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'detect_errors': {
-        const services = await listServices();
-        const service = services.find(
-          (s) => s.service.name === args.serviceName
-        );
-
-        if (!service) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Service "${args.serviceName}" not found`,
-              },
-            ],
-            isError: true,
-          };
-        }
+        const service = await findServiceByName(args.serviceName);
 
         let deployId = args.deployId;
         if (!deployId) {
@@ -488,7 +440,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('Render.com MCP server running on stdio');
+  console.log('Render.com MCP server running on stdio');
 }
 
 main().catch((error) => {

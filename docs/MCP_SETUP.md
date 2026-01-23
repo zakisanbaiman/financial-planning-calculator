@@ -87,7 +87,7 @@ npm install
 }
 ```
 
-**重要**: `args`のパスは絶対パスで指定してください。
+**重要**: `args`のパスは絶対パスで指定してください。プロジェクトルートからの相対パスの場合、Claudeの作業ディレクトリによっては動作しない可能性があります。
 
 ### Cursor用
 
@@ -116,7 +116,7 @@ Cursor Settings → Extensions → MCP で設定:
   "mcpServers": {
     "render": {
       "command": "node",
-      "args": ["./scripts/mcp-server-render.js"],
+      "args": ["scripts/mcp-server-render.js"],
       "env": {
         "RENDER_API_KEY": "${RENDER_API_KEY}",
         "RENDER_OWNER_ID": "${RENDER_OWNER_ID}"
@@ -125,6 +125,8 @@ Cursor Settings → Extensions → MCP で設定:
   }
 }
 ```
+
+**注意**: プロジェクトルートで実行することを前提とした相対パスです。環境変数から`RENDER_API_KEY`と`RENDER_OWNER_ID`を読み込みます。
 
 ## 5. 動作確認
 
