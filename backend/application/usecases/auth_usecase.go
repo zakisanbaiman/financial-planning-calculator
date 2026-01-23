@@ -2,17 +2,23 @@ package usecases
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base32"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/financial-planning-calculator/backend/domain/entities"
 	"github.com/financial-planning-calculator/backend/domain/repositories"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/pquerna/otp"
+	"github.com/pquerna/otp/totp"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // AuthUseCase は認証関連のユースケース
@@ -34,6 +40,29 @@ type AuthUseCase interface {
 
 	// GitHubOAuthLogin はGitHubからのユーザー情報でログイン/登録を行う（Issue: #67）
 	GitHubOAuthLogin(ctx context.Context, input GitHubOAuthInput) (*LoginOutput, error)
+
+	// Setup2FA は2段階認証のセットアップを開始する（QRコード生成用）
+	Setup2FA(ctx context.Context, userID string) (*Setup2FAOutput, error)
+
+	// Enable2FA は2段階認証を有効化する（初回コード検証）
+	Enable2FA(ctx context.Context, input Enable2FAInput) error
+
+	// Verify2FA はログイン時の2FAコード検証を行う
+	Verify2FA(ctx context.Context, input Verify2FAInput) (*LoginOutput, error)
+
+	// Disable2FA は2段階認証を無効化する
+	Disable2FA(ctx context.Context, input Disable2FAInput) error
+
+	// RegenerateBackupCodes はバックアップコードを再生成する
+	RegenerateBackupCodes(ctx context.Context, userID string) (*RegenerateBackupCodesOutput, error)
+
+	// Get2FAStatus は2FAの有効状態を取得する
+	Get2FAStatus(ctx context.Context, userID string) (*Get2FAStatusOutput, error)
+}
+
+// Get2FAStatusOutput は2FAステータス取得の出力
+type Get2FAStatusOutput struct {
+	Enabled bool `json:"enabled"`
 }
 
 // GitHubOAuthInput はGitHub OAuthログインの入力
@@ -82,9 +111,43 @@ type RefreshOutput struct {
 
 // TokenClaims はJWTトークンのクレーム
 type TokenClaims struct {
-	UserID string `json:"user_id"`
-	Email  string `json:"email"`
+	UserID          string `json:"user_id"`
+	Email           string `json:"email"`
+	Requires2FA     bool   `json:"requires_2fa,omitempty"`     // 2FA検証が必要かどうか
+	TwoFactorVerify bool   `json:"two_factor_verify,omitempty"` // 2FA検証用の仮トークンかどうか
 	jwt.RegisteredClaims
+}
+
+// Setup2FAOutput は2FA設定開始の出力
+type Setup2FAOutput struct {
+	Secret       string   `json:"secret"`
+	QRCodeURL    string   `json:"qr_code_url"`
+	BackupCodes  []string `json:"backup_codes"`
+}
+
+// Enable2FAInput は2FA有効化の入力
+type Enable2FAInput struct {
+	UserID string `json:"user_id"`
+	Code   string `json:"code"`
+	Secret string `json:"secret"`
+}
+
+// Verify2FAInput は2FA検証の入力
+type Verify2FAInput struct {
+	UserID      string `json:"user_id"`
+	Code        string `json:"code"`
+	UseBackup   bool   `json:"use_backup"`   // バックアップコードを使用するか
+}
+
+// Disable2FAInput は2FA無効化の入力
+type Disable2FAInput struct {
+	UserID   string `json:"user_id"`
+	Password string `json:"password"`
+}
+
+// RegenerateBackupCodesOutput はバックアップコード再生成の出力
+type RegenerateBackupCodesOutput struct {
+	BackupCodes []string `json:"backup_codes"`
 }
 
 // authUseCase は認証ユースケースの実装
@@ -211,29 +274,29 @@ func (uc *authUseCase) Login(ctx context.Context, input LoginInput) (*LoginOutpu
 		return nil, errors.New("メールアドレスまたはパスワードが正しくありません")
 	}
 
-	// JWTトークンを生成
-	token, expiresAt, err := uc.generateToken(user)
-	if err != nil {
-		logger.ErrorContext(ctx, "トークンの生成に失敗しました", "error", err)
-		return nil, fmt.Errorf("トークンの生成に失敗しました: %w", err)
+	// 2FAが有効な場合は仮トークンを返す
+	if user.TwoFactorEnabled() {
+		logger.InfoContext(ctx, "2FAが有効なため仮トークンを発行します", "user_id", user.ID())
+		
+		// 2FA検証用の短時間有効な仮トークンを生成（5分間）
+		tempToken, tempExpiresAt, err := uc.generateTempTokenFor2FA(user)
+		if err != nil {
+			logger.ErrorContext(ctx, "仮トークンの生成に失敗しました", "error", err)
+			return nil, fmt.Errorf("認証処理に失敗しました: %w", err)
+		}
+
+		return &LoginOutput{
+			UserID:       user.ID().String(),
+			Email:        user.Email().String(),
+			Token:        tempToken,
+			RefreshToken: "", // 2FA検証前はリフレッシュトークンなし
+			ExpiresAt:    tempExpiresAt.Format(time.RFC3339),
+		}, nil
 	}
 
-	// リフレッシュトークンを生成
-	refreshToken, err := uc.generateRefreshToken(ctx, user.ID())
-	if err != nil {
-		logger.ErrorContext(ctx, "リフレッシュトークンの生成に失敗しました", "error", err)
-		return nil, fmt.Errorf("リフレッシュトークンの生成に失敗しました: %w", err)
-	}
-
-	logger.InfoContext(ctx, "ログインが完了しました", "user_id", user.ID())
-
-	return &LoginOutput{
-		UserID:       user.ID().String(),
-		Email:        user.Email().String(),
-		Token:        token,
-		RefreshToken: refreshToken,
-		ExpiresAt:    expiresAt.Format(time.RFC3339),
-	}, nil
+	// 2FAが無効な場合は通常のトークンを発行
+	logger.InfoContext(ctx, "通常のトークンを発行します", "user_id", user.ID())
+	return uc.generateAuthTokens(ctx, user)
 }
 
 // VerifyToken はJWTトークンを検証する
@@ -264,6 +327,32 @@ func (uc *authUseCase) generateToken(user *entities.User) (string, time.Time, er
 	claims := TokenClaims{
 		UserID: user.ID().String(),
 		Email:  user.Email().String(),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(uc.jwtSecret))
+	if err != nil {
+		return "", time.Time{}, err
+	}
+
+	return tokenString, expiresAt, nil
+}
+
+// generateTempTokenFor2FA は2FA検証用の短時間有効な仮トークンを生成する
+func (uc *authUseCase) generateTempTokenFor2FA(user *entities.User) (string, time.Time, error) {
+	// 5分間有効な仮トークン
+	expiresAt := time.Now().Add(5 * time.Minute)
+
+	claims := TokenClaims{
+		UserID:          user.ID().String(),
+		Email:           user.Email().String(),
+		Requires2FA:     true,
+		TwoFactorVerify: true,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -459,5 +548,353 @@ func (uc *authUseCase) generateAuthTokens(ctx context.Context, user *entities.Us
 		Token:        token,
 		RefreshToken: refreshTokenValue,
 		ExpiresAt:    expiresAt.Format(time.RFC3339),
+	}, nil
+}
+
+// Setup2FA は2段階認証のセットアップを開始する（QRコード生成用）
+func (uc *authUseCase) Setup2FA(ctx context.Context, userID string) (*Setup2FAOutput, error) {
+	logger := slog.With("usecase", "Setup2FA", "user_id", userID)
+	logger.InfoContext(ctx, "2FA設定を開始します")
+
+	// ユーザーを取得
+	uid, err := entities.NewUserID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("無効なユーザーIDです: %w", err)
+	}
+
+	user, err := uc.userRepo.FindByID(ctx, uid)
+	if err != nil {
+		logger.ErrorContext(ctx, "ユーザーの取得に失敗しました", "error", err)
+		return nil, fmt.Errorf("ユーザーが見つかりません: %w", err)
+	}
+
+	// 既に2FAが有効な場合はエラー
+	if user.TwoFactorEnabled() {
+		return nil, errors.New("2段階認証は既に有効です")
+	}
+
+	// TOTPシークレットを生成
+	key, err := totp.Generate(totp.GenerateOpts{
+		Issuer:      "Financial Planning Calculator",
+		AccountName: user.Email().String(),
+		SecretSize:  32,
+	})
+	if err != nil {
+		logger.ErrorContext(ctx, "TOTPキーの生成に失敗しました", "error", err)
+		return nil, fmt.Errorf("2FAシークレットの生成に失敗しました: %w", err)
+	}
+
+	// バックアップコードを生成
+	backupCodes, err := generateBackupCodes(8)
+	if err != nil {
+		logger.ErrorContext(ctx, "バックアップコードの生成に失敗しました", "error", err)
+		return nil, fmt.Errorf("バックアップコードの生成に失敗しました: %w", err)
+	}
+
+	logger.InfoContext(ctx, "2FA設定データを生成しました")
+
+	return &Setup2FAOutput{
+		Secret:      key.Secret(),
+		QRCodeURL:   key.URL(),
+		BackupCodes: backupCodes,
+	}, nil
+}
+
+// Enable2FA は2段階認証を有効化する（初回コード検証）
+func (uc *authUseCase) Enable2FA(ctx context.Context, input Enable2FAInput) error {
+	logger := slog.With("usecase", "Enable2FA", "user_id", input.UserID)
+	logger.InfoContext(ctx, "2FA有効化を開始します")
+
+	// バリデーション
+	if input.UserID == "" {
+		return errors.New("ユーザーIDは必須です")
+	}
+	if input.Code == "" {
+		return errors.New("認証コードは必須です")
+	}
+	if input.Secret == "" {
+		return errors.New("シークレットは必須です")
+	}
+
+	// ユーザーを取得
+	uid, err := entities.NewUserID(input.UserID)
+	if err != nil {
+		return fmt.Errorf("無効なユーザーIDです: %w", err)
+	}
+
+	user, err := uc.userRepo.FindByID(ctx, uid)
+	if err != nil {
+		logger.ErrorContext(ctx, "ユーザーの取得に失敗しました", "error", err)
+		return fmt.Errorf("ユーザーが見つかりません: %w", err)
+	}
+
+	// 既に2FAが有効な場合はエラー
+	if user.TwoFactorEnabled() {
+		return errors.New("2段階認証は既に有効です")
+	}
+
+	// TOTPコードを検証（時間のずれを許容するためValidateCustomを使用）
+	valid, err := totp.ValidateCustom(input.Code, input.Secret, time.Now().UTC(), totp.ValidateOpts{
+		Period:    30,
+		Skew:      1,
+		Digits:    6,
+		Algorithm: otp.AlgorithmSHA1,
+	})
+	logger.InfoContext(ctx, "TOTP検証", "code", input.Code, "secretLength", len(input.Secret), "valid", valid, "time", time.Now().UTC())
+	if err != nil || !valid {
+		logger.WarnContext(ctx, "2FAコードの検証に失敗しました", "error", err)
+		return errors.New("認証コードが無効です")
+	}
+
+	// バックアップコードを再生成（Enable2FAInputにバックアップコードがない場合）
+	backupCodes, err := generateBackupCodes(8)
+	if err != nil {
+		logger.ErrorContext(ctx, "バックアップコードの生成に失敗しました", "error", err)
+		return fmt.Errorf("バックアップコードの生成に失敗しました: %w", err)
+	}
+
+	// バックアップコードをハッシュ化
+	hashedBackupCodes, err := hashBackupCodes(backupCodes)
+	if err != nil {
+		logger.ErrorContext(ctx, "バックアップコードのハッシュ化に失敗しました", "error", err)
+		return fmt.Errorf("バックアップコードの保存に失敗しました: %w", err)
+	}
+
+	// 2FAを有効化
+	if err := user.EnableTwoFactor(input.Secret, hashedBackupCodes); err != nil {
+		logger.ErrorContext(ctx, "2FAの有効化に失敗しました", "error", err)
+		return fmt.Errorf("2FAの有効化に失敗しました: %w", err)
+	}
+
+	// ユーザーを保存
+	if err := uc.userRepo.Update(ctx, user); err != nil {
+		logger.ErrorContext(ctx, "ユーザーの更新に失敗しました", "error", err)
+		return fmt.Errorf("ユーザーの更新に失敗しました: %w", err)
+	}
+
+	logger.InfoContext(ctx, "2FAを有効化しました")
+	return nil
+}
+
+// Verify2FA はログイン時の2FAコード検証を行う
+func (uc *authUseCase) Verify2FA(ctx context.Context, input Verify2FAInput) (*LoginOutput, error) {
+	logger := slog.With("usecase", "Verify2FA", "user_id", input.UserID)
+	logger.InfoContext(ctx, "2FA検証を開始します")
+
+	// バリデーション
+	if input.UserID == "" {
+		return nil, errors.New("ユーザーIDは必須です")
+	}
+	if input.Code == "" {
+		return nil, errors.New("認証コードは必須です")
+	}
+
+	// ユーザーを取得
+	uid, err := entities.NewUserID(input.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("無効なユーザーIDです: %w", err)
+	}
+
+	user, err := uc.userRepo.FindByID(ctx, uid)
+	if err != nil {
+		logger.ErrorContext(ctx, "ユーザーの取得に失敗しました", "error", err)
+		return nil, fmt.Errorf("ユーザーが見つかりません: %w", err)
+	}
+
+	// 2FAが有効でない場合はエラー
+	if !user.TwoFactorEnabled() {
+		return nil, errors.New("2段階認証が有効になっていません")
+	}
+
+	var verified bool
+
+	if input.UseBackup {
+		// バックアップコードで検証
+		verified = false
+		for _, hashedCode := range user.TwoFactorBackupCodes() {
+			if err := bcrypt.CompareHashAndPassword([]byte(hashedCode), []byte(input.Code)); err == nil {
+				verified = true
+				// 使用済みバックアップコードを削除
+				if err := user.RemoveBackupCode(hashedCode); err != nil {
+					logger.ErrorContext(ctx, "バックアップコードの削除に失敗しました", "error", err)
+				} else {
+					// ユーザーを更新
+					if err := uc.userRepo.Update(ctx, user); err != nil {
+						logger.ErrorContext(ctx, "ユーザーの更新に失敗しました", "error", err)
+					}
+				}
+				break
+			}
+		}
+	} else {
+		// TOTPコードで検証
+		verified = totp.Validate(input.Code, user.TwoFactorSecret())
+	}
+
+	if !verified {
+		logger.WarnContext(ctx, "2FAコードの検証に失敗しました")
+		return nil, errors.New("認証コードが無効です")
+	}
+
+	// 認証成功 - 通常のトークンを発行
+	logger.InfoContext(ctx, "2FA検証に成功しました")
+	return uc.generateAuthTokens(ctx, user)
+}
+
+// Disable2FA は2段階認証を無効化する
+func (uc *authUseCase) Disable2FA(ctx context.Context, input Disable2FAInput) error {
+	logger := slog.With("usecase", "Disable2FA", "user_id", input.UserID)
+	logger.InfoContext(ctx, "2FA無効化を開始します")
+
+	// バリデーション
+	if input.UserID == "" {
+		return errors.New("ユーザーIDは必須です")
+	}
+	if input.Password == "" {
+		return errors.New("パスワードは必須です")
+	}
+
+	// ユーザーを取得
+	uid, err := entities.NewUserID(input.UserID)
+	if err != nil {
+		return fmt.Errorf("無効なユーザーIDです: %w", err)
+	}
+
+	user, err := uc.userRepo.FindByID(ctx, uid)
+	if err != nil {
+		logger.ErrorContext(ctx, "ユーザーの取得に失敗しました", "error", err)
+		return fmt.Errorf("ユーザーが見つかりません: %w", err)
+	}
+
+	// ローカルユーザーの場合はパスワード検証が必要
+	if user.Provider() == entities.AuthProviderLocal {
+		if !user.VerifyPassword(input.Password) {
+			logger.WarnContext(ctx, "パスワード検証に失敗しました")
+			return errors.New("パスワードが正しくありません")
+		}
+	}
+
+	// 2FAが有効でない場合はエラー
+	if !user.TwoFactorEnabled() {
+		return errors.New("2段階認証は有効になっていません")
+	}
+
+	// 2FAを無効化
+	user.DisableTwoFactor()
+
+	// ユーザーを保存
+	if err := uc.userRepo.Update(ctx, user); err != nil {
+		logger.ErrorContext(ctx, "ユーザーの更新に失敗しました", "error", err)
+		return fmt.Errorf("ユーザーの更新に失敗しました: %w", err)
+	}
+
+	logger.InfoContext(ctx, "2FAを無効化しました")
+	return nil
+}
+
+// RegenerateBackupCodes はバックアップコードを再生成する
+func (uc *authUseCase) RegenerateBackupCodes(ctx context.Context, userID string) (*RegenerateBackupCodesOutput, error) {
+	logger := slog.With("usecase", "RegenerateBackupCodes", "user_id", userID)
+	logger.InfoContext(ctx, "バックアップコード再生成を開始します")
+
+	// ユーザーを取得
+	uid, err := entities.NewUserID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("無効なユーザーIDです: %w", err)
+	}
+
+	user, err := uc.userRepo.FindByID(ctx, uid)
+	if err != nil {
+		logger.ErrorContext(ctx, "ユーザーの取得に失敗しました", "error", err)
+		return nil, fmt.Errorf("ユーザーが見つかりません: %w", err)
+	}
+
+	// 2FAが有効でない場合はエラー
+	if !user.TwoFactorEnabled() {
+		return nil, errors.New("2段階認証が有効になっていません")
+	}
+
+	// 新しいバックアップコードを生成
+	backupCodes, err := generateBackupCodes(8)
+	if err != nil {
+		logger.ErrorContext(ctx, "バックアップコードの生成に失敗しました", "error", err)
+		return nil, fmt.Errorf("バックアップコードの生成に失敗しました: %w", err)
+	}
+
+	// バックアップコードをハッシュ化
+	hashedBackupCodes, err := hashBackupCodes(backupCodes)
+	if err != nil {
+		logger.ErrorContext(ctx, "バックアップコードのハッシュ化に失敗しました", "error", err)
+		return nil, fmt.Errorf("バックアップコードの保存に失敗しました: %w", err)
+	}
+
+	// バックアップコードを再生成
+	if err := user.RegenerateBackupCodes(hashedBackupCodes); err != nil {
+		logger.ErrorContext(ctx, "バックアップコードの再生成に失敗しました", "error", err)
+		return nil, fmt.Errorf("バックアップコードの再生成に失敗しました: %w", err)
+	}
+
+	// ユーザーを保存
+	if err := uc.userRepo.Update(ctx, user); err != nil {
+		logger.ErrorContext(ctx, "ユーザーの更新に失敗しました", "error", err)
+		return nil, fmt.Errorf("ユーザーの更新に失敗しました: %w", err)
+	}
+
+	logger.InfoContext(ctx, "バックアップコードを再生成しました")
+
+	return &RegenerateBackupCodesOutput{
+		BackupCodes: backupCodes,
+	}, nil
+}
+
+// generateBackupCodes はランダムなバックアップコードを生成する
+func generateBackupCodes(count int) ([]string, error) {
+	codes := make([]string, count)
+	for i := 0; i < count; i++ {
+		// 10バイトのランダムデータを生成
+		randomBytes := make([]byte, 10)
+		if _, err := rand.Read(randomBytes); err != nil {
+			return nil, fmt.Errorf("ランダムバイトの生成に失敗しました: %w", err)
+		}
+
+		// Base32エンコードして8文字のコードを生成
+		code := base32.StdEncoding.EncodeToString(randomBytes)[:8]
+		codes[i] = strings.ToUpper(code)
+	}
+	return codes, nil
+}
+
+// hashBackupCodes はバックアップコードをbcryptでハッシュ化する
+func hashBackupCodes(codes []string) ([]string, error) {
+	hashedCodes := make([]string, len(codes))
+	for i, code := range codes {
+		hash, err := bcrypt.GenerateFromPassword([]byte(code), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, fmt.Errorf("バックアップコードのハッシュ化に失敗しました: %w", err)
+		}
+		hashedCodes[i] = string(hash)
+	}
+	return hashedCodes, nil
+}
+
+// Get2FAStatus は2FAの有効状態を取得する
+func (uc *authUseCase) Get2FAStatus(ctx context.Context, userID string) (*Get2FAStatusOutput, error) {
+	logger := slog.With("usecase", "Get2FAStatus", "user_id", userID)
+	logger.InfoContext(ctx, "2FAステータス取得を開始します")
+
+	// ユーザーを取得
+	uid, err := entities.NewUserID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("無効なユーザーIDです: %w", err)
+	}
+
+	user, err := uc.userRepo.FindByID(ctx, uid)
+	if err != nil {
+		logger.ErrorContext(ctx, "ユーザーの取得に失敗しました", "error", err)
+		return nil, fmt.Errorf("ユーザーが見つかりません: %w", err)
+	}
+
+	return &Get2FAStatusOutput{
+		Enabled: user.TwoFactorEnabled(),
 	}, nil
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/financial-planning-calculator/backend/domain/entities"
 	"github.com/financial-planning-calculator/backend/domain/repositories"
+	"github.com/lib/pq"
 )
 
 // PostgreSQLUserRepository はPostgreSQLを使用したユーザーリポジトリの実装
@@ -23,8 +24,8 @@ func NewPostgreSQLUserRepository(db *sql.DB) repositories.UserRepository {
 // Save は新しいユーザーを保存する
 func (r *PostgreSQLUserRepository) Save(ctx context.Context, user *entities.User) error {
 	query := `
-		INSERT INTO users (id, email, password_hash, provider, provider_user_id, name, avatar_url, email_verified, email_verified_at, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
+		INSERT INTO users (id, email, password_hash, provider, provider_user_id, name, avatar_url, email_verified, email_verified_at, two_factor_enabled, two_factor_secret, two_factor_backup_codes, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
 
 	var passwordHash *string
 	if user.PasswordHash().String() != "" {
@@ -50,6 +51,12 @@ func (r *PostgreSQLUserRepository) Save(ctx context.Context, user *entities.User
 		avatarURL = &au
 	}
 
+	var twoFactorSecret *string
+	if user.TwoFactorSecret() != "" {
+		tfs := user.TwoFactorSecret()
+		twoFactorSecret = &tfs
+	}
+
 	_, err := r.db.ExecContext(ctx, query,
 		user.ID().String(),
 		user.Email().String(),
@@ -60,6 +67,9 @@ func (r *PostgreSQLUserRepository) Save(ctx context.Context, user *entities.User
 		avatarURL,
 		user.EmailVerified(),
 		user.EmailVerifiedAt(),
+		user.TwoFactorEnabled(),
+		twoFactorSecret,
+		pq.Array(user.TwoFactorBackupCodes()),
 		user.CreatedAt(),
 		user.UpdatedAt(),
 	)
@@ -73,14 +83,15 @@ func (r *PostgreSQLUserRepository) Save(ctx context.Context, user *entities.User
 // FindByID は指定されたIDのユーザーを取得する
 func (r *PostgreSQLUserRepository) FindByID(ctx context.Context, id entities.UserID) (*entities.User, error) {
 	var userID, email string
-	var passwordHash, provider, providerUserID, name, avatarURL sql.NullString
-	var emailVerified bool
+	var passwordHash, provider, providerUserID, name, avatarURL, twoFactorSecret sql.NullString
+	var emailVerified, twoFactorEnabled bool
 	var emailVerifiedAt sql.NullTime
+	var twoFactorBackupCodes []string
 	var createdAt, updatedAt time.Time
 
-	query := `SELECT id, email, password_hash, provider, provider_user_id, name, avatar_url, email_verified, email_verified_at, created_at, updated_at FROM users WHERE id = $1`
+	query := `SELECT id, email, password_hash, provider, provider_user_id, name, avatar_url, email_verified, email_verified_at, two_factor_enabled, two_factor_secret, two_factor_backup_codes, created_at, updated_at FROM users WHERE id = $1`
 	err := r.db.QueryRowContext(ctx, query, id.String()).Scan(
-		&userID, &email, &passwordHash, &provider, &providerUserID, &name, &avatarURL, &emailVerified, &emailVerifiedAt, &createdAt, &updatedAt,
+		&userID, &email, &passwordHash, &provider, &providerUserID, &name, &avatarURL, &emailVerified, &emailVerifiedAt, &twoFactorEnabled, &twoFactorSecret, pq.Array(&twoFactorBackupCodes), &createdAt, &updatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -104,6 +115,9 @@ func (r *PostgreSQLUserRepository) FindByID(ctx context.Context, id entities.Use
 		avatarURL.String,
 		emailVerified,
 		emailVerifiedAtPtr,
+		twoFactorEnabled,
+		twoFactorSecret.String,
+		twoFactorBackupCodes,
 		createdAt,
 		updatedAt,
 	)
@@ -112,14 +126,15 @@ func (r *PostgreSQLUserRepository) FindByID(ctx context.Context, id entities.Use
 // FindByEmail はメールアドレスからユーザーを取得する
 func (r *PostgreSQLUserRepository) FindByEmail(ctx context.Context, email entities.Email) (*entities.User, error) {
 	var userID, emailStr string
-	var passwordHash, provider, providerUserID, name, avatarURL sql.NullString
-	var emailVerified bool
+	var passwordHash, provider, providerUserID, name, avatarURL, twoFactorSecret sql.NullString
+	var emailVerified, twoFactorEnabled bool
 	var emailVerifiedAt sql.NullTime
+	var twoFactorBackupCodes []string
 	var createdAt, updatedAt time.Time
 
-	query := `SELECT id, email, password_hash, provider, provider_user_id, name, avatar_url, email_verified, email_verified_at, created_at, updated_at FROM users WHERE email = $1`
+	query := `SELECT id, email, password_hash, provider, provider_user_id, name, avatar_url, email_verified, email_verified_at, two_factor_enabled, two_factor_secret, two_factor_backup_codes, created_at, updated_at FROM users WHERE email = $1`
 	err := r.db.QueryRowContext(ctx, query, email.String()).Scan(
-		&userID, &emailStr, &passwordHash, &provider, &providerUserID, &name, &avatarURL, &emailVerified, &emailVerifiedAt, &createdAt, &updatedAt,
+		&userID, &emailStr, &passwordHash, &provider, &providerUserID, &name, &avatarURL, &emailVerified, &emailVerifiedAt, &twoFactorEnabled, &twoFactorSecret, pq.Array(&twoFactorBackupCodes), &createdAt, &updatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -143,6 +158,9 @@ func (r *PostgreSQLUserRepository) FindByEmail(ctx context.Context, email entiti
 		avatarURL.String,
 		emailVerified,
 		emailVerifiedAtPtr,
+		twoFactorEnabled,
+		twoFactorSecret.String,
+		twoFactorBackupCodes,
 		createdAt,
 		updatedAt,
 	)
@@ -152,12 +170,21 @@ func (r *PostgreSQLUserRepository) FindByEmail(ctx context.Context, email entiti
 func (r *PostgreSQLUserRepository) Update(ctx context.Context, user *entities.User) error {
 	query := `
 		UPDATE users 
-		SET email = $1, password_hash = $2, updated_at = $3
-		WHERE id = $4`
+		SET email = $1, password_hash = $2, two_factor_enabled = $3, two_factor_secret = $4, two_factor_backup_codes = $5, updated_at = $6
+		WHERE id = $7`
+
+	var twoFactorSecret *string
+	if user.TwoFactorSecret() != "" {
+		tfs := user.TwoFactorSecret()
+		twoFactorSecret = &tfs
+	}
 
 	result, err := r.db.ExecContext(ctx, query,
 		user.Email().String(),
 		user.PasswordHash().String(),
+		user.TwoFactorEnabled(),
+		twoFactorSecret,
+		pq.Array(user.TwoFactorBackupCodes()),
 		user.UpdatedAt(),
 		user.ID().String(),
 	)
@@ -227,16 +254,17 @@ func (r *PostgreSQLUserRepository) ExistsByEmail(ctx context.Context, email enti
 // FindByProviderUserID はOAuthプロバイダーのユーザーIDからユーザーを取得する
 func (r *PostgreSQLUserRepository) FindByProviderUserID(ctx context.Context, provider entities.AuthProvider, providerUserID string) (*entities.User, error) {
 	var userID, email string
-	var passwordHash, providerStr, providerUID, name, avatarURL sql.NullString
-	var emailVerified bool
+	var passwordHash, providerStr, providerUID, name, avatarURL, twoFactorSecret sql.NullString
+	var emailVerified, twoFactorEnabled bool
 	var emailVerifiedAt sql.NullTime
+	var twoFactorBackupCodes []string
 	var createdAt, updatedAt time.Time
 
-	query := `SELECT id, email, password_hash, provider, provider_user_id, name, avatar_url, email_verified, email_verified_at, created_at, updated_at 
+	query := `SELECT id, email, password_hash, provider, provider_user_id, name, avatar_url, email_verified, email_verified_at, two_factor_enabled, two_factor_secret, two_factor_backup_codes, created_at, updated_at 
 			  FROM users 
 			  WHERE provider = $1 AND provider_user_id = $2`
 	err := r.db.QueryRowContext(ctx, query, string(provider), providerUserID).Scan(
-		&userID, &email, &passwordHash, &providerStr, &providerUID, &name, &avatarURL, &emailVerified, &emailVerifiedAt, &createdAt, &updatedAt,
+		&userID, &email, &passwordHash, &providerStr, &providerUID, &name, &avatarURL, &emailVerified, &emailVerifiedAt, &twoFactorEnabled, &twoFactorSecret, pq.Array(&twoFactorBackupCodes), &createdAt, &updatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -260,6 +288,9 @@ func (r *PostgreSQLUserRepository) FindByProviderUserID(ctx context.Context, pro
 		avatarURL.String,
 		emailVerified,
 		emailVerifiedAtPtr,
+		twoFactorEnabled,
+		twoFactorSecret.String,
+		twoFactorBackupCodes,
 		createdAt,
 		updatedAt,
 	)

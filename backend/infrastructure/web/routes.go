@@ -12,6 +12,7 @@ import (
 // Controllers holds all controller instances
 type Controllers struct {
 	Auth          *controllers.AuthController
+	TwoFactor     *controllers.TwoFactorController
 	FinancialData *controllers.FinancialDataController
 	Calculations  *controllers.CalculationsController
 	Goals         *controllers.GoalsController
@@ -51,6 +52,9 @@ func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencie
 		protected.Use(authMiddleware)
 	}
 
+	// 2段階認証エンドポイント（認証が必要）
+	setup2FARoutes(protected, controllers.TwoFactor)
+
 	// 財務データ管理エンドポイント
 	setupFinancialDataRoutes(protected, controllers.FinancialData)
 
@@ -78,6 +82,18 @@ func setupAuthRoutes(api *echo.Group, controller *controllers.AuthController, de
 	githubOAuth.Use(GitHubOAuthMiddleware(deps.ServerConfig))
 	githubOAuth.GET("", controller.GitHubLogin)            // GET /api/auth/github
 	githubOAuth.GET("/callback", controller.GitHubCallback) // GET /api/auth/github/callback
+}
+
+// setup2FARoutes sets up two-factor authentication routes
+func setup2FARoutes(api *echo.Group, controller *controllers.TwoFactorController) {
+	twoFactor := api.Group("/auth/2fa")
+
+	twoFactor.GET("/status", controller.Get2FAStatus)                   // GET /api/auth/2fa/status
+	twoFactor.POST("/setup", controller.Setup2FA)                       // POST /api/auth/2fa/setup
+	twoFactor.POST("/enable", controller.Enable2FA)                     // POST /api/auth/2fa/enable
+	twoFactor.POST("/verify", controller.Verify2FA)                     // POST /api/auth/2fa/verify
+	twoFactor.DELETE("", controller.Disable2FA)                         // DELETE /api/auth/2fa
+	twoFactor.POST("/backup-codes", controller.RegenerateBackupCodes)   // POST /api/auth/2fa/backup-codes
 }
 
 // setupFinancialDataRoutes sets up financial data management routes
