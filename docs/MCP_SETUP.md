@@ -61,7 +61,11 @@ cd scripts
 npm install
 ```
 
-これにより、MCPサーバーに必要な`@modelcontextprotocol/sdk`がインストールされます。
+これにより、MCPサーバーに必要な`@modelcontextprotocol/sdk` (v1.25.2以上)がインストールされます。
+
+**重要**: セキュリティ脆弱性が修正されたバージョン（1.25.2以上）を使用しています：
+- ReDoS脆弱性の修正
+- DNS rebinding protection の有効化
 
 ## 4. MCPサーバーの設定
 

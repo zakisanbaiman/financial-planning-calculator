@@ -126,9 +126,16 @@ Claude Desktop、Copilot、Cursor用のMCP設定:
 
 - **言語**: Node.js (JavaScript/CommonJS)
 - **プロトコル**: MCP (Model Context Protocol)
+- **MCP SDK**: @modelcontextprotocol/sdk v1.25.2以上（セキュリティ修正済み）
 - **API**: Render.com REST API
 - **CI/CD**: GitHub Actions
 - **AIツール対応**: Claude Desktop, GitHub Copilot, Cursor
+
+### セキュリティアップデート
+
+MCP SDKは以下のセキュリティ脆弱性が修正されたバージョンを使用：
+- **ReDoS脆弱性**: v1.25.2で修正
+- **DNS rebinding protection**: v1.24.0で修正
 
 ## セットアップ手順
 
