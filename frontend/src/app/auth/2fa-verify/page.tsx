@@ -36,10 +36,8 @@ function TwoFactorVerifyContent() {
       // 2FA検証
       const response = await twoFactorAPI.verify(code, useBackup);
       
-      // AuthContextを使ってトークンを保存（UIも更新される）
+      // AuthContextを使ってユーザー情報を保存（トークンはCookieで管理される）
       setAuthData({
-        token: response.token,
-        refreshToken: response.refresh_token,
         user: {
           userId: response.user_id,
           email: response.email,

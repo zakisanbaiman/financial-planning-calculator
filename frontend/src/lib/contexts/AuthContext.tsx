@@ -26,13 +26,17 @@ interface AuthContextType {
 interface AuthResponse {
   user_id: string;
   email: string;
-  // token と refresh_token はレスポンスに含まれるが、Cookieで管理されるため使用しない
+  token: string;
+  refresh_token?: string; // 2FA有効時は空
+  expires_at?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // ローカルストレージのキー（ユーザー情報のみ保存）
 const USER_KEY = 'auth_user';
+// 2FA用の一時トークンキー
+const TEMP_TOKEN_KEY = 'auth_token';
 
 // API ベースURL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
@@ -111,10 +115,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       // リフレッシュトークンが空の場合は2FA検証が必要
       if (!data.refresh_token) {
-        // 仮トークンを一時保存
-        localStorage.setItem(TOKEN_KEY, data.token);
-        localStorage.setItem(EXPIRES_KEY, data.expires_at);
-        setToken(data.token);
+        // 仮トークンを一時保存（2FA検証まで使用）
+        localStorage.setItem(TEMP_TOKEN_KEY, data.token);
         // 2FA検証ページにリダイレクト
         router.push('/auth/2fa-verify');
       } else {

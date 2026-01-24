@@ -34,15 +34,15 @@ export default function CalculationsPage() {
 
   if (activeView === 'asset-projection') {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-6">
           <button
             onClick={() => setActiveView('menu')}
-            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:text-blue-300 flex items-center gap-2 mb-4"
+            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-2 mb-4 min-h-[44px]"
           >
             ← メニューに戻る
           </button>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">資産推移シミュレーション</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">資産推移シミュレーション</h1>
           <p className="text-gray-600 dark:text-gray-300">現在の貯蓄ペースで将来どれだけ資産が増えるかを計算します</p>
         </div>
         <AssetProjectionCalculator userId={userId} />
@@ -52,15 +52,15 @@ export default function CalculationsPage() {
 
   if (activeView === 'retirement') {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-6">
           <button
             onClick={() => setActiveView('menu')}
-            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:text-blue-300 flex items-center gap-2 mb-4"
+            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-2 mb-4 min-h-[44px]"
           >
             ← メニューに戻る
           </button>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">老後資金計算</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">老後資金計算</h1>
           <p className="text-gray-600 dark:text-gray-300">退職後に必要な資金と年金額を考慮した計算を行います</p>
         </div>
         <RetirementCalculator userId={userId} />
@@ -70,15 +70,15 @@ export default function CalculationsPage() {
 
   if (activeView === 'emergency') {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-6">
           <button
             onClick={() => setActiveView('menu')}
-            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:text-blue-300 flex items-center gap-2 mb-4"
+            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-2 mb-4 min-h-[44px]"
           >
             ← メニューに戻る
           </button>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">緊急資金計算</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">緊急資金計算</h1>
           <p className="text-gray-600 dark:text-gray-300">万が一の時に必要な緊急資金を計算します</p>
         </div>
         <EmergencyFundCalculator userId={userId} />
@@ -87,14 +87,14 @@ export default function CalculationsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">財務計算機</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">財務計算機</h1>
         <p className="text-gray-600 dark:text-gray-300">資産推移、老後資金、緊急資金の計算と可視化を行います</p>
       </div>
 
       {/* Calculation Categories */}
-      <div className="grid md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
         <div className="card">
           <div className="text-center">
             <div className="text-4xl mb-4">📈</div>
@@ -104,7 +104,7 @@ export default function CalculationsPage() {
             </p>
             <button
               onClick={() => setActiveView('asset-projection')}
-              className="btn-primary w-full"
+              className="btn-primary w-full min-h-[48px]"
             >
               計算開始
             </button>
@@ -120,7 +120,7 @@ export default function CalculationsPage() {
             </p>
             <button
               onClick={() => setActiveView('retirement')}
-              className="btn-primary w-full"
+              className="btn-primary w-full min-h-[48px]"
             >
               計算開始
             </button>
@@ -136,7 +136,7 @@ export default function CalculationsPage() {
             </p>
             <button
               onClick={() => setActiveView('emergency')}
-              className="btn-primary w-full"
+              className="btn-primary w-full min-h-[48px]"
             >
               計算開始
             </button>
@@ -145,32 +145,32 @@ export default function CalculationsPage() {
       </div>
 
       {/* Sample Calculation Results */}
-      <div className="grid lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
         {/* Asset Projection Chart */}
         <div className="card">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">資産推移予測（30年間）</h2>
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-4">資産推移予測（30年間）</h2>
           <AssetProjectionChart
             projections={sampleProjections}
             showRealValue={true}
             showContributions={true}
             height={256}
           />
-          <div className="grid grid-cols-3 gap-4 text-center mt-4">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center mt-4">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">10年後</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">10年後</p>
+              <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white break-words">
                 {formatCurrency(sampleProjections[10]?.total_assets || 0)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">20年後</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">20年後</p>
+              <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white break-words">
                 {formatCurrency(sampleProjections[20]?.total_assets || 0)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">30年後</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">30年後</p>
+              <p className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white break-words">
                 {formatCurrency(sampleProjections[30]?.total_assets || 0)}
               </p>
             </div>

@@ -10,6 +10,7 @@ import type {
   RetirementCalculationResponse,
 } from '@/types/api';
 import { InputField, Button, LoadingSpinner } from './index';
+import CurrencyInputWithPresets from './CurrencyInputWithPresets';
 
 // バリデーションスキーマ
 const retirementSchema = z.object({
@@ -61,6 +62,7 @@ export default function RetirementCalculator({
     handleSubmit,
     formState: { errors },
     watch,
+    setValue,
   } = useForm<RetirementFormData>({
     resolver: zodResolver(retirementSchema),
     defaultValues: {
@@ -81,6 +83,8 @@ export default function RetirementCalculator({
   const lifeExpectancy = watch('life_expectancy');
   const monthlyRetirementExpenses = watch('monthly_retirement_expenses');
   const pensionAmount = watch('pension_amount');
+  const currentSavings = watch('current_savings');
+  const monthlySavings = watch('monthly_savings');
 
   const yearsUntilRetirement = Math.max(0, retirementAge - currentAge);
   const yearsInRetirement = Math.max(0, lifeExpectancy - retirementAge);
@@ -109,22 +113,23 @@ export default function RetirementCalculator({
     <div className="space-y-6">
       {/* 計算フォーム */}
       <div className="card">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">老後資金計算</h2>
-        <p className="text-gray-600 mb-6">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">老後資金計算</h2>
+        <p className="text-gray-600 dark:text-gray-300 mb-6">
           退職後に必要な資金と年金額を考慮して、老後の財務計画を立てます
         </p>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* 年齢設定 */}
           <div>
-            <h3 className="text-md font-semibold text-gray-900 mb-3">年齢設定</h3>
-            <div className="grid md:grid-cols-3 gap-4">
+            <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-3">年齢設定</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <InputField
                 label="現在の年齢"
                 type="number"
                 {...register('current_age', { valueAsNumber: true })}
                 error={errors.current_age?.message}
                 placeholder="35"
+                className="text-base py-3"
               />
 
               <InputField
@@ -133,6 +138,7 @@ export default function RetirementCalculator({
                 {...register('retirement_age', { valueAsNumber: true })}
                 error={errors.retirement_age?.message}
                 placeholder="65"
+                className="text-base py-3"
               />
 
               <InputField
@@ -141,20 +147,21 @@ export default function RetirementCalculator({
                 {...register('life_expectancy', { valueAsNumber: true })}
                 error={errors.life_expectancy?.message}
                 placeholder="90"
+                className="text-base py-3"
               />
             </div>
 
             {/* 期間表示 */}
-            <div className="mt-3 grid md:grid-cols-2 gap-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-sm text-gray-600">退職までの期間</p>
-                <p className="text-xl font-bold text-blue-600">
+            <div className="mt-3 grid grid-cols-2 gap-4">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <p className="text-sm text-gray-600 dark:text-gray-400">退職までの期間</p>
+                <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
                   {yearsUntilRetirement}年
                 </p>
               </div>
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                <p className="text-sm text-gray-600">退職後の期間</p>
-                <p className="text-xl font-bold text-purple-600">
+              <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3">
+                <p className="text-sm text-gray-600 dark:text-gray-400">退職後の期間</p>
+                <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
                   {yearsInRetirement}年
                 </p>
               </div>
@@ -163,34 +170,44 @@ export default function RetirementCalculator({
 
           {/* 老後の生活費 */}
           <div>
-            <h3 className="text-md font-semibold text-gray-900 mb-3">
+            <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-3">
               老後の生活費と年金
             </h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <InputField
-                label="月間生活費（円）"
-                type="number"
-                {...register('monthly_retirement_expenses', { valueAsNumber: true })}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <CurrencyInputWithPresets
+                label="月間生活費"
+                value={monthlyRetirementExpenses}
+                onChange={(value) => setValue('monthly_retirement_expenses', value)}
                 error={errors.monthly_retirement_expenses?.message}
-                placeholder="250000"
+                presets={[
+                  { label: '15万', value: 150000 },
+                  { label: '20万', value: 200000 },
+                  { label: '25万', value: 250000 },
+                  { label: '30万', value: 300000 },
+                ]}
               />
 
-              <InputField
-                label="年金受給額（円/月）"
-                type="number"
-                {...register('pension_amount', { valueAsNumber: true })}
+              <CurrencyInputWithPresets
+                label="年金受給額（月額）"
+                value={pensionAmount}
+                onChange={(value) => setValue('pension_amount', value)}
                 error={errors.pension_amount?.message}
-                placeholder="150000"
+                presets={[
+                  { label: '10万', value: 100000 },
+                  { label: '15万', value: 150000 },
+                  { label: '20万', value: 200000 },
+                  { label: '25万', value: 250000 },
+                ]}
               />
             </div>
 
             {/* 不足額表示 */}
-            <div className="mt-3 bg-orange-50 border border-orange-200 rounded-lg p-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">
+            <div className="mt-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-3">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   年金だけでは不足する月額
                 </span>
-                <span className="text-xl font-bold text-orange-600">
+                <span className="text-xl font-bold text-orange-600 dark:text-orange-400">
                   {new Intl.NumberFormat('ja-JP', {
                     style: 'currency',
                     currency: 'JPY',
@@ -203,32 +220,42 @@ export default function RetirementCalculator({
 
           {/* 現在の資産と貯蓄 */}
           <div>
-            <h3 className="text-md font-semibold text-gray-900 mb-3">
+            <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-3">
               現在の資産と貯蓄
             </h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <InputField
-                label="現在の貯蓄額（円）"
-                type="number"
-                {...register('current_savings', { valueAsNumber: true })}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <CurrencyInputWithPresets
+                label="現在の貯蓄額"
+                value={currentSavings}
+                onChange={(value) => setValue('current_savings', value)}
                 error={errors.current_savings?.message}
-                placeholder="1500000"
+                presets={[
+                  { label: '100万', value: 1000000 },
+                  { label: '300万', value: 3000000 },
+                  { label: '500万', value: 5000000 },
+                  { label: '1000万', value: 10000000 },
+                ]}
               />
 
-              <InputField
-                label="月間貯蓄額（円）"
-                type="number"
-                {...register('monthly_savings', { valueAsNumber: true })}
+              <CurrencyInputWithPresets
+                label="月間貯蓄額"
+                value={monthlySavings}
+                onChange={(value) => setValue('monthly_savings', value)}
                 error={errors.monthly_savings?.message}
-                placeholder="120000"
+                presets={[
+                  { label: '5万', value: 50000 },
+                  { label: '10万', value: 100000 },
+                  { label: '15万', value: 150000 },
+                  { label: '20万', value: 200000 },
+                ]}
               />
             </div>
           </div>
 
           {/* 投資設定 */}
           <div>
-            <h3 className="text-md font-semibold text-gray-900 mb-3">投資設定</h3>
-            <div className="grid md:grid-cols-2 gap-4">
+            <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-3">投資設定</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <InputField
                 label="投資利回り（%）"
                 type="number"
@@ -236,6 +263,7 @@ export default function RetirementCalculator({
                 {...register('investment_return', { valueAsNumber: true })}
                 error={errors.investment_return?.message}
                 placeholder="5.0"
+                className="text-base py-3"
               />
 
               <InputField
@@ -245,6 +273,7 @@ export default function RetirementCalculator({
                 {...register('inflation_rate', { valueAsNumber: true })}
                 error={errors.inflation_rate?.message}
                 placeholder="2.0"
+                className="text-base py-3"
               />
             </div>
           </div>
@@ -255,7 +284,7 @@ export default function RetirementCalculator({
             </div>
           )}
 
-          <Button type="submit" disabled={isCalculating} className="w-full">
+          <Button type="submit" disabled={isCalculating} className="w-full py-3 text-lg min-h-[48px]">
             {isCalculating ? <LoadingSpinner size="sm" /> : '計算する'}
           </Button>
         </form>

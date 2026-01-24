@@ -36,6 +36,12 @@ export type { GoalsSummaryChartProps } from './GoalsSummaryChart';
 export { default as GoalRecommendations } from './GoalRecommendations';
 export type { GoalRecommendationsProps } from './GoalRecommendations';
 
+export { default as CurrencyInput } from './CurrencyInput';
+export type { CurrencyInputProps } from './CurrencyInput';
+
+export { default as CurrencyInputWithPresets } from './CurrencyInputWithPresets';
+export type { CurrencyInputWithPresetsProps, PresetValue } from './CurrencyInputWithPresets';
+
 // Calculation Components
 export { default as AssetProjectionChart } from './AssetProjectionChart';
 export { default as AssetProjectionCalculator } from './AssetProjectionCalculator';
