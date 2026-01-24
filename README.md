@@ -17,6 +17,15 @@ PRを作成すると、自動的にクラウド上で確認できるプレビュ
 
 PRを作成すると、GitHub Actions が自動的にプレビューURLをコメントします。
 
+### 🤖 AI連携によるエラー検知・自動修正
+
+Render.comへのデプロイ時のエラーを自動検知し、AIアシスタント（Claude、Copilot、Cursor）が修正を支援します。
+
+- **MCP (Model Context Protocol)連携**: AIアシスタントがRender.comのデプロイ状態を直接監視
+- **自動エラー検知**: デプロイログから一般的なエラーパターンを自動検出
+- **PRへの自動通知**: エラー発生時にPRへコメントを追加
+- **詳細**: [MCP セットアップガイド](./docs/MCP_SETUP.md) | [クイックリファレンス](./docs/MCP_QUICK_REFERENCE.md)
+
 ## 技術スタック
 
 ### フロントエンド

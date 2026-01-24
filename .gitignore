@@ -128,3 +128,9 @@ e2e/test-results/
 e2e/playwright-report/
 e2e/test-results/results.json
 e2e/test-results/html/index.html
+
+# MCP and deployment monitoring
+scripts/node_modules/
+scripts/package-lock.json
+scripts/deployment-check.log
+scripts/*.log
