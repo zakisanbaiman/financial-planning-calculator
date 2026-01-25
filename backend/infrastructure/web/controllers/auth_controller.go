@@ -148,8 +148,14 @@ func (c *AuthController) Login(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, NewErrorResponse(ctx, ErrorCodeInternalServer, "ログインに失敗しました", err.Error()))
 	}
 
-	// トークンをhttpOnly Cookieに設定
-	setAuthCookies(ctx, output.Token, output.RefreshToken, c.serverConfig)
+	// 2FA検証が必要な場合（RefreshTokenが空）は仮トークンのみをCookieに設定
+	if output.RefreshToken == "" {
+		// 2FA仮トークンをアクセストークンCookieに設定（5分間有効）
+		setAccessTokenCookie(ctx, output.Token, c.serverConfig)
+	} else {
+		// 通常のトークンをhttpOnly Cookieに設定
+		setAuthCookies(ctx, output.Token, output.RefreshToken, c.serverConfig)
+	}
 
 	response := AuthResponse{
 		UserID:       output.UserID,
