@@ -4,19 +4,22 @@ import (
 	"net/http"
 
 	"github.com/financial-planning-calculator/backend/application/usecases"
+	"github.com/financial-planning-calculator/backend/config"
 	"github.com/financial-planning-calculator/backend/domain/entities"
 	"github.com/labstack/echo/v4"
 )
 
 // TwoFactorController は2段階認証関連のコントローラー
 type TwoFactorController struct {
-	authUseCase usecases.AuthUseCase
+	authUseCase  usecases.AuthUseCase
+	serverConfig *config.ServerConfig
 }
 
 // NewTwoFactorController は新しいTwoFactorControllerを作成する
-func NewTwoFactorController(authUseCase usecases.AuthUseCase) *TwoFactorController {
+func NewTwoFactorController(authUseCase usecases.AuthUseCase, serverConfig *config.ServerConfig) *TwoFactorController {
 	return &TwoFactorController{
-		authUseCase: authUseCase,
+		authUseCase:  authUseCase,
+		serverConfig: serverConfig,
 	}
 }
 
@@ -197,6 +200,9 @@ func (c *TwoFactorController) Verify2FA(ctx echo.Context) error {
 		}
 		return ctx.JSON(http.StatusInternalServerError, NewErrorResponse(ctx, ErrorCodeInternalServer, "2FA検証に失敗しました", err.Error()))
 	}
+
+	// 2FA検証成功後、本物のトークンをCookieに設定
+	setAuthCookies(ctx, output.Token, output.RefreshToken, c.serverConfig)
 
 	response := AuthResponse{
 		UserID:       output.UserID,

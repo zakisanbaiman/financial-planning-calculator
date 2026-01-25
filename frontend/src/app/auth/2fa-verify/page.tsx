@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { twoFactorAPI } from '@/lib/api-client';
 import { useAuth } from '@/lib/contexts/AuthContext';
@@ -13,13 +13,8 @@ function TwoFactorVerifyContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // 仮トークンがない場合はログインページにリダイレクト
-    const tempToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-    if (!tempToken) {
-      router.push('/login');
-    }
-  }, [router]);
+  // トークンはCookieで管理されるため、useEffectでのlocalStorageチェックは不要
+  // ログインしていない場合、APIが401を返しフロントエンドがリダイレクト処理を行う
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +28,7 @@ function TwoFactorVerifyContent() {
       setLoading(true);
       setError(null);
       
-      // 2FA検証
+      // 2FA検証（トークンはCookieで自動送信される）
       const response = await twoFactorAPI.verify(code, useBackup);
       
       // AuthContextを使ってユーザー情報を保存（トークンはCookieで管理される）
@@ -43,6 +38,11 @@ function TwoFactorVerifyContent() {
           email: response.email,
         },
       });
+      
+      // 仮トークンをクリア（存在する場合）
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+      }
       
       // ダッシュボードにリダイレクト
       router.push('/dashboard');

@@ -114,9 +114,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const data: AuthResponse = await response.json();
       
       // リフレッシュトークンが空の場合は2FA検証が必要
+      // 仮トークンはCookieで自動的に設定されるため、localStorageへの保存は不要
       if (!data.refresh_token) {
-        // 仮トークンを一時保存（2FA検証まで使用）
-        localStorage.setItem(TEMP_TOKEN_KEY, data.token);
         // 2FA検証ページにリダイレクト
         router.push('/auth/2fa-verify');
       } else {
