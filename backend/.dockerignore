@@ -5,7 +5,12 @@
 # ドキュメント
 README.md
 *.md
-docs/
+# Note: docs/ directory contains generated Swagger files (*.go) that are needed for the build
+# Only exclude markdown documentation files, not the entire docs directory
+docs/*.md
+docs/database_schema.md
+docs/pprof-guide.md
+docs/expires-at-implementation.md
 
 # テスト関連
 *_test.go
