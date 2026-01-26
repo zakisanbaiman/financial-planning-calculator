@@ -13,8 +13,14 @@ COPY go.mod go.sum ./
 # 依存関係をダウンロード
 RUN go mod download
 
+# swagツールをインストール（Swagger docsの生成に必要）
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+
 # ソースコードをコピー
 COPY . .
+
+# Swagger docsを生成
+RUN swag init -g main.go -o ./docs
 
 # アプリケーションをビルド
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
