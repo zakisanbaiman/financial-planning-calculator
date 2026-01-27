@@ -134,3 +134,4 @@ scripts/node_modules/
 scripts/package-lock.json
 scripts/deployment-check.log
 scripts/*.log
+frontend/tsconfig.tsbuildinfo
