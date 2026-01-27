@@ -36,11 +36,22 @@ export function GuestModeProvider({ children }: GuestModeProviderProps) {
       if (storedMode === 'true') {
         setIsGuestMode(true);
         if (storedData) {
-          setGuestDataState(JSON.parse(storedData));
+          // JSON.parseの安全性を考慮し、try-catchで囲む
+          const parsed = JSON.parse(storedData);
+          // 基本的な型チェックを実行
+          if (parsed && typeof parsed === 'object' && parsed.user_id) {
+            setGuestDataState(parsed);
+          } else {
+            console.warn('Invalid guest data format, clearing...');
+            localStorage.removeItem(GUEST_DATA_KEY);
+          }
         }
       }
     } catch (e) {
       console.error('Failed to restore guest mode state:', e);
+      // エラーが発生した場合、破損したデータをクリア
+      localStorage.removeItem(GUEST_DATA_KEY);
+      localStorage.removeItem(GUEST_MODE_KEY);
     }
   }, []);
 
