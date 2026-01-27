@@ -40,7 +40,7 @@ export default function Tutorial() {
 
       {/* Tutorial Card */}
       <div className="fixed inset-0 z-[101] flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full h-[600px] flex flex-col">
           {/* Header */}
           <div className="border-b border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-start justify-between mb-4">
@@ -88,7 +88,7 @@ export default function Tutorial() {
           </div>
 
           {/* Content */}
-          <div className="p-6">
+          <div className="p-6 flex-1 overflow-y-auto">
             <div className="prose dark:prose-invert max-w-none">
               <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed whitespace-pre-line">
                 {currentStepData.description}
