@@ -1,17 +1,22 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { useGuestMode } from '@/lib/contexts/GuestModeContext';
+import { useFinancialData } from '@/lib/contexts/FinancialDataContext';
 import InputField from '@/components/InputField';
 import Button from '@/components/Button';
 import Link from 'next/link';
 
 export default function RegisterPage() {
   const { register, error, clearError, isLoading } = useAuth();
+  const { isGuestMode, guestData, exitGuestMode } = useGuestMode();
+  const { createFinancialData } = useFinancialData();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [localError, setLocalError] = useState('');
+  const [saveGuestData, setSaveGuestData] = useState(true);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -41,6 +46,22 @@ export default function RegisterPage() {
 
     try {
       await register(email, password);
+      
+      // ゲストデータがあり、保存を選択している場合はサーバーに保存
+      if (isGuestMode && saveGuestData && guestData) {
+        try {
+          await createFinancialData(guestData);
+        } catch (err) {
+          console.error('Failed to save guest data:', err);
+          // データ保存に失敗してもアカウント登録は成功しているので続行
+        }
+      }
+      
+      // ゲストモードを終了
+      if (isGuestMode) {
+        exitGuestMode();
+      }
+      
       // 成功時はAuthContextでリダイレクト処理される
     } catch (err) {
       // エラーはAuthContextで管理される
@@ -62,6 +83,13 @@ export default function RegisterPage() {
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
             新規アカウント登録
           </p>
+          {isGuestMode && guestData && (
+            <div className="mt-4 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
+              <p className="text-sm text-primary-800 dark:text-primary-200">
+                ✨ ゲストモードで入力したデータを保存できます
+              </p>
+            </div>
+          )}
         </div>
 
         {/* フォーム */}
@@ -103,6 +131,22 @@ export default function RegisterPage() {
               helperText="確認のため再度入力してください"
             />
           </div>
+
+          {/* ゲストデータ保存オプション */}
+          {isGuestMode && guestData && (
+            <div className="flex items-center">
+              <input
+                id="save-guest-data"
+                type="checkbox"
+                checked={saveGuestData}
+                onChange={(e) => setSaveGuestData(e.target.checked)}
+                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+              />
+              <label htmlFor="save-guest-data" className="ml-2 block text-sm text-gray-900 dark:text-white">
+                ゲストモードで入力した財務データを保存する
+              </label>
+            </div>
+          )}
 
           {/* エラーメッセージ */}
           {(error || localError) && (

@@ -4,12 +4,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTutorial } from '@/lib/contexts/TutorialContext';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { useGuestMode } from '@/lib/contexts/GuestModeContext';
 import ThemeToggle from './ThemeToggle';
 
 const Navigation = () => {
   const pathname = usePathname();
   const { startTutorial } = useTutorial();
   const { isAuthenticated, user, logout } = useAuth();
+  const { isGuestMode, exitGuestMode } = useGuestMode();
 
   const navItems = [
     { href: '/', label: 'ホーム', icon: '🏠' },
@@ -70,6 +72,21 @@ const Navigation = () => {
                   <span>🚪</span>
                   <span>ログアウト</span>
                 </button>
+              </div>
+            ) : isGuestMode ? (
+              <div className="flex items-center space-x-2 ml-2 pl-2 border-l border-gray-300 dark:border-gray-600">
+                <span className="text-sm text-warning-600 dark:text-warning-400 flex items-center space-x-1">
+                  <span>✨</span>
+                  <span>ゲストモード</span>
+                </span>
+                <Link
+                  href="/register"
+                  className="flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-primary-600 text-white hover:bg-primary-700"
+                  title="データを保存するには登録が必要です"
+                >
+                  <span>💾</span>
+                  <span>登録してデータを保存</span>
+                </Link>
               </div>
             ) : (
               <div className="flex items-center space-x-2 ml-2 pl-2 border-l border-gray-300 dark:border-gray-600">
@@ -136,6 +153,20 @@ const Navigation = () => {
                 <span>🚪</span>
                 <span>ログアウト</span>
               </button>
+            </>
+          ) : isGuestMode ? (
+            <>
+              <div className="px-3 py-2 text-sm text-warning-600 dark:text-warning-400 border-t border-gray-200 dark:border-gray-700 mt-2 pt-2 flex items-center space-x-1">
+                <span>✨</span>
+                <span>ゲストモード</span>
+              </div>
+              <Link
+                href="/register"
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-primary-600 text-white hover:bg-primary-700"
+              >
+                <span>💾</span>
+                <span>登録してデータを保存</span>
+              </Link>
             </>
           ) : (
             <Link

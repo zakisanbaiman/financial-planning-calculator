@@ -1,10 +1,21 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTutorial } from '@/lib/contexts/TutorialContext';
+import { useGuestMode } from '@/lib/contexts/GuestModeContext';
+import { useAuth } from '@/lib/contexts/AuthContext';
 
 export default function HomePage() {
+  const router = useRouter();
   const { startTutorial } = useTutorial();
+  const { startGuestMode } = useGuestMode();
+  const { isAuthenticated } = useAuth();
+
+  const handleGuestStart = () => {
+    startGuestMode();
+    router.push('/dashboard');
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -17,13 +28,32 @@ export default function HomePage() {
           将来の資産形成と老後の財務計画を可視化し、安心できる財務計画を立てましょう
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link
-            href="/dashboard"
-            className="btn-primary inline-flex items-center space-x-2 text-lg px-8 py-3"
-          >
-            <span>📊</span>
-            <span>ダッシュボードを開く</span>
-          </Link>
+          {isAuthenticated ? (
+            <Link
+              href="/dashboard"
+              className="btn-primary inline-flex items-center space-x-2 text-lg px-8 py-3"
+            >
+              <span>📊</span>
+              <span>ダッシュボードを開く</span>
+            </Link>
+          ) : (
+            <>
+              <button
+                onClick={handleGuestStart}
+                className="btn-primary inline-flex items-center space-x-2 text-lg px-8 py-3"
+              >
+                <span>✨</span>
+                <span>ゲストとして始める</span>
+              </button>
+              <Link
+                href="/login"
+                className="btn-secondary inline-flex items-center space-x-2 text-lg px-8 py-3"
+              >
+                <span>🔐</span>
+                <span>ログイン / 登録</span>
+              </Link>
+            </>
+          )}
           <button
             onClick={startTutorial}
             className="btn-secondary inline-flex items-center space-x-2 text-lg px-8 py-3"
@@ -32,6 +62,11 @@ export default function HomePage() {
             <span>チュートリアルを見る</span>
           </button>
         </div>
+        {!isAuthenticated && (
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+            💡 ゲストモードでは登録なしで全機能をお試しいただけます（データはブラウザに保存されます）
+          </p>
+        )}
       </div>
 
       {/* Features Grid */}

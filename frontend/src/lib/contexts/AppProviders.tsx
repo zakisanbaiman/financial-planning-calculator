@@ -2,6 +2,7 @@
 
 import React, { ReactNode } from 'react';
 import { AuthProvider } from './AuthContext';
+import { GuestModeProvider } from './GuestModeContext';
 import { FinancialDataProvider } from './FinancialDataContext';
 import { GoalsProvider } from './GoalsContext';
 import { CalculationsProvider } from './CalculationsContext';
@@ -19,17 +20,19 @@ interface AppProvidersProps {
 export function AppProviders({ children }: AppProvidersProps) {
   return (
     <AuthProvider>
-      <ThemeProvider>
-        <TutorialProvider>
-          <FinancialDataProvider>
-            <GoalsProvider>
-              <CalculationsProvider>
-                {children}
-              </CalculationsProvider>
-            </GoalsProvider>
-          </FinancialDataProvider>
-        </TutorialProvider>
-      </ThemeProvider>
+      <GuestModeProvider>
+        <ThemeProvider>
+          <TutorialProvider>
+            <FinancialDataProvider>
+              <GoalsProvider>
+                <CalculationsProvider>
+                  {children}
+                </CalculationsProvider>
+              </GoalsProvider>
+            </FinancialDataProvider>
+          </TutorialProvider>
+        </ThemeProvider>
+      </GuestModeProvider>
     </AuthProvider>
   );
 }
