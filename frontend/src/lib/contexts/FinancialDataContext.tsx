@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { financialDataAPI } from '@/lib/api-client';
+import { useGuestMode } from './GuestModeContext';
 import type {
   FinancialData,
   FinancialProfile,
@@ -38,6 +39,7 @@ export function FinancialDataProvider({ children }: FinancialDataProviderProps) 
   const [financialData, setFinancialData] = useState<FinancialData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { isGuestMode, guestData, setGuestData } = useGuestMode();
 
   // エラークリア
   const clearError = useCallback(() => {
@@ -46,6 +48,21 @@ export function FinancialDataProvider({ children }: FinancialDataProviderProps) 
 
   // 財務データ取得
   const fetchFinancialData = useCallback(async (userId: string) => {
+    // ゲストモードの場合はローカルストレージから取得
+    if (isGuestMode) {
+      setLoading(true);
+      try {
+        if (guestData) {
+          setFinancialData(guestData);
+        } else {
+          setError('財務データがまだ作成されていません。下のフォームから入力してください。');
+        }
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -67,10 +84,22 @@ export function FinancialDataProvider({ children }: FinancialDataProviderProps) 
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isGuestMode, guestData]);
 
   // 財務データ作成
   const createFinancialData = useCallback(async (data: FinancialData) => {
+    // ゲストモードの場合はローカルストレージに保存
+    if (isGuestMode) {
+      setLoading(true);
+      try {
+        setGuestData(data);
+        setFinancialData(data);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -83,11 +112,24 @@ export function FinancialDataProvider({ children }: FinancialDataProviderProps) 
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isGuestMode, setGuestData]);
 
   // 財務プロファイル更新
   const updateProfile = useCallback(
     async (userId: string, profile: FinancialProfile) => {
+      // ゲストモードの場合はローカルストレージに保存
+      if (isGuestMode) {
+        setLoading(true);
+        try {
+          const updated = { ...financialData, user_id: userId, profile } as FinancialData;
+          setGuestData(updated);
+          setFinancialData(updated);
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
       setLoading(true);
       setError(null);
       try {
@@ -101,12 +143,25 @@ export function FinancialDataProvider({ children }: FinancialDataProviderProps) 
         setLoading(false);
       }
     },
-    []
+    [isGuestMode, financialData, setGuestData]
   );
 
   // 退職データ更新
   const updateRetirement = useCallback(
     async (userId: string, retirement: RetirementData) => {
+      // ゲストモードの場合はローカルストレージに保存
+      if (isGuestMode) {
+        setLoading(true);
+        try {
+          const updated = { ...financialData, user_id: userId, retirement } as FinancialData;
+          setGuestData(updated);
+          setFinancialData(updated);
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
       setLoading(true);
       setError(null);
       try {
@@ -120,12 +175,25 @@ export function FinancialDataProvider({ children }: FinancialDataProviderProps) 
         setLoading(false);
       }
     },
-    []
+    [isGuestMode, financialData, setGuestData]
   );
 
   // 緊急資金更新
   const updateEmergencyFund = useCallback(
     async (userId: string, emergencyFund: EmergencyFund) => {
+      // ゲストモードの場合はローカルストレージに保存
+      if (isGuestMode) {
+        setLoading(true);
+        try {
+          const updated = { ...financialData, user_id: userId, emergency_fund: emergencyFund } as FinancialData;
+          setGuestData(updated);
+          setFinancialData(updated);
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
       setLoading(true);
       setError(null);
       try {
@@ -139,11 +207,23 @@ export function FinancialDataProvider({ children }: FinancialDataProviderProps) 
         setLoading(false);
       }
     },
-    []
+    [isGuestMode, financialData, setGuestData]
   );
 
   // 財務データ削除
   const deleteFinancialData = useCallback(async (userId: string) => {
+    // ゲストモードの場合はローカルストレージから削除
+    if (isGuestMode) {
+      setLoading(true);
+      try {
+        setGuestData(null);
+        setFinancialData(null);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -156,7 +236,7 @@ export function FinancialDataProvider({ children }: FinancialDataProviderProps) 
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isGuestMode, setGuestData]);
 
   const value: FinancialDataContextType = {
     financialData,
