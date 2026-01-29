@@ -42,6 +42,10 @@ type ServerConfig struct {
 	OAuthFailureRedirect     string
 	// Cookie Security
 	CookieSecure             bool
+	// WebAuthn Settings
+	WebAuthnRPID             string // Relying Party ID (e.g., "example.com")
+	WebAuthnRPName           string // Relying Party Name (e.g., "財務計画計算機")
+	WebAuthnRPOrigin         string // Relying Party Origin (e.g., "https://example.com")
 }
 
 // LoadServerConfig loads server configuration from environment variables
@@ -80,6 +84,10 @@ func LoadServerConfig() *ServerConfig {
 		OAuthFailureRedirect: getEnv("OAUTH_FAILURE_REDIRECT", "http://localhost:3000/login?error=oauth_failed"),
 		// Cookie Security
 		CookieSecure:         getEnvBool("COOKIE_SECURE", false),
+		// WebAuthn Settings
+		WebAuthnRPID:         getEnv("WEBAUTHN_RP_ID", "localhost"),
+		WebAuthnRPName:       getEnv("WEBAUTHN_RP_NAME", "財務計画計算機"),
+		WebAuthnRPOrigin:     getEnv("WEBAUTHN_RP_ORIGIN", "http://localhost:3000"),
 	}
 
 	return config

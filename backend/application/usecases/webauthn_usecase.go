@@ -1,14 +1,18 @@
 package usecases
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/financial-planning-calculator/backend/domain/entities"
 	"github.com/financial-planning-calculator/backend/domain/repositories"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
@@ -77,24 +81,36 @@ type CredentialInfo struct {
 
 // webAuthnUseCaseImpl はWebAuthnUseCaseの実装
 type webAuthnUseCaseImpl struct {
-	userRepo       repositories.UserRepository
-	credentialRepo repositories.WebAuthnCredentialRepository
-	webAuthn       *webauthn.WebAuthn
-	authUseCase    AuthUseCase
+	userRepo             repositories.UserRepository
+	credentialRepo       repositories.WebAuthnCredentialRepository
+	refreshTokenRepo     repositories.RefreshTokenRepository
+	webAuthn             *webauthn.WebAuthn
+	authUseCase          AuthUseCase
+	jwtSecret            string
+	jwtExpiration        time.Duration
+	refreshTokenExpiration time.Duration
 }
 
 // NewWebAuthnUseCase は新しいWebAuthnUseCaseを作成する
 func NewWebAuthnUseCase(
 	userRepo repositories.UserRepository,
 	credentialRepo repositories.WebAuthnCredentialRepository,
+	refreshTokenRepo repositories.RefreshTokenRepository,
 	webAuthn *webauthn.WebAuthn,
 	authUseCase AuthUseCase,
+	jwtSecret string,
+	jwtExpiration time.Duration,
+	refreshTokenExpiration time.Duration,
 ) WebAuthnUseCase {
 	return &webAuthnUseCaseImpl{
-		userRepo:       userRepo,
-		credentialRepo: credentialRepo,
-		webAuthn:       webAuthn,
-		authUseCase:    authUseCase,
+		userRepo:               userRepo,
+		credentialRepo:         credentialRepo,
+		refreshTokenRepo:       refreshTokenRepo,
+		webAuthn:               webAuthn,
+		authUseCase:            authUseCase,
+		jwtSecret:              jwtSecret,
+		jwtExpiration:          jwtExpiration,
+		refreshTokenExpiration: refreshTokenExpiration,
 	}
 }
 
@@ -178,14 +194,19 @@ func (uc *webAuthnUseCaseImpl) BeginRegistration(ctx context.Context, userID str
 		return nil, fmt.Errorf("パスキー登録の開始に失敗: %w", err)
 	}
 
-	// セッションデータをbase64エンコード
-	sessionDataJSON, err := sessionData.MarshalJSON()
+	// JSONにエンコード
+	optionsJSON, err := json.Marshal(options)
+	if err != nil {
+		return nil, fmt.Errorf("オプションのエンコードに失敗: %w", err)
+	}
+
+	sessionDataJSON, err := json.Marshal(sessionData)
 	if err != nil {
 		return nil, fmt.Errorf("セッションデータのエンコードに失敗: %w", err)
 	}
 
 	return &BeginRegistrationOutput{
-		PublicKeyOptions: string(options),
+		PublicKeyOptions: string(optionsJSON),
 		SessionData:      base64.StdEncoding.EncodeToString(sessionDataJSON),
 	}, nil
 }
@@ -210,7 +231,7 @@ func (uc *webAuthnUseCaseImpl) FinishRegistration(ctx context.Context, input Fin
 	}
 
 	var sessionData webauthn.SessionData
-	if err := sessionData.UnmarshalJSON(sessionDataBytes); err != nil {
+	if err := json.Unmarshal(sessionDataBytes, &sessionData); err != nil {
 		return fmt.Errorf("セッションデータのパースに失敗: %w", err)
 	}
 
@@ -222,7 +243,7 @@ func (uc *webAuthnUseCaseImpl) FinishRegistration(ctx context.Context, input Fin
 	}
 
 	// レスポンスをパース
-	parsedResponse, err := protocol.ParseCredentialCreationResponseBody([]byte(input.Response))
+	parsedResponse, err := protocol.ParseCredentialCreationResponseBody(bytes.NewReader([]byte(input.Response)))
 	if err != nil {
 		return fmt.Errorf("認証レスポンスのパースに失敗: %w", err)
 	}
@@ -264,14 +285,19 @@ func (uc *webAuthnUseCaseImpl) BeginLogin(ctx context.Context, input BeginLoginI
 		return nil, fmt.Errorf("パスキーログインの開始に失敗: %w", err)
 	}
 
-	// セッションデータをbase64エンコード
-	sessionDataJSON, err := sessionData.MarshalJSON()
+	// JSONにエンコード
+	optionsJSON, err := json.Marshal(options)
+	if err != nil {
+		return nil, fmt.Errorf("オプションのエンコードに失敗: %w", err)
+	}
+
+	sessionDataJSON, err := json.Marshal(sessionData)
 	if err != nil {
 		return nil, fmt.Errorf("セッションデータのエンコードに失敗: %w", err)
 	}
 
 	return &BeginLoginOutput{
-		PublicKeyOptions: string(options),
+		PublicKeyOptions: string(optionsJSON),
 		SessionData:      base64.StdEncoding.EncodeToString(sessionDataJSON),
 	}, nil
 }
@@ -285,12 +311,12 @@ func (uc *webAuthnUseCaseImpl) FinishLogin(ctx context.Context, input FinishLogi
 	}
 
 	var sessionData webauthn.SessionData
-	if err := sessionData.UnmarshalJSON(sessionDataBytes); err != nil {
+	if err := json.Unmarshal(sessionDataBytes, &sessionData); err != nil {
 		return nil, fmt.Errorf("セッションデータのパースに失敗: %w", err)
 	}
 
 	// レスポンスをパース
-	parsedResponse, err := protocol.ParseCredentialRequestResponseBody([]byte(input.Response))
+	parsedResponse, err := protocol.ParseCredentialRequestResponseBody(bytes.NewReader([]byte(input.Response)))
 	if err != nil {
 		return nil, fmt.Errorf("認証レスポンスのパースに失敗: %w", err)
 	}
@@ -345,18 +371,24 @@ func (uc *webAuthnUseCaseImpl) FinishLogin(ctx context.Context, input FinishLogi
 		return nil, fmt.Errorf("クレデンシャルの更新に失敗: %w", err)
 	}
 
-	// JWTトークンを生成（AuthUseCaseを使用）
-	loginOutput, err := uc.authUseCase.Login(ctx, LoginInput{
-		Email:    user.Email().String(),
-		Password: "", // パスキー認証では不要
-	})
+	// JWTトークンとリフレッシュトークンを生成
+	token, expiresAt, err := uc.generateToken(user)
 	if err != nil {
-		// パスワードなしでログインできない場合、直接トークンを生成
-		// ここでは簡略化のため、AuthUseCaseに依存しない実装が必要
-		return nil, fmt.Errorf("トークン生成に失敗: %w", err)
+		return nil, fmt.Errorf("トークンの生成に失敗: %w", err)
 	}
 
-	return loginOutput, nil
+	refreshToken, err := uc.generateRefreshToken(ctx, user.ID())
+	if err != nil {
+		return nil, fmt.Errorf("リフレッシュトークンの生成に失敗: %w", err)
+	}
+
+	return &LoginOutput{
+		UserID:       user.ID().String(),
+		Email:        user.Email().String(),
+		Token:        token,
+		RefreshToken: refreshToken,
+		ExpiresAt:    expiresAt.Format(time.RFC3339),
+	}, nil
 }
 
 // ListCredentials はユーザーの全パスキーを取得する
@@ -466,4 +498,47 @@ func convertTransportsToStrings(transports []protocol.AuthenticatorTransport) []
 		result = append(result, string(t))
 	}
 	return result
+}
+
+// generateToken はJWTトークンを生成する
+func (uc *webAuthnUseCaseImpl) generateToken(user *entities.User) (string, time.Time, error) {
+	expiresAt := time.Now().Add(uc.jwtExpiration)
+
+	claims := TokenClaims{
+		UserID: user.ID().String(),
+		Email:  user.Email().String(),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(uc.jwtSecret))
+	if err != nil {
+		return "", time.Time{}, err
+	}
+
+	return tokenString, expiresAt, nil
+}
+
+// generateRefreshToken はリフレッシュトークンを生成する
+func (uc *webAuthnUseCaseImpl) generateRefreshToken(ctx context.Context, userID entities.UserID) (string, error) {
+	// 有効期限を設定
+	expiresAt := time.Now().Add(uc.refreshTokenExpiration)
+
+	// リフレッシュトークンエンティティを作成
+	refreshTokenEntity, rawToken, err := entities.NewRefreshToken(userID, expiresAt)
+	if err != nil {
+		return "", fmt.Errorf("リフレッシュトークンエンティティの作成に失敗しました: %w", err)
+	}
+
+	// データベースに保存
+	if err := uc.refreshTokenRepo.Save(ctx, refreshTokenEntity); err != nil {
+		return "", fmt.Errorf("リフレッシュトークンの保存に失敗しました: %w", err)
+	}
+
+	// 元のトークン（ハッシュ化前）を返す
+	return rawToken, nil
 }

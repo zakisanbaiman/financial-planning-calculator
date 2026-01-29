@@ -13,6 +13,7 @@ import (
 type Controllers struct {
 	Auth          *controllers.AuthController
 	TwoFactor     *controllers.TwoFactorController
+	WebAuthn      *controllers.WebAuthnController
 	FinancialData *controllers.FinancialDataController
 	Calculations  *controllers.CalculationsController
 	Goals         *controllers.GoalsController
@@ -55,6 +56,9 @@ func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencie
 		protected.Use(authMiddleware)
 	}
 
+	// パスキー認証エンドポイント
+	setupPasskeyRoutes(api, protected, controllers.WebAuthn)
+
 	// 2段階認証エンドポイント（認証が必要）
 	setup2FARoutes(protected, controllers.TwoFactor)
 
@@ -94,6 +98,23 @@ func setup2FARoutes(api *echo.Group, controller *controllers.TwoFactorController
 	twoFactor.POST("/verify", controller.Verify2FA)                     // POST /api/auth/2fa/verify
 	twoFactor.DELETE("", controller.Disable2FA)                         // DELETE /api/auth/2fa
 	twoFactor.POST("/backup-codes", controller.RegenerateBackupCodes)   // POST /api/auth/2fa/backup-codes
+}
+
+// setupPasskeyRoutes sets up passkey (WebAuthn) authentication routes
+func setupPasskeyRoutes(api *echo.Group, protected *echo.Group, controller *controllers.WebAuthnController) {
+	passkey := api.Group("/auth/passkey")
+
+	// パスキーログイン（認証不要）
+	passkey.POST("/login/begin", controller.BeginLogin)   // POST /api/auth/passkey/login/begin
+	passkey.POST("/login/finish", controller.FinishLogin) // POST /api/auth/passkey/login/finish
+
+	// パスキー登録と管理（認証が必要）
+	passkeyProtected := protected.Group("/auth/passkey")
+	passkeyProtected.POST("/register/begin", controller.BeginRegistration)      // POST /api/auth/passkey/register/begin
+	passkeyProtected.POST("/register/finish", controller.FinishRegistration)    // POST /api/auth/passkey/register/finish
+	passkeyProtected.GET("/credentials", controller.ListCredentials)            // GET /api/auth/passkey/credentials
+	passkeyProtected.DELETE("/credentials/:credential_id", controller.DeleteCredential) // DELETE /api/auth/passkey/credentials/:credential_id
+	passkeyProtected.PUT("/credentials/:credential_id", controller.RenameCredential)    // PUT /api/auth/passkey/credentials/:credential_id
 }
 
 // setupFinancialDataRoutes sets up financial data management routes
