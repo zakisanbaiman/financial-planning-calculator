@@ -102,6 +102,11 @@ func setup2FARoutes(api *echo.Group, controller *controllers.TwoFactorController
 
 // setupPasskeyRoutes sets up passkey (WebAuthn) authentication routes
 func setupPasskeyRoutes(api *echo.Group, protected *echo.Group, controller *controllers.WebAuthnController) {
+	// WebAuthn機能が利用できない場合はルートを設定しない
+	if controller == nil {
+		return
+	}
+
 	passkey := api.Group("/auth/passkey")
 
 	// パスキーログイン（認証不要）

@@ -407,14 +407,14 @@ func (uc *webAuthnUseCaseImpl) ListCredentials(ctx context.Context, userID strin
 	for _, cred := range credentials {
 		var lastUsedAt *string
 		if cred.LastUsedAt() != nil {
-			lu := cred.LastUsedAt().Format("2006-01-02T15:04:05Z07:00")
+			lu := cred.LastUsedAt().Format(time.RFC3339)
 			lastUsedAt = &lu
 		}
 
 		result = append(result, &CredentialInfo{
 			ID:         cred.ID().String(),
 			Name:       cred.Name(),
-			CreatedAt:  cred.CreatedAt().Format("2006-01-02T15:04:05Z07:00"),
+			CreatedAt:  cred.CreatedAt().Format(time.RFC3339),
 			LastUsedAt: lastUsedAt,
 		})
 	}

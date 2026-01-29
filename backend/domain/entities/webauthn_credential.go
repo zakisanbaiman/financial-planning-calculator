@@ -56,7 +56,7 @@ func NewWebAuthnCredential(
 	}
 
 	if len(credentialID) == 0 {
-		return nil, errors.New("クレデンシャルIDは必須です")
+		return nil, errors.New("WebAuthn credential IDは必須です")
 	}
 
 	if len(publicKey) == 0 {

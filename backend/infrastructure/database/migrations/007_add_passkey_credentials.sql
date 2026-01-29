@@ -9,7 +9,7 @@ CREATE TABLE webauthn_credentials (
     public_key BYTEA NOT NULL,
     attestation_type VARCHAR(50) NOT NULL,
     aaguid BYTEA NOT NULL,
-    sign_count INTEGER NOT NULL DEFAULT 0,
+    sign_count BIGINT NOT NULL DEFAULT 0 CHECK (sign_count >= 0),
     clone_warning BOOLEAN NOT NULL DEFAULT false,
     transports TEXT[],
     name VARCHAR(255),

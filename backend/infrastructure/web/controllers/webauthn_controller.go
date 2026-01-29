@@ -71,8 +71,14 @@ type RenameCredentialRequest struct {
 // @Success 200 {object} BeginRegistrationResponse
 // @Failure 401 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
+// @Failure 503 {object} ErrorResponse "パスキー機能は利用できません"
 // @Router /auth/passkey/register/begin [post]
 func (c *WebAuthnController) BeginRegistration(ctx echo.Context) error {
+	// WebAuthn機能の利用可否をチェック
+	if c.webAuthnUseCase == nil {
+		return ctx.JSON(http.StatusServiceUnavailable, NewErrorResponse(ctx, ErrorCodeInternalServer, "パスキー機能は現在利用できません", nil))
+	}
+
 	// ユーザーIDを取得
 	userID, err := getUserIDFromContext(ctx)
 	if err != nil {
@@ -107,6 +113,11 @@ func (c *WebAuthnController) BeginRegistration(ctx echo.Context) error {
 // @Failure 500 {object} ErrorResponse
 // @Router /auth/passkey/register/finish [post]
 func (c *WebAuthnController) FinishRegistration(ctx echo.Context) error {
+	// WebAuthn機能の利用可否をチェック
+	if c.webAuthnUseCase == nil {
+		return ctx.JSON(http.StatusServiceUnavailable, NewErrorResponse(ctx, ErrorCodeInternalServer, "パスキー機能は現在利用できません", nil))
+	}
+
 	// ユーザーIDを取得
 	userID, err := getUserIDFromContext(ctx)
 	if err != nil {
@@ -150,6 +161,11 @@ func (c *WebAuthnController) FinishRegistration(ctx echo.Context) error {
 // @Failure 500 {object} ErrorResponse
 // @Router /auth/passkey/login/begin [post]
 func (c *WebAuthnController) BeginLogin(ctx echo.Context) error {
+	// WebAuthn機能の利用可否をチェック
+	if c.webAuthnUseCase == nil {
+		return ctx.JSON(http.StatusServiceUnavailable, NewErrorResponse(ctx, ErrorCodeInternalServer, "パスキー機能は現在利用できません", nil))
+	}
+
 	var req BeginLoginRequest
 	if err := ctx.Bind(&req); err != nil {
 		// リクエストボディがない場合もOK（ユーザーレス認証）
@@ -187,6 +203,11 @@ func (c *WebAuthnController) BeginLogin(ctx echo.Context) error {
 // @Failure 500 {object} ErrorResponse
 // @Router /auth/passkey/login/finish [post]
 func (c *WebAuthnController) FinishLogin(ctx echo.Context) error {
+	// WebAuthn機能の利用可否をチェック
+	if c.webAuthnUseCase == nil {
+		return ctx.JSON(http.StatusServiceUnavailable, NewErrorResponse(ctx, ErrorCodeInternalServer, "パスキー機能は現在利用できません", nil))
+	}
+
 	var req FinishLoginRequest
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "リクエストの解析に失敗しました", err.Error()))
@@ -229,6 +250,11 @@ func (c *WebAuthnController) FinishLogin(ctx echo.Context) error {
 // @Failure 500 {object} ErrorResponse
 // @Router /auth/passkey/credentials [get]
 func (c *WebAuthnController) ListCredentials(ctx echo.Context) error {
+	// WebAuthn機能の利用可否をチェック
+	if c.webAuthnUseCase == nil {
+		return ctx.JSON(http.StatusServiceUnavailable, NewErrorResponse(ctx, ErrorCodeInternalServer, "パスキー機能は現在利用できません", nil))
+	}
+
 	// ユーザーIDを取得
 	userID, err := getUserIDFromContext(ctx)
 	if err != nil {
@@ -267,6 +293,11 @@ func (c *WebAuthnController) ListCredentials(ctx echo.Context) error {
 // @Failure 500 {object} ErrorResponse
 // @Router /auth/passkey/credentials/{credential_id} [delete]
 func (c *WebAuthnController) DeleteCredential(ctx echo.Context) error {
+	// WebAuthn機能の利用可否をチェック
+	if c.webAuthnUseCase == nil {
+		return ctx.JSON(http.StatusServiceUnavailable, NewErrorResponse(ctx, ErrorCodeInternalServer, "パスキー機能は現在利用できません", nil))
+	}
+
 	// ユーザーIDを取得
 	userID, err := getUserIDFromContext(ctx)
 	if err != nil {
@@ -304,6 +335,11 @@ func (c *WebAuthnController) DeleteCredential(ctx echo.Context) error {
 // @Failure 500 {object} ErrorResponse
 // @Router /auth/passkey/credentials/{credential_id} [put]
 func (c *WebAuthnController) RenameCredential(ctx echo.Context) error {
+	// WebAuthn機能の利用可否をチェック
+	if c.webAuthnUseCase == nil {
+		return ctx.JSON(http.StatusServiceUnavailable, NewErrorResponse(ctx, ErrorCodeInternalServer, "パスキー機能は現在利用できません", nil))
+	}
+
 	// ユーザーIDを取得
 	userID, err := getUserIDFromContext(ctx)
 	if err != nil {
