@@ -8,16 +8,18 @@ import (
 	"github.com/financial-planning-calculator/backend/domain/repositories"
 	"github.com/financial-planning-calculator/backend/domain/services"
 	"github.com/financial-planning-calculator/backend/infrastructure/web/controllers"
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/labstack/echo/v4"
 )
 
 // ServerDependencies holds all dependencies needed for the web server
 type ServerDependencies struct {
 	// Repositories
-	UserRepo          repositories.UserRepository
-	RefreshTokenRepo  repositories.RefreshTokenRepository
-	FinancialPlanRepo repositories.FinancialPlanRepository
-	GoalRepo          repositories.GoalRepository
+	UserRepo               repositories.UserRepository
+	RefreshTokenRepo       repositories.RefreshTokenRepository
+	WebAuthnCredentialRepo repositories.WebAuthnCredentialRepository
+	FinancialPlanRepo      repositories.FinancialPlanRepository
+	GoalRepo               repositories.GoalRepository
 
 	// Domain Services
 	CalculationService    *services.FinancialCalculationService
@@ -30,6 +32,9 @@ type ServerDependencies struct {
 
 	// Server Config (for OAuth)
 	ServerConfig *config.ServerConfig
+
+	// WebAuthn
+	WebAuthn *webauthn.WebAuthn
 
 	// AuthUseCase (ミドルウェア用、NewControllersで初期化される)
 	AuthUseCase usecases.AuthUseCase
@@ -76,10 +81,26 @@ func NewControllers(deps *ServerDependencies) *Controllers {
 		deps.RecommendationService,
 	)
 
+	// WebAuthn use case
+	var webAuthnUseCase usecases.WebAuthnUseCase
+	if deps.WebAuthn != nil && deps.WebAuthnCredentialRepo != nil {
+		webAuthnUseCase = usecases.NewWebAuthnUseCase(
+			deps.UserRepo,
+			deps.WebAuthnCredentialRepo,
+			deps.RefreshTokenRepo,
+			deps.WebAuthn,
+			authUseCase,
+			deps.JWTSecret,
+			deps.JWTExpiration,
+			deps.RefreshTokenExpiration,
+		)
+	}
+
 	// Create controllers
 	return &Controllers{
 		Auth:          controllers.NewAuthController(authUseCase, deps.ServerConfig),
 		TwoFactor:     controllers.NewTwoFactorController(authUseCase, deps.ServerConfig),
+		WebAuthn:      controllers.NewWebAuthnController(webAuthnUseCase),
 		FinancialData: controllers.NewFinancialDataController(manageFinancialDataUseCase),
 		Calculations:  controllers.NewCalculationsController(calculateProjectionUseCase),
 		Goals:         controllers.NewGoalsController(manageGoalsUseCase),

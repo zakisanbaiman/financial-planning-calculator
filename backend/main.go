@@ -9,6 +9,7 @@ import (
 	"github.com/financial-planning-calculator/backend/domain/services"
 	"github.com/financial-planning-calculator/backend/infrastructure/repositories"
 	"github.com/financial-planning-calculator/backend/infrastructure/web"
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/labstack/echo/v4"
 
 	_ "github.com/financial-planning-calculator/backend/docs"
@@ -89,6 +90,7 @@ func initializeDependencies() *web.ServerDependencies {
 
 	userRepo := repoFactory.NewUserRepository()
 	refreshTokenRepo := repoFactory.NewRefreshTokenRepository()
+	webAuthnCredentialRepo := repoFactory.NewWebAuthnCredentialRepository()
 	financialPlanRepo := repoFactory.NewFinancialPlanRepository()
 	goalRepo := repoFactory.NewGoalRepository()
 
@@ -99,9 +101,16 @@ func initializeDependencies() *web.ServerDependencies {
 	// Load server config for JWT settings
 	serverCfg := config.LoadServerConfig()
 
+	// Initialize WebAuthn
+	webAuthn, err := initializeWebAuthn(serverCfg)
+	if err != nil {
+		log.Printf("⚠️  WebAuthn初期化に失敗しました（パスキー機能は無効）: %v", err)
+	}
+
 	return &web.ServerDependencies{
 		UserRepo:                 userRepo,
 		RefreshTokenRepo:         refreshTokenRepo,
+		WebAuthnCredentialRepo:   webAuthnCredentialRepo,
 		FinancialPlanRepo:        financialPlanRepo,
 		GoalRepo:                 goalRepo,
 		CalculationService:       calculationService,
@@ -110,6 +119,7 @@ func initializeDependencies() *web.ServerDependencies {
 		JWTExpiration:            serverCfg.JWTExpiration,
 		RefreshTokenExpiration:   serverCfg.RefreshTokenExpiration,
 		ServerConfig:             serverCfg, // OAuth設定用 (Issue: #67)
+		WebAuthn:                 webAuthn,
 	}
 }
 
@@ -145,4 +155,25 @@ func checkSecurityWarnings(serverCfg *config.ServerConfig, dbCfg *config.Databas
 		}
 		log.Println("===========================================================")
 	}
+}
+
+// initializeWebAuthn initializes WebAuthn configuration
+func initializeWebAuthn(cfg *config.ServerConfig) (*webauthn.WebAuthn, error) {
+	wconfig := &webauthn.Config{
+		RPDisplayName: cfg.WebAuthnRPName,
+		RPID:          cfg.WebAuthnRPID,
+		RPOrigins:     []string{cfg.WebAuthnRPOrigin},
+	}
+
+	webAuthn, err := webauthn.New(wconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("✅ WebAuthn初期化成功")
+	log.Printf("   - RP Name: %s", cfg.WebAuthnRPName)
+	log.Printf("   - RP ID: %s", cfg.WebAuthnRPID)
+	log.Printf("   - RP Origin: %s", cfg.WebAuthnRPOrigin)
+
+	return webAuthn, nil
 }

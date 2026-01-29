@@ -35,3 +35,8 @@ func (f *RepositoryFactory) NewRefreshTokenRepository() repositories.RefreshToke
 func (f *RepositoryFactory) NewGoalRepository() repositories.GoalRepository {
 	return NewPostgreSQLGoalRepository(f.db)
 }
+
+// NewWebAuthnCredentialRepository はWebAuthn認証情報リポジトリを作成する
+func (f *RepositoryFactory) NewWebAuthnCredentialRepository() repositories.WebAuthnCredentialRepository {
+	return NewPostgreSQLWebAuthnCredentialRepository(f.db)
+}
