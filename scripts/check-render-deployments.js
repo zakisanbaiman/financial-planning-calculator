@@ -162,6 +162,9 @@ async function main() {
 
     let hasErrors = false;
     const report = [];
+    
+    // Filter threshold: Only check deployments from last 30 days
+    const THIRTY_DAYS_AGO = Date.now() - (30 * 24 * 60 * 60 * 1000);
 
     // Check each service
     for (const serviceData of services) {
@@ -183,10 +186,17 @@ async function main() {
 
         // Check latest deployment
         const latestDeploy = deploys[0].deploy;
+        const deployDate = new Date(latestDeploy.createdAt).getTime();
         console.log(`\n   Latest Deploy:`);
         console.log(`   - ID: ${latestDeploy.id}`);
         console.log(`   - Status: ${latestDeploy.status}`);
         console.log(`   - Created: ${new Date(latestDeploy.createdAt).toLocaleString()}`);
+
+        // Skip old deployments - they're likely deprecated services
+        if (deployDate < THIRTY_DAYS_AGO) {
+          console.log(`   ℹ️  Deployment is older than 30 days - skipping check`);
+          continue;
+        }
 
         if (latestDeploy.status === 'build_failed' || latestDeploy.status === 'deactivated') {
           hasErrors = true;
