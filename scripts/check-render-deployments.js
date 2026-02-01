@@ -166,6 +166,13 @@ async function main() {
     // Check each service
     for (const serviceData of services) {
       const service = serviceData.service;
+      
+      // Skip suspended services
+      if (service.suspended === 'suspended') {
+        console.log(`\n⏸️  Service: ${service.name} (Suspended - skipping)`);
+        continue;
+      }
+      
       console.log(`\n📋 Service: ${service.name}`);
       console.log(`   Type: ${service.type}`);
       console.log(`   Status: ${service.serviceDetails?.state || 'unknown'}`);
