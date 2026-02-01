@@ -163,8 +163,8 @@ async function main() {
     let hasErrors = false;
     const report = [];
     
-    // Filter threshold: Only check deployments from last 30 days
-    const THIRTY_DAYS_AGO = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    // Filter threshold: Only check deployments from last 14 days
+    const FOURTEEN_DAYS_AGO = Date.now() - (14 * 24 * 60 * 60 * 1000);
 
     // Check each service
     for (const serviceData of services) {
@@ -193,8 +193,9 @@ async function main() {
         console.log(`   - Created: ${new Date(latestDeploy.createdAt).toLocaleString()}`);
 
         // Skip old deployments - they're likely deprecated services
-        if (deployDate < THIRTY_DAYS_AGO) {
-          console.log(`   ℹ️  Deployment is older than 30 days - skipping check`);
+        // Only check deployments from the last 14 days
+        if (deployDate < FOURTEEN_DAYS_AGO) {
+          console.log(`   ℹ️  Deployment is older than 14 days - skipping check`);
           continue;
         }
 
