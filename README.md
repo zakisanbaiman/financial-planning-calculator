@@ -41,6 +41,17 @@ Render.comへのデプロイ時のエラーを自動検知し、AIアシスタ�
 - PostgreSQL
 - OpenAPI/Swagger
 
+## 📐 アーキテクチャドキュメント
+
+システムの詳細な設計ドキュメントは以下を参照してください：
+
+- **[アーキテクチャ概要](./docs/architecture/README.md)** - システム全体の構造と設計方針
+- **[ER図](./docs/architecture/ER_DIAGRAM.md)** - データベーススキーマの可視化
+- **[クラス図](./docs/architecture/CLASS_DIAGRAM.md)** - ドメインモデルとクラス構造
+- **[システム構成図](./docs/architecture/SYSTEM_ARCHITECTURE.md)** - ネットワークとコンポーネント構成
+
+Clean Architecture / DDDに基づいた設計で、テストしやすく保守性の高いコードベースを実現しています。
+
 ## プロジェクト構造
 
 ```
