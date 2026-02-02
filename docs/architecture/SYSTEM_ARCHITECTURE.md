@@ -359,7 +359,7 @@ GITHUB_CLIENT_SECRET=your-github-client-secret
 GITHUB_CALLBACK_URL=http://localhost:8080/api/auth/github/callback
 
 # アプリケーション
-GIN_MODE=debug
+GIN_MODE=debug  # 注: 現在は使用されていない（レガシー設定）
 ENABLE_PPROF=true
 PPROF_PORT=6060
 ```
