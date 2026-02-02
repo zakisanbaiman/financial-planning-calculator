@@ -85,7 +85,7 @@
         ],
         "go.gopath": "/go",
         "go.goroot": "/usr/local/go",
-        "remotenv.extensionKind": {
+        "remote.extensionKind": {
           "ms-azuretools.vscode-docker": "workspace"
         }
       }
