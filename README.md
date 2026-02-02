@@ -64,7 +64,24 @@ financial-planning-calculator/
 
 ## セットアップ
 
-### 前提条件
+### 🚀 Dev Container（最も簡単な方法）
+
+[Dev Containers](https://containers.dev/)を使用すると、VS Code上で一貫性のある開発環境をすばやくセットアップできます。
+
+**必要なもの:**
+- [Visual Studio Code](https://code.visualstudio.com/)
+- [Dev Containers拡張機能](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop)
+
+**使い方:**
+1. VS Codeでこのプロジェクトを開く
+2. コマンドパレット（`Ctrl+Shift+P` / `Cmd+Shift+P`）を開く
+3. `Dev Containers: Reopen in Container` を選択
+4. 自動セットアップが完了するまで待つ（初回は5〜10分）
+
+詳細は [Dev Containerガイド](.devcontainer/README.md) をご覧ください。
+
+### 前提条件（ローカル開発の場合）
 - Node.js 18.20.0+
 - Go 1.24.0+
 - PostgreSQL 13+

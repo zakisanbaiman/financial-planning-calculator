@@ -1,0 +1,24 @@
+# Dev Container用のdocker-compose.yml
+# メインのdocker-compose.ymlを拡張し、dev container用の設定を追加
+
+services:
+  # バックエンド開発コンテナ（dev container用）
+  backend:
+    volumes:
+      # ワークスペース全体をマウント
+      - ..:/workspace:cached
+      # Go modulesキャッシュ
+      - go_mod_cache:/go/pkg/mod
+      # Bashヒストリーを永続化
+      - devcontainer-bashhistory:/commandhistory
+    environment:
+      # デバッグ情報を出力
+      - DEVCONTAINER=true
+    # コンテナを起動したままにする（VS Codeがアタッチするため）
+    command: sleep infinity
+    # ルートユーザーで実行（VS Codeが管理）
+    user: root
+
+volumes:
+  devcontainer-bashhistory:
+    driver: local
