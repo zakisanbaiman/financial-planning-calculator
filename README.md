@@ -1,10 +1,10 @@
-# 財務計画計算機
+# FinPlan - Smart Financial Planning
 
-将来の資産形成と老後の財務計画を可視化するWebアプリケーション
+A modern web application to visualize your financial future and plan for retirement with confidence
 
-## 概要
+## Overview
 
-このアプリケーションは、ユーザーが現在の収入、支出、貯蓄状況を入力することで、将来の資産推移、老後資金、緊急時の備えを計算し、安心できる財務計画を立てられるようにします。
+This application helps users visualize their financial future and plan for retirement. By inputting current income, expenses, and savings, users can calculate future asset projections, retirement funds, and emergency preparedness to create a secure financial plan.
 
 ## 🚀 Dev環境（プレビュー環境）
 

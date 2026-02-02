@@ -5,8 +5,8 @@ import Tutorial from '@/components/Tutorial';
 import { AppProviders } from '@/lib/contexts/AppProviders';
 
 export const metadata: Metadata = {
-  title: '財務計画計算機',
-  description: '将来の資産形成と老後の財務計画を可視化するアプリケーション',
+  title: 'FinPlan - Smart Financial Planning',
+  description: 'Visualize your financial future and plan for retirement with confidence',
 };
 
 export default function RootLayout({
