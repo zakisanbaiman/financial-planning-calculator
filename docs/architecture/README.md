@@ -43,6 +43,19 @@
 
 **対象読者:** インフラエンジニア、DevOpsエンジニア、アーキテクト
 
+### [技術選定理由 (Technology Adoption Rationale)](./TECHNOLOGY_DECISIONS.md)
+各技術の採用理由と検討した代替案を説明したドキュメントです。
+
+**内容:**
+- アーキテクチャパターンの選定理由（Clean Architecture / DDD）
+- フロントエンド技術（Next.js, TypeScript, Tailwind CSS等）の採用理由
+- バックエンド技術（Go, Echo, PostgreSQL等）の採用理由
+- 認証・認可技術（JWT, bcrypt, WebAuthn等）の採用理由
+- インフラ技術（Docker, Render.com, GitHub Actions等）の採用理由
+- 各技術の代替案とそれらを排除した理由
+
+**対象読者:** アーキテクト、技術選定に関わるメンバー、新規参加メンバー
+
 ## 🏗️ アーキテクチャ概要
 
 ### システムの目的
@@ -143,6 +156,7 @@
 
 1. **まず読むべきもの**
    - このREADME（全体像の把握）
+   - [技術選定理由](./TECHNOLOGY_DECISIONS.md)（なぜこの技術を選んだか理解）
    - [クラス図](./CLASS_DIAGRAM.md)（アーキテクチャ理解）
    - [システム構成図](./SYSTEM_ARCHITECTURE.md)（開発環境理解）
 
@@ -152,19 +166,28 @@
 
 ### バックエンド開発者向け
 
-1. [クラス図](./CLASS_DIAGRAM.md) - ドメインモデルの理解
-2. [ER図](./ER_DIAGRAM.md) - データベーススキーマの理解
-3. [システム構成図](./SYSTEM_ARCHITECTURE.md) - APIフローの理解
+1. [技術選定理由](./TECHNOLOGY_DECISIONS.md) - Go/Echo/PostgreSQLを選んだ理由
+2. [クラス図](./CLASS_DIAGRAM.md) - ドメインモデルの理解
+3. [ER図](./ER_DIAGRAM.md) - データベーススキーマの理解
+4. [システム構成図](./SYSTEM_ARCHITECTURE.md) - APIフローの理解
 
 ### フロントエンド開発者向け
 
-1. [システム構成図](./SYSTEM_ARCHITECTURE.md) - APIエンドポイントの理解
-2. [クラス図](./CLASS_DIAGRAM.md) - データモデルの理解
+1. [技術選定理由](./TECHNOLOGY_DECISIONS.md) - Next.js/TypeScript/Tailwindを選んだ理由
+2. [システム構成図](./SYSTEM_ARCHITECTURE.md) - APIエンドポイントの理解
+3. [クラス図](./CLASS_DIAGRAM.md) - データモデルの理解
 
 ### インフラ/DevOpsエンジニア向け
 
-1. [システム構成図](./SYSTEM_ARCHITECTURE.md) - インフラ全体の理解
-2. [ER図](./ER_DIAGRAM.md) - データベース構成の理解
+1. [技術選定理由](./TECHNOLOGY_DECISIONS.md) - Docker/Render.comを選んだ理由
+2. [システム構成図](./SYSTEM_ARCHITECTURE.md) - インフラ全体の理解
+3. [ER図](./ER_DIAGRAM.md) - データベース構成の理解
+
+### アーキテクト・技術リーダー向け
+
+1. [技術選定理由](./TECHNOLOGY_DECISIONS.md) - 技術選定の根拠と代替案の検討
+2. [クラス図](./CLASS_DIAGRAM.md) - アーキテクチャパターンの理解
+3. [システム構成図](./SYSTEM_ARCHITECTURE.md) - システム全体の把握
 
 ## 🔄 アーキテクチャの進化
 
@@ -218,7 +241,11 @@ Mermaid記法を使用することで、テキストベースでバージョン�
 3. **システム構成変更時**
    - [システム構成図](./SYSTEM_ARCHITECTURE.md)を更新
 
-4. **新機能追加時**
+4. **技術スタック変更時**
+   - [技術選定理由](./TECHNOLOGY_DECISIONS.md)を更新
+   - 変更理由と代替案の検討を記載
+
+5. **新機能追加時**
    - 関連する図を更新
    - このREADMEの「主要機能」を更新
 
