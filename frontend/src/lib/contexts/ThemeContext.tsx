@@ -15,6 +15,23 @@ interface ThemeProviderProps {
   children: ReactNode;
 }
 
+// テーマを即座に読み込んで適用するスクリプト
+const themeScript = `
+  (function() {
+    try {
+      const storedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = storedTheme || (prefersDark ? 'dark' : 'light');
+      
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      }
+    } catch (error) {
+      console.warn('Failed to load theme:', error);
+    }
+  })();
+`;
+
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>('light');
   const [mounted, setMounted] = useState(false);

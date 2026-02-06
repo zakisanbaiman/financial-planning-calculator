@@ -16,6 +16,30 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja" suppressHydrationWarning>
+      <head>
+        {/* テーマの初期値を素早く読み込んで、白飛びを防止する */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const storedTheme = localStorage.getItem('theme');
+                  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  const theme = storedTheme || (prefersDark ? 'dark' : 'light');
+                  
+                  if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                } catch (error) {
+                  console.warn('Failed to load theme:', error);
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className="bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors">
         <AppProviders>
           <div className="min-h-screen flex flex-col">

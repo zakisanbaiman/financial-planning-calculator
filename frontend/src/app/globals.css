@@ -5,6 +5,8 @@
 @layer base {
   html {
     font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    /* 背景色を明示的に設定してナビゲーション時の白飛びを防止 */
+    @apply bg-gray-50 dark:bg-gray-900;
   }
 }
 
