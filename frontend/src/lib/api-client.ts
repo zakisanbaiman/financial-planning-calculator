@@ -83,6 +83,11 @@ async function request<T>(
     
     // 401エラー（未認証）の場合、リフレッシュトークンで自動更新を試みる
     if (response.status === 401) {
+      // ゲストモードの場合はエラーをそのまま投げる（リダイレクトしない）
+      if (typeof window !== 'undefined' && localStorage.getItem('guest_mode') === 'true') {
+        throw new APIError('認証が必要です。ゲストモードでは利用できない機能です。', 401);
+      }
+
       // リフレッシュ中でない場合、リフレッシュを開始
       if (!isRefreshing) {
         isRefreshing = true;
