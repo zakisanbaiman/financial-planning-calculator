@@ -202,6 +202,35 @@ go run main.go
 
 Swagger UIは http://localhost:8080/swagger/index.html で確認できます。
 
+### 監視・ログ・メトリクス
+
+本アプリケーションは、Prometheusメトリクス、構造化ログ、エラー追跡機能を提供しています。
+
+**メトリクスエンドポイント:**
+- http://localhost:8080/metrics - Prometheusメトリクス
+
+**主要メトリクス:**
+- HTTPリクエスト統計（リクエスト数、レスポンスタイム、エラー率）
+- データベースクエリ処理時間
+- アクティブ接続数
+- キャッシュヒット率
+- エラー統計
+
+**設定:**
+```bash
+# ログレベル設定
+LOG_LEVEL=INFO  # DEBUG, INFO, WARN, ERROR
+
+# メトリクス有効化
+ENABLE_PROMETHEUS_METRICS=true
+
+# エラー追跡有効化
+ENABLE_ERROR_TRACKING=true
+ERROR_TRACKING_ENVIRONMENT=development
+```
+
+詳細は [監視機能ドキュメント](./docs/MONITORING.md) をご覧ください。
+
 ### パフォーマンスプロファイリング（pprof）
 
 開発環境ではpprofが有効化されており、パフォーマンス分析が可能です。
