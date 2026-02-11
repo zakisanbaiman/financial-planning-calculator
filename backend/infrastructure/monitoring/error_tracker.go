@@ -88,7 +88,7 @@ func (t *DefaultErrorTracker) CaptureMessage(ctx context.Context, message string
 	
 	switch level {
 	case "error":
-		log.Error(ctx, message, fmt.Errorf(message), attrs...)
+		log.Error(ctx, message, fmt.Errorf("%s", message), attrs...)
 	case "warning":
 		log.Warn(ctx, message, attrs...)
 	default:

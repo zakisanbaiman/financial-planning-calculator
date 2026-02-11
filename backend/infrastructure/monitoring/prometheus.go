@@ -92,10 +92,18 @@ var (
 		},
 		[]string{"error_type", "severity"},
 	)
+
+	// メトリクスが初期化済みかどうかを示すフラグ
+	metricsInitialized = false
 )
 
 // InitPrometheus はPrometheusメトリクスを初期化します
 func InitPrometheus() {
+	// 既に初期化済みの場合は何もしない
+	if metricsInitialized {
+		return
+	}
+
 	// メトリクスを登録
 	prometheus.MustRegister(HTTPRequestsTotal)
 	prometheus.MustRegister(HTTPRequestDuration)
@@ -106,6 +114,8 @@ func InitPrometheus() {
 	prometheus.MustRegister(DatabaseConnectionsActive)
 	prometheus.MustRegister(CacheHitRatio)
 	prometheus.MustRegister(ErrorsTotal)
+
+	metricsInitialized = true
 }
 
 // PrometheusMiddleware はPrometheusメトリクスを収集するミドルウェアです

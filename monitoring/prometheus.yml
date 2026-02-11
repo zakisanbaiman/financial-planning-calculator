@@ -1,0 +1,28 @@
+# Prometheus設定ファイル
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'financial-planning-calculator'
+
+# 財務計画計算機APIからメトリクスを収集
+scrape_configs:
+  - job_name: 'financial-planning-api'
+    static_configs:
+      - targets: ['localhost:8080']
+        labels:
+          service: 'financial-planning-calculator'
+          environment: 'development'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+# アラートルール（オプション）
+# rule_files:
+#   - 'alert_rules.yml'
+
+# Alertmanager設定（オプション）
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['localhost:9093']
