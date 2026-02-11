@@ -24,14 +24,37 @@ const (
 )
 
 func init() {
-	// TODO: configからlog levelやformatを読み込めるようにする
+	// 環境変数からログレベルを取得（デフォルト: INFO）
+	level := getLogLevel()
+	
 	// JSON形式で標準出力にログを出力（構造化ロギング）
 	opts := &slog.HandlerOptions{
-		Level: slog.LevelInfo,
+		Level: level,
 		// ソースコードの位置情報を追加
 		AddSource: true,
 	}
 	logger = slog.New(slog.NewJSONHandler(os.Stdout, opts))
+}
+
+// getLogLevel は環境変数からログレベルを取得します
+func getLogLevel() slog.Level {
+	levelStr := os.Getenv("LOG_LEVEL")
+	if levelStr == "" {
+		return slog.LevelInfo
+	}
+
+	switch levelStr {
+	case "DEBUG", "debug":
+		return slog.LevelDebug
+	case "INFO", "info":
+		return slog.LevelInfo
+	case "WARN", "warn", "WARNING", "warning":
+		return slog.LevelWarn
+	case "ERROR", "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
 }
 
 // Logger はグローバルな構造化ロガーを返します。
@@ -79,9 +102,17 @@ func Error(ctx context.Context, msg string, err error, attrs ...slog.Attr) {
 	allAttrs := append([]slog.Attr{
 		slog.String("error", err.Error()),
 		slog.String("error_type", getErrorType(err)),
+		slog.String("stack_trace", getStackTrace()),
 		slog.Time("timestamp", time.Now().UTC()),
 	}, attrs...)
 	l.LogAttrs(ctx, slog.LevelError, msg, allAttrs...)
+}
+
+// getStackTrace はスタックトレースを取得します
+func getStackTrace() string {
+	buf := make([]byte, 4096)
+	n := runtime.Stack(buf, false)
+	return string(buf[:n])
 }
 
 // Warn は警告ログを出力します（コンテキスト情報付き）

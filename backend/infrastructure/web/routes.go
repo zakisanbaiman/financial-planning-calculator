@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/financial-planning-calculator/backend/infrastructure/monitoring"
 	"github.com/financial-planning-calculator/backend/infrastructure/web/controllers"
 	"github.com/labstack/echo/v4"
 	echoSwagger "github.com/swaggo/echo-swagger"
@@ -24,6 +25,9 @@ type Controllers struct {
 func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencies) {
 	// Swagger UI
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
+
+	// 監視・メトリクスエンドポイント
+	e.GET("/metrics", monitoring.PrometheusHandler())
 
 	// ヘルスチェック
 	e.GET("/health", HealthCheckHandler)
