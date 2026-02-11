@@ -97,9 +97,11 @@ func (t *DefaultErrorTracker) CaptureMessage(ctx context.Context, message string
 }
 
 // SetUser はユーザー情報を設定します
+// 注: この実装ではコンテキストの変更を行わないため、呼び出し側で
+// ctx = log.WithUserID(ctx, userID) を使用してください
 func (t *DefaultErrorTracker) SetUser(ctx context.Context, userID string, email string) {
-	// コンテキストにユーザー情報を設定
-	ctx = log.WithUserID(ctx, userID)
+	// デフォルト実装では何もしない
+	// 外部サービス（Sentry等）を使用する場合はここでユーザー情報を設定
 }
 
 // Close はエラートラッカーをクローズします

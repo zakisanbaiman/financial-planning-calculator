@@ -110,7 +110,7 @@ func Error(ctx context.Context, msg string, err error, attrs ...slog.Attr) {
 
 // getStackTrace はスタックトレースを取得します
 func getStackTrace() string {
-	buf := make([]byte, 4096)
+	buf := make([]byte, 8192) // 十分なサイズを確保（深い呼び出しスタックに対応）
 	n := runtime.Stack(buf, false)
 	return string(buf[:n])
 }
