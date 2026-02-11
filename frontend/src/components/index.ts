@@ -48,6 +48,16 @@ export { default as AssetProjectionCalculator } from './AssetProjectionCalculato
 export { default as RetirementCalculator } from './RetirementCalculator';
 export { default as EmergencyFundCalculator } from './EmergencyFundCalculator';
 
+// Dashboard Chart Components
+export { default as ExpenseBreakdownChart } from './ExpenseBreakdownChart';
+export type { ExpenseBreakdownChartProps } from './ExpenseBreakdownChart';
+
+export { default as SavingsAllocationChart } from './SavingsAllocationChart';
+export type { SavingsAllocationChartProps } from './SavingsAllocationChart';
+
+export { default as MonthlyCashFlowChart } from './MonthlyCashFlowChart';
+export type { MonthlyCashFlowChartProps } from './MonthlyCashFlowChart';
+
 // Error Handling Components
 export { ErrorBoundary, APIErrorDisplay } from './ErrorBoundary';
 

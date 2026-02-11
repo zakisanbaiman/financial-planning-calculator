@@ -9,6 +9,9 @@ import { useUser } from '@/lib/hooks/useUser';
 import GoalProgressTracker from '@/components/GoalProgressTracker';
 import GoalsSummaryChart from '@/components/GoalsSummaryChart';
 import AssetProjectionChart from '@/components/AssetProjectionChart';
+import ExpenseBreakdownChart from '@/components/ExpenseBreakdownChart';
+import SavingsAllocationChart from '@/components/SavingsAllocationChart';
+import MonthlyCashFlowChart from '@/components/MonthlyCashFlowChart';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import type { Goal, AssetProjectionPoint } from '@/types/api';
 
@@ -315,6 +318,39 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
+
+          {/* Monthly Cash Flow Trend */}
+          {financialStats.hasData && (
+            <div className="card">
+              <MonthlyCashFlowChart
+                monthlyIncome={financialStats.monthlyIncome}
+                monthlyExpenses={financialStats.monthlyExpenses}
+                monthlySavings={financialStats.monthlySavings}
+                months={12}
+                height={300}
+              />
+            </div>
+          )}
+
+          {/* Expense Breakdown Chart */}
+          {financialStats.hasData && expenseBreakdown.length > 0 && (
+            <div className="card">
+              <ExpenseBreakdownChart
+                expenses={expenseBreakdown}
+                height={280}
+              />
+            </div>
+          )}
+
+          {/* Savings Allocation Chart */}
+          {financialStats.hasData && financialData?.profile?.current_savings && financialData.profile.current_savings.length > 0 && (
+            <div className="card">
+              <SavingsAllocationChart
+                savings={financialData.profile.current_savings}
+                height={280}
+              />
+            </div>
+          )}
         </div>
 
         {/* Right Column - Goals and Actions */}
