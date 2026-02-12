@@ -13,7 +13,7 @@ PRを作成すると、自動的にクラウド上で確認できるプレビュ
 - **プラットフォーム**: Render.com
 - **自動デプロイ**: PRの作成・更新時
 - **有効期間**: PRクローズ後7日間
-- **詳細**: [Dev環境セットアップガイド](./DEV_ENVIRONMENT_SETUP.md)
+- **詳細**: [プレビュー環境クイックリファレンス](./docs/PREVIEW_ENVIRONMENT_QUICK_REF.md)
 
 PRを作成すると、GitHub Actions が自動的にプレビューURLをコメントします。
 
