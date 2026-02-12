@@ -8,6 +8,7 @@ import (
 
 	"github.com/financial-planning-calculator/backend/config"
 	"github.com/financial-planning-calculator/backend/infrastructure/log"
+	"github.com/financial-planning-calculator/backend/infrastructure/monitoring"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"golang.org/x/time/rate"
@@ -15,14 +16,17 @@ import (
 
 // SetupMiddleware configures all middleware for the Echo server
 func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) {
+	// パフォーマンス監視ミドルウェア（Prometheus）
+	e.Use(monitoring.PrometheusMiddleware())
+
 	// ログミドルウェア - 詳細なリクエスト/レスポンスログ
 	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 		Format: cfg.LogFormat,
 		Output: os.Stdout,
 	}))
 
-	// リカバリーミドルウェア - パニック時の復旧
-	e.Use(middleware.Recover())
+	// リカバリーミドルウェア - パニック時の復旧とエラー追跡
+	e.Use(RecoveryMiddlewareWithErrorTracking())
 
 	// CORS設定 - フロントエンドからのアクセス許可
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
@@ -195,5 +199,52 @@ func getErrorMessageFromStatus(status int) string {
 		return "入力データを処理できません"
 	default:
 		return "エラーが発生しました"
+	}
+}
+
+// RecoveryMiddlewareWithErrorTracking はパニック時の復旧とエラー追跡を提供します
+func RecoveryMiddlewareWithErrorTracking() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			defer func() {
+				if r := recover(); r != nil {
+					var err error
+					switch x := r.(type) {
+					case string:
+						err = echo.NewHTTPError(http.StatusInternalServerError, x)
+					case error:
+						err = echo.NewHTTPError(http.StatusInternalServerError, x.Error())
+					default:
+						err = echo.NewHTTPError(http.StatusInternalServerError, "パニックが発生しました")
+					}
+
+					// リクエストIDを取得
+					requestID := c.Response().Header().Get(echo.HeaderXRequestID)
+					ctx := log.WithRequestID(c.Request().Context(), requestID)
+
+					// エラー追跡システムに記録
+					tags := map[string]string{
+						"panic":      "true",
+						"method":     c.Request().Method,
+						"path":       c.Path(),
+						"request_id": requestID,
+					}
+					monitoring.CaptureError(ctx, err, tags)
+
+					// 構造化ログ出力（スタックトレース付き）
+					log.Error(ctx, "パニックが発生しました", err,
+						slog.String("path", c.Request().URL.Path),
+						slog.String("method", c.Request().Method),
+					)
+
+					// Prometheusメトリクスに記録
+					monitoring.RecordError("panic", "critical")
+
+					// エラーレスポンスを返す
+					c.Error(err)
+				}
+			}()
+			return next(c)
+		}
 	}
 }

@@ -1,0 +1,111 @@
+{
+  "dashboard": {
+    "title": "財務計画計算機 - メトリクスダッシュボード",
+    "tags": ["financial-planning", "api", "monitoring"],
+    "timezone": "Asia/Tokyo",
+    "panels": [
+      {
+        "title": "HTTPリクエスト数（秒間）",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{method}} {{endpoint}} ({{status}})"
+          }
+        ]
+      },
+      {
+        "title": "HTTPエラー率",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{status=~\"4..|5..\"}[5m])) / sum(rate(http_requests_total[5m])) * 100",
+            "legendFormat": "エラー率 (%)"
+          }
+        ]
+      },
+      {
+        "title": "HTTPレスポンスタイム",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p99"
+          }
+        ]
+      },
+      {
+        "title": "アクティブ接続数",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "http_active_connections",
+            "legendFormat": "HTTP接続"
+          },
+          {
+            "expr": "database_connections_active",
+            "legendFormat": "DB接続"
+          }
+        ]
+      },
+      {
+        "title": "データベースクエリ処理時間",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(database_query_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{query_type}} (p95)"
+          }
+        ]
+      },
+      {
+        "title": "キャッシュヒット率",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "cache_hit_ratio",
+            "legendFormat": "{{cache_type}}"
+          }
+        ]
+      },
+      {
+        "title": "エラー発生数（種別）",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(errors_total[5m])",
+            "legendFormat": "{{error_type}} ({{severity}})"
+          }
+        ]
+      },
+      {
+        "title": "リクエストサイズ分布",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "rate(http_request_size_bytes_bucket[5m])",
+            "format": "heatmap"
+          }
+        ]
+      },
+      {
+        "title": "レスポンスサイズ分布",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "rate(http_response_size_bytes_bucket[5m])",
+            "format": "heatmap"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -7,6 +7,7 @@ import (
 
 	"github.com/financial-planning-calculator/backend/config"
 	"github.com/financial-planning-calculator/backend/domain/services"
+	"github.com/financial-planning-calculator/backend/infrastructure/monitoring"
 	"github.com/financial-planning-calculator/backend/infrastructure/repositories"
 	"github.com/financial-planning-calculator/backend/infrastructure/web"
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -27,6 +28,9 @@ func main() {
 
 	// セキュリティ警告チェック
 	checkSecurityWarnings(cfg, dbConfig)
+
+	// 監視システムの初期化
+	initMonitoring(cfg)
 
 	// Echo インスタンス作成
 	e := echo.New()
@@ -74,6 +78,21 @@ func main() {
 	log.Printf("許可されたオリジン: %v", cfg.AllowedOrigins)
 
 	e.Logger.Fatal(e.Start(":" + cfg.Port))
+}
+
+// initMonitoring は監視システムを初期化します
+func initMonitoring(cfg *config.ServerConfig) {
+	// Prometheusメトリクスの初期化
+	monitoring.InitPrometheus()
+	log.Println("✅ Prometheusメトリクスを初期化しました")
+
+	// エラートラッキングの初期化
+	environment := "development"
+	if !cfg.Debug {
+		environment = "production"
+	}
+	monitoring.InitErrorTracker(environment)
+	log.Printf("✅ エラートラッキングを初期化しました (環境: %s)", environment)
 }
 
 // initializeDependencies initializes all dependencies for the application

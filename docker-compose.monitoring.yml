@@ -1,0 +1,60 @@
+# 監視スタック用のDocker Compose設定
+# Prometheus + Grafana for monitoring
+
+version: '3.8'
+
+services:
+  # Prometheusサーバー
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: financial-planning-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # Grafanaダッシュボード
+  grafana:
+    image: grafana/grafana:latest
+    container_name: financial-planning-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana-dashboard.json:/etc/grafana/provisioning/dashboards/financial-planning.json
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  monitoring:
+    driver: bridge
+
+# 使い方:
+# 1. アプリケーションを起動（バックエンドが http://localhost:8080 で起動していること）
+# 2. 監視スタックを起動: docker-compose -f docker-compose.monitoring.yml up -d
+# 3. Prometheusにアクセス: http://localhost:9090
+# 4. Grafanaにアクセス: http://localhost:3001 (admin/admin)
+# 5. Grafanaで新しいデータソースを追加:
+#    - Type: Prometheus
+#    - URL: http://prometheus:9090
+# 6. ダッシュボードをインポート（または自動プロビジョニング）
