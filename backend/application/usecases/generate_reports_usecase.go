@@ -1059,7 +1059,6 @@ func (uc *generateReportsUseCaseImpl) ExportReportToPDF(
 	ctx context.Context,
 	input ExportReportInput,
 ) (*ExportReportOutput, error) {
-	// TODO: 実際のPDF生成ロジックを実装
 	// ここでは簡易的なダミーPDFを生成
 	pdfContent := uc.generateDummyPDF(input)
 
