@@ -170,4 +170,4 @@ psql -U postgres -d financial_planning -c "SELECT 1"
 
 - [runn ドキュメント](https://github.com/k1LoW/runn)
 - [プロジェクト README](../../README.md)
-- [Docker セットアップガイド](../../DOCKER_SETUP.md)
+- [Docker セットアップガイド](../../docs/DOCKER_SETUP.md)

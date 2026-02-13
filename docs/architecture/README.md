@@ -261,8 +261,8 @@ Mermaid記法を使用することで、テキストベースでバージョン�
 
 - [README.md](../../README.md) - プロジェクト概要とセットアップ
 - [CONTRIBUTING.md](../../CONTRIBUTING.md) - コントリビューションガイド
-- [SETUP.md](../../SETUP.md) - セットアップ詳細
-- [DOCKER_SETUP.md](../../DOCKER_SETUP.md) - Docker環境詳細
+- [SETUP.md](../SETUP.md) - セットアップ詳細
+- [DOCKER_SETUP.md](../DOCKER_SETUP.md) - Docker環境詳細
 - [docs/adr/](../adr/) - アーキテクチャ決定記録（ADR）
 - [backend/docs/](../../backend/docs/) - バックエンド固有ドキュメント
 

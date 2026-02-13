@@ -98,7 +98,7 @@ Settings → Pull Request Previews → Enable
 
 ## 🔗 便利なリンク
 
-- [完全セットアップガイド](./DEV_ENVIRONMENT_SETUP.md)
+- [セットアップガイド](./SETUP.md)
 - [Render.com Dashboard](https://dashboard.render.com)
 - [Render.com Docs](https://render.com/docs)
 

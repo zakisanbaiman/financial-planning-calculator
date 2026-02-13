@@ -39,7 +39,7 @@ jobs:
             
             ### Useful Links:
             - [Render.com Dashboard](https://dashboard.render.com)
-            - [Setup Guide](../blob/main/DEV_ENVIRONMENT_SETUP.md)
+            - [Preview Environment Quick Reference](../blob/main/docs/PREVIEW_ENVIRONMENT_QUICK_REF.md)
             
             ---
             💡 **Note**: First deployment may take 5-10 minutes. Subsequent deployments are faster.
