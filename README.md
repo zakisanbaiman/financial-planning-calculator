@@ -26,6 +26,14 @@ Render.comへのデプロイ時のエラーを自動検知し、AIアシスタ�
 - **PRへの自動通知**: エラー発生時にPRへコメントを追加
 - **詳細**: [MCP セットアップガイド](./docs/MCP_SETUP.md) | [クイックリファレンス](./docs/MCP_QUICK_REFERENCE.md)
 
+### 📦 デプロイフロー
+
+ローカル開発から本番デプロイまでの全体フローについては、[デプロイフロードキュメント](./docs/DEPLOYMENT_FLOW.md)を参照してください。
+
+- **buildFilter**: 変更されたファイルに応じてBackend/Frontendを選択的にデプロイ
+- **GitHub連携**: OAuth + Webhook による自動デプロイ
+- **将来の拡張**: AWS移行時の設計案も記載
+
 ## 技術スタック
 
 ### フロントエンド
