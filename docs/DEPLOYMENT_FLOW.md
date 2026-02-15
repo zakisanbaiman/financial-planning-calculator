@@ -246,10 +246,10 @@ AI アシスタント（Claude、Copilot、Cursor）が Render のデプロイ�
     ↙    ↘
 [ECS Fargate]  [ECS Fargate]
   Backend        Frontend
-       ↓
+    ↓   ↘
+    ↓    [ElastiCache Redis]
+    ↓
 [RDS PostgreSQL Multi-AZ]
-       ↓
-[ElastiCache Redis]
 ```
 
 ### 段階的移行戦略
