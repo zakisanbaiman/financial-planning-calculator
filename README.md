@@ -6,16 +6,14 @@ A modern web application to visualize your financial future and plan for retirem
 
 This application helps users visualize their financial future and plan for retirement. By inputting current income, expenses, and savings, users can calculate future asset projections, retirement funds, and emergency preparedness to create a secure financial plan.
 
-## 🚀 Dev環境（プレビュー環境）
+## 🚀 デプロイ
 
-PRを作成すると、自動的にクラウド上で確認できるプレビュー環境がデプロイされます。
+main ブランチにマージされると、Render.com に自動デプロイされます。
 
-- **プラットフォーム**: Render.com
-- **自動デプロイ**: PRの作成・更新時
-- **有効期間**: PRクローズ後7日間
-- **詳細**: [プレビュー環境クイックリファレンス](./docs/PREVIEW_ENVIRONMENT_QUICK_REF.md)
-
-PRを作成すると、GitHub Actions が自動的にプレビューURLをコメントします。
+- **プラットフォーム**: Render.com（無料プラン）
+- **自動デプロイ**: main ブランチへのマージ時
+- **選択的ビルド**: 変更されたファイルに応じて Backend/Frontend を個別にデプロイ
+- **詳細**: [デプロイフロードキュメント](./docs/DEPLOYMENT_FLOW.md)
 
 ### 🤖 AI連携によるエラー検知・自動修正
 
