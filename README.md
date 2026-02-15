@@ -6,16 +6,14 @@ A modern web application to visualize your financial future and plan for retirem
 
 This application helps users visualize their financial future and plan for retirement. By inputting current income, expenses, and savings, users can calculate future asset projections, retirement funds, and emergency preparedness to create a secure financial plan.
 
-## 🚀 Dev環境（プレビュー環境）
+## 🚀 デプロイ
 
-PRを作成すると、自動的にクラウド上で確認できるプレビュー環境がデプロイされます。
+main ブランチにマージされると、Render.com に自動デプロイされます。
 
-- **プラットフォーム**: Render.com
-- **自動デプロイ**: PRの作成・更新時
-- **有効期間**: PRクローズ後7日間
-- **詳細**: [プレビュー環境クイックリファレンス](./docs/PREVIEW_ENVIRONMENT_QUICK_REF.md)
-
-PRを作成すると、GitHub Actions が自動的にプレビューURLをコメントします。
+- **プラットフォーム**: Render.com（無料プラン）
+- **自動デプロイ**: main ブランチへのマージ時
+- **選択的ビルド**: 変更されたファイルに応じて Backend/Frontend を個別にデプロイ
+- **詳細**: [デプロイフロードキュメント](./docs/DEPLOYMENT_FLOW.md)
 
 ### 🤖 AI連携によるエラー検知・自動修正
 
@@ -25,14 +23,6 @@ Render.comへのデプロイ時のエラーを自動検知し、AIアシスタ�
 - **自動エラー検知**: デプロイログから一般的なエラーパターンを自動検出
 - **PRへの自動通知**: エラー発生時にPRへコメントを追加
 - **詳細**: [MCP セットアップガイド](./docs/MCP_SETUP.md) | [クイックリファレンス](./docs/MCP_QUICK_REFERENCE.md)
-
-### 📦 デプロイフロー
-
-ローカル開発から本番デプロイまでの全体フローについては、[デプロイフロードキュメント](./docs/DEPLOYMENT_FLOW.md)を参照してください。
-
-- **buildFilter**: 変更されたファイルに応じてBackend/Frontendを選択的にデプロイ
-- **GitHub連携**: OAuth + Webhook による自動デプロイ
-- **将来の拡張**: AWS移行時の設計案も記載
 
 ## 技術スタック
 

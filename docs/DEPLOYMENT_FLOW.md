@@ -161,31 +161,7 @@ services:
 
 ---
 
-## 4. PR プレビュー環境
-
-PR を作成すると、独立したプレビュー環境が自動デプロイされます。
-
-### URL 形式
-
-```
-Frontend: https://financial-planning-frontend-pr-{PR番号}.onrender.com
-Backend:  https://financial-planning-backend-pr-{PR番号}.onrender.com
-```
-
-### 特徴
-
-| 項目 | 内容 |
-|------|------|
-| 独立した DB | PR ごとに PostgreSQL インスタンス |
-| 自動デプロイ | PR 作成・更新時 |
-| 有効期限 | PR クローズ後 7 日間 |
-| 無料プラン制限 | 15分非アクティブでスリープ |
-
-詳細: [プレビュー環境クイックリファレンス](./PREVIEW_ENVIRONMENT_QUICK_REF.md)
-
----
-
-## 5. 環境変数管理
+## 4. 環境変数管理
 
 ### Backend
 
@@ -206,7 +182,7 @@ Backend:  https://financial-planning-backend-pr-{PR番号}.onrender.com
 
 ---
 
-## 6. デプロイ監視
+## 5. デプロイ監視
 
 ### GitHub Actions による自動監視
 
@@ -224,7 +200,7 @@ AI アシスタント（Claude、Copilot、Cursor）が Render のデプロイ�
 
 ---
 
-## 7. 将来の AWS 移行案（参考）
+## 6. 将来の AWS 移行案（参考）
 
 現在は Render.com 無料プランで運用していますが、商用化時には AWS への移行を検討できます。
 
@@ -270,6 +246,5 @@ AI アシスタント（Claude、Copilot、Cursor）が Render のデプロイ�
 
 - [render.yaml](../render.yaml) - Render デプロイ設定
 - [docker-compose.yml](../docker-compose.yml) - ローカル開発環境
-- [プレビュー環境クイックリファレンス](./PREVIEW_ENVIRONMENT_QUICK_REF.md)
 - [MCP セットアップガイド](./MCP_SETUP.md)
 - [Docker セットアップ](./DOCKER_SETUP.md)
