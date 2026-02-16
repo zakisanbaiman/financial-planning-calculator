@@ -63,9 +63,41 @@ func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) {
 	// リクエストサイズ制限
 	e.Use(middleware.BodyLimit(cfg.MaxRequestSize))
 
-	// レート制限 - API呼び出し頻度制限
+	// Rate limiting - per-IP API request throttling
 	e.Use(middleware.RateLimiterWithConfig(middleware.RateLimiterConfig{
-		Store: middleware.NewRateLimiterMemoryStore(rate.Limit(cfg.RateLimitRPS)),
+		Store: middleware.NewRateLimiterMemoryStoreWithConfig(
+			middleware.RateLimiterMemoryStoreConfig{
+				Rate:      rate.Limit(cfg.RateLimitRPS),
+				Burst:     cfg.RateLimitBurst,
+				ExpiresIn: 3 * time.Minute, // Clean up inactive IP entries after 3 minutes
+			},
+		),
+		IdentifierExtractor: func(c echo.Context) (string, error) {
+			// Prefer X-Forwarded-For or X-Real-IP headers (proxy support)
+			ip := c.Request().Header.Get("X-Forwarded-For")
+			if ip == "" {
+				ip = c.Request().Header.Get("X-Real-IP")
+			}
+			if ip == "" {
+				ip = c.RealIP()
+			}
+			return ip, nil
+		},
+		ErrorHandler: func(c echo.Context, err error) error {
+			return c.JSON(http.StatusTooManyRequests, map[string]any{
+				"error":   "Too Many Requests",
+				"message": "Rate limit exceeded. Please wait before retrying.",
+				"code":    "RATE_LIMIT_EXCEEDED",
+			})
+		},
+		DenyHandler: func(c echo.Context, identifier string, err error) error {
+			return c.JSON(http.StatusTooManyRequests, map[string]any{
+				"error":       "Too Many Requests",
+				"message":     "Rate limit exceeded. Please wait before retrying.",
+				"code":        "RATE_LIMIT_EXCEEDED",
+				"retry_after": "60s",
+			})
+		},
 	}))
 
 	// タイムアウト設定

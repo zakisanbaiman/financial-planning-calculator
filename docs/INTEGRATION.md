@@ -331,8 +331,9 @@ DB_SSLMODE=require
 # CORS
 ALLOWED_ORIGINS=https://your-domain.com
 
-# Performance
+# Performance (IP-based rate limiting)
 RATE_LIMIT_RPS=100
+RATE_LIMIT_BURST=50
 REQUEST_TIMEOUT=30s
 MAX_REQUEST_SIZE=10M
 ENABLE_GZIP=true
