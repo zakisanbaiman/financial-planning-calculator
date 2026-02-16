@@ -69,8 +69,9 @@ DEBUG=false
 # CORS設定
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
 
-# レート制限
-RATE_LIMIT_RPS=100
+# レート制限（IPアドレス別）
+RATE_LIMIT_RPS=100        # 1秒あたりの許可リクエスト数
+RATE_LIMIT_BURST=50       # バースト許容数
 
 # リクエスト設定
 REQUEST_TIMEOUT=30s

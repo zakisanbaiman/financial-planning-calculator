@@ -14,6 +14,7 @@ type ServerConfig struct {
 	AllowedOrigins      []string
 	CORSMaxAge          int
 	RateLimitRPS        int
+	RateLimitBurst      int
 	RequestTimeout      time.Duration
 	MaxRequestSize      string
 	EnableGzip          bool
@@ -56,6 +57,7 @@ func LoadServerConfig() *ServerConfig {
 		AllowedOrigins:      getEnvSlice("ALLOWED_ORIGINS", []string{"http://localhost:3000", "http://localhost:3001", "https://localhost:3000", "https://localhost:3001"}),
 		CORSMaxAge:          getEnvInt("CORS_MAX_AGE", 86400),
 		RateLimitRPS:        getEnvInt("RATE_LIMIT_RPS", 100),
+		RateLimitBurst:      getEnvInt("RATE_LIMIT_BURST", 50),
 		RequestTimeout:      getEnvDuration("REQUEST_TIMEOUT", 30*time.Second),
 		MaxRequestSize:      getEnv("MAX_REQUEST_SIZE", "10M"),
 		EnableGzip:          getEnvBool("ENABLE_GZIP", true),
