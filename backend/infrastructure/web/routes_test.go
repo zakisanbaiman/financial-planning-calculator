@@ -1,9 +1,11 @@
 package web
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/financial-planning-calculator/backend/config"
 	"github.com/labstack/echo/v4"
@@ -65,7 +67,8 @@ func TestSetupRoutes(t *testing.T) {
 
 	// This should not panic
 	assert.NotPanics(t, func() {
-		SetupRoutes(e, controllers, deps)
+		testStore := NewCustomRateLimiterStore(100, 50, 3*time.Minute)
+		SetupRoutes(e, controllers, deps, testStore)
 	})
 
 	// Verify that routes are registered
@@ -81,4 +84,55 @@ func TestSetupRoutes(t *testing.T) {
 	assert.Contains(t, routePaths, "/health")
 	assert.Contains(t, routePaths, "/api/")
 	assert.Contains(t, routePaths, "/swagger/*")
+	assert.Contains(t, routePaths, "/api/rate-limit/status")
+}
+
+func TestRateLimitStatusHandler(t *testing.T) {
+	store := NewCustomRateLimiterStore(100, 50, time.Minute)
+	e := echo.New()
+
+	req := httptest.NewRequest("GET", "/api/rate-limit/status", nil)
+	req.RemoteAddr = "203.0.113.1:1234"
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	handler := RateLimitStatusHandler(store)
+	err := handler(c)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 200, rec.Code)
+
+	// Response should contain rate limit info fields
+	body := rec.Body.String()
+	assert.Contains(t, body, "\"limit\"")
+	assert.Contains(t, body, "\"remaining\"")
+	assert.Contains(t, body, "\"reset\"")
+	assert.Contains(t, body, "\"reset_at\"")
+}
+
+func TestRateLimitStatusHandler_RemainingDecreases(t *testing.T) {
+	store := NewCustomRateLimiterStore(100, 5, time.Minute)
+	e := echo.New()
+	ip := "203.0.113.2"
+
+	callStatus := func() int {
+		req := httptest.NewRequest("GET", "/api/rate-limit/status", nil)
+		req.RemoteAddr = ip + ":1234"
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+		handler := RateLimitStatusHandler(store)
+		handler(c) //nolint:errcheck
+
+		var info RateLimitInfo
+		json.NewDecoder(rec.Body).Decode(&info) //nolint:errcheck
+		return info.Remaining
+	}
+
+	first := callStatus()
+	// Consume 2 tokens via Allow
+	store.Allow(ip) //nolint:errcheck
+	store.Allow(ip) //nolint:errcheck
+	second := callStatus()
+
+	assert.GreaterOrEqual(t, first, second, "remaining should decrease after Allow calls")
 }

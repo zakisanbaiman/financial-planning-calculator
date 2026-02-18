@@ -46,7 +46,7 @@ func main() {
 	e.HTTPErrorHandler = web.CustomHTTPErrorHandler
 
 	// ミドルウェア設定
-	web.SetupMiddleware(e, cfg)
+	rateLimitStore := web.SetupMiddleware(e, cfg)
 
 	// 依存関係の初期化
 	deps := initializeDependencies()
@@ -55,7 +55,7 @@ func main() {
 	controllers := web.NewControllers(deps)
 
 	// ルーティング設定
-	web.SetupRoutes(e, controllers, deps)
+	web.SetupRoutes(e, controllers, deps, rateLimitStore)
 
 	// pprofサーバーの起動（開発環境のみ）
 	if cfg.EnablePprof {
