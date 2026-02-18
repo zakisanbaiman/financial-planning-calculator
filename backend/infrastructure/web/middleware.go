@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -11,11 +12,11 @@ import (
 	"github.com/financial-planning-calculator/backend/infrastructure/monitoring"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"golang.org/x/time/rate"
 )
 
-// SetupMiddleware configures all middleware for the Echo server
-func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) {
+// SetupMiddleware configures all middleware for the Echo server.
+// Returns the CustomRateLimiterStore so it can be reused for the status endpoint.
+func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) *CustomRateLimiterStore {
 	// パフォーマンス監視ミドルウェア（Prometheus）
 	e.Use(monitoring.PrometheusMiddleware())
 
@@ -63,26 +64,15 @@ func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) {
 	// リクエストサイズ制限
 	e.Use(middleware.BodyLimit(cfg.MaxRequestSize))
 
-	// Rate limiting - per-IP API request throttling
+	// Rate limiting - per-IP API request throttling (custom store for /api/rate-limit/status)
+	rateLimitStore := NewCustomRateLimiterStore(
+		float64(cfg.RateLimitRPS),
+		cfg.RateLimitBurst,
+		3*time.Minute,
+	)
 	e.Use(middleware.RateLimiterWithConfig(middleware.RateLimiterConfig{
-		Store: middleware.NewRateLimiterMemoryStoreWithConfig(
-			middleware.RateLimiterMemoryStoreConfig{
-				Rate:      rate.Limit(cfg.RateLimitRPS),
-				Burst:     cfg.RateLimitBurst,
-				ExpiresIn: 3 * time.Minute, // Clean up inactive IP entries after 3 minutes
-			},
-		),
-		IdentifierExtractor: func(c echo.Context) (string, error) {
-			// Prefer X-Forwarded-For or X-Real-IP headers (proxy support)
-			ip := c.Request().Header.Get("X-Forwarded-For")
-			if ip == "" {
-				ip = c.Request().Header.Get("X-Real-IP")
-			}
-			if ip == "" {
-				ip = c.RealIP()
-			}
-			return ip, nil
-		},
+		Store: rateLimitStore,
+		IdentifierExtractor: extractIdentifier,
 		ErrorHandler: func(c echo.Context, err error) error {
 			return c.JSON(http.StatusTooManyRequests, map[string]any{
 				"error":   "Too Many Requests",
@@ -100,6 +90,9 @@ func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) {
 		},
 	}))
 
+	// X-RateLimit-* response headers
+	e.Use(RateLimitHeaderMiddleware(rateLimitStore))
+
 	// タイムアウト設定
 	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
 		Timeout: cfg.RequestTimeout,
@@ -113,6 +106,37 @@ func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) {
 		e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
 			Level: cfg.GzipLevel,
 		}))
+	}
+
+	return rateLimitStore
+}
+
+// extractIdentifier returns the client IP from common proxy headers or the real IP.
+func extractIdentifier(c echo.Context) (string, error) {
+	ip := c.Request().Header.Get("X-Forwarded-For")
+	if ip == "" {
+		ip = c.Request().Header.Get("X-Real-IP")
+	}
+	if ip == "" {
+		ip = c.RealIP()
+	}
+	return ip, nil
+}
+
+// RateLimitHeaderMiddleware attaches X-RateLimit-{Limit,Remaining,Reset} headers to every response.
+func RateLimitHeaderMiddleware(store *CustomRateLimiterStore) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			identifier, _ := extractIdentifier(c)
+			info := store.GetInfo(identifier)
+
+			h := c.Response().Header()
+			h.Set("X-RateLimit-Limit", fmt.Sprintf("%d", info.Limit))
+			h.Set("X-RateLimit-Remaining", fmt.Sprintf("%d", info.Remaining))
+			h.Set("X-RateLimit-Reset", fmt.Sprintf("%d", info.Reset))
+
+			return next(c)
+		}
 	}
 }
 

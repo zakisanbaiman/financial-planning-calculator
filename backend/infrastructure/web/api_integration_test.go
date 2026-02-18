@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/financial-planning-calculator/backend/application/usecases"
 	"github.com/financial-planning-calculator/backend/config"
@@ -270,7 +271,8 @@ func setupTestServer() (*echo.Echo, *MockManageFinancialDataUseCase, *MockCalcul
 	}
 
 	// Setup routes
-	SetupRoutes(e, controllers, deps)
+	testStore := NewCustomRateLimiterStore(100, 50, 3*time.Minute)
+	SetupRoutes(e, controllers, deps, testStore)
 
 	return e, mockFinancialUseCase, mockCalculationUseCase, mockGoalsUseCase, mockReportsUseCase
 }

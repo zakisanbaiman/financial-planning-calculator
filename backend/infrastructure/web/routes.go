@@ -22,7 +22,7 @@ type Controllers struct {
 }
 
 // SetupRoutes configures all routes based on OpenAPI specification
-func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencies) {
+func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencies, rateLimitStore *CustomRateLimiterStore) {
 	// Swagger UI
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
@@ -47,6 +47,9 @@ func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencie
 
 	// API情報エンドポイント
 	api.GET("/", APIInfoHandler)
+
+	// レートリミットステータスエンドポイント（認証不要）
+	api.GET("/rate-limit/status", RateLimitStatusHandler(rateLimitStore))
 
 	// 認証エンドポイント（認証不要）
 	setupAuthRoutes(api, controllers.Auth, deps)
@@ -238,4 +241,24 @@ func APIInfoHandler(c echo.Context) error {
 		},
 		"timestamp": time.Now().Format(time.RFC3339),
 	})
+}
+
+// RateLimitStatusHandler returns the current rate limit status for the caller's IP.
+//
+// GET /api/rate-limit/status
+//
+// Response:
+//
+//	{
+//	  "limit":     50,
+//	  "remaining": 47,
+//	  "reset":     1739865600,
+//	  "reset_at":  "2026-02-18T15:00:00Z"
+//	}
+func RateLimitStatusHandler(store *CustomRateLimiterStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		identifier, _ := extractIdentifier(c)
+		info := store.GetInfo(identifier)
+		return c.JSON(http.StatusOK, info)
+	}
 }
