@@ -49,20 +49,27 @@ const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
 
     const handleFocus = () => {
       setIsFocused(true);
-      // フォーカス時はカンマなしの数値を表示
-      setInputValue(value ? value.toString() : '');
+      // フォーカス時もカンマ付きのまま表示
     };
 
     const handleBlur = () => {
       setIsFocused(false);
-      // フォーカスが外れたら3桁区切りで表示
+      // フォーカスが外れても3桁区切りで表示（変更なし）
       setInputValue(value ? value.toLocaleString() : '');
       onBlur?.();
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const rawValue = e.target.value.replace(/,/g, ''); // カンマを除去
-      
+      const input = e.target;
+      const cursorPos = input.selectionStart ?? 0;
+      const oldFormattedValue = input.value;
+
+      // カーソル前のカンマ数・数字数を取得
+      const oldCommasBeforeCursor = (oldFormattedValue.slice(0, cursorPos).match(/,/g) || []).length;
+      const digitsBeforeCursor = cursorPos - oldCommasBeforeCursor;
+
+      const rawValue = oldFormattedValue.replace(/,/g, ''); // カンマを除去
+
       // 空文字の場合は0
       if (rawValue === '') {
         setInputValue('');
@@ -76,7 +83,7 @@ const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
       }
 
       const numValue = parseInt(rawValue, 10);
-      
+
       // min/max チェック
       if (min !== undefined && numValue < min) {
         return;
@@ -85,8 +92,34 @@ const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
         return;
       }
 
-      setInputValue(rawValue);
+      // 入力中も3桁区切りでフォーマット
+      const formatted = numValue.toLocaleString();
+      setInputValue(formatted);
       onChange(numValue);
+
+      // カーソル位置をカンマ挿入後も正しい位置に調整
+      let digitCount = 0;
+      let newCursorPos = formatted.length;
+
+      if (digitsBeforeCursor === 0) {
+        newCursorPos = 0;
+      } else {
+        for (let i = 0; i < formatted.length; i++) {
+          if (formatted[i] !== ',') {
+            digitCount++;
+          }
+          if (digitCount === digitsBeforeCursor) {
+            newCursorPos = i + 1;
+            break;
+          }
+        }
+      }
+
+      requestAnimationFrame(() => {
+        if (input.isConnected) {
+          input.setSelectionRange(newCursorPos, newCursorPos);
+        }
+      });
     };
 
     const inputClasses = `
