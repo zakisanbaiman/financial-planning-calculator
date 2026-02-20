@@ -440,15 +440,15 @@ export default function DashboardPage() {
                 <>
                   {financialStats.emergencyMonths >= 6 ? (
                     <div className="p-3 bg-success-50 dark:bg-success-900/30 border border-success-200 dark:border-success-700 rounded-lg">
-                      <p className="text-sm font-medium text-success-800 dark:text-success-200">✅ 絊急資金は十分確保されています（{financialStats.emergencyMonths.toFixed(1)}ケ月分）</p>
+                      <p className="text-sm font-medium text-success-800 dark:text-success-200">✅ 緊急資金は十分確保されています（{financialStats.emergencyMonths.toFixed(1)}ケ月分）</p>
                     </div>
                   ) : financialStats.emergencyMonths >= 3 ? (
                     <div className="p-3 bg-warning-50 dark:bg-warning-900/30 border border-warning-200 dark:border-warning-700 rounded-lg">
-                      <p className="text-sm font-medium text-warning-800 dark:text-warning-200">⚠️ 絊急資金を6ケ月分まで増やすことを推奨（現在{financialStats.emergencyMonths.toFixed(1)}ケ月分）</p>
+                      <p className="text-sm font-medium text-warning-800 dark:text-warning-200">⚠️ 緊急資金を6ケ月分まで増やすことを推奨（現在{financialStats.emergencyMonths.toFixed(1)}ケ月分）</p>
                     </div>
                   ) : (
                     <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg">
-                      <p className="text-sm font-medium text-red-800 dark:text-red-200">🚨 絊急資金が不足しています。最低3ケ月分の確保を優先してください</p>
+                      <p className="text-sm font-medium text-red-800 dark:text-red-200">🚨 緊急資金が不足しています。最低3ケ月分の確保を優先してください</p>
                     </div>
                   )}
 

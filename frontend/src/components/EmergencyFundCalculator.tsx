@@ -211,7 +211,7 @@ export default function EmergencyFundCalculator({
             {/* 詳細数値 */}
             <div className="space-y-4">
               <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-600">
-                <span className="text-gray-600 dark:text-gray-300">推奨絊急資金額</span>
+                <span className="text-gray-600 dark:text-gray-300">推奨緊急資金額</span>
                 <span className="text-lg font-semibold text-gray-900 dark:text-white">
                   {new Intl.NumberFormat('ja-JP', {
                     style: 'currency',
@@ -222,7 +222,7 @@ export default function EmergencyFundCalculator({
               </div>
 
               <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-600">
-                <span className="text-gray-600 dark:text-gray-300">現在の絊急資金</span>
+                <span className="text-gray-600 dark:text-gray-300">現在の緊急資金</span>
                 <span className="text-lg font-semibold text-gray-900 dark:text-white">
                   {new Intl.NumberFormat('ja-JP', {
                     style: 'currency',
@@ -270,7 +270,7 @@ export default function EmergencyFundCalculator({
               {/* 現在の資金 */}
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-gray-600 dark:text-gray-300">現在の絊急資金</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">現在の緊急資金</span>
                   <span className="text-sm font-medium text-gray-900 dark:text-white">
                     {new Intl.NumberFormat('ja-JP', {
                       style: 'currency',
@@ -344,7 +344,7 @@ export default function EmergencyFundCalculator({
           {result.shortfall > 0 ? (
             <div className="card bg-warning-50 dark:bg-warning-900/30 border-warning-200 dark:border-warning-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                ⚠️ 絊急資金が不足しています
+                ⚠️ 緊急資金が不足しています
               </h3>
               <p className="text-gray-700 dark:text-gray-300 mb-4">
                 予期せぬ出来事に備えて、緊急資金を増やすことをお勧めします。
