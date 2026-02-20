@@ -210,9 +210,9 @@ export default function EmergencyFundCalculator({
 
             {/* 詳細数値 */}
             <div className="space-y-4">
-              <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                <span className="text-gray-600">推奨緊急資金額</span>
-                <span className="text-lg font-semibold text-gray-900">
+              <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-600">
+                <span className="text-gray-600 dark:text-gray-300">推奨緊急資金額</span>
+                <span className="text-lg font-semibold text-gray-900 dark:text-white">
                   {new Intl.NumberFormat('ja-JP', {
                     style: 'currency',
                     currency: 'JPY',
@@ -221,9 +221,9 @@ export default function EmergencyFundCalculator({
                 </span>
               </div>
 
-              <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                <span className="text-gray-600">現在の緊急資金</span>
-                <span className="text-lg font-semibold text-gray-900">
+              <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-600">
+                <span className="text-gray-600 dark:text-gray-300">現在の緊急資金</span>
+                <span className="text-lg font-semibold text-gray-900 dark:text-white">
                   {new Intl.NumberFormat('ja-JP', {
                     style: 'currency',
                     currency: 'JPY',
@@ -232,8 +232,8 @@ export default function EmergencyFundCalculator({
                 </span>
               </div>
 
-              <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                <span className="text-gray-600">
+              <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-600">
+                <span className="text-gray-600 dark:text-gray-300">
                   {result.shortfall > 0 ? '不足額' : '余裕額'}
                 </span>
                 <span
@@ -252,8 +252,8 @@ export default function EmergencyFundCalculator({
 
               {result.shortfall > 0 && result.months_to_target > 0 && (
                 <div className="flex justify-between items-center py-3">
-                  <span className="text-gray-600">目標達成までの期間</span>
-                  <span className="text-lg font-semibold text-gray-900">
+                  <span className="text-gray-600 dark:text-gray-300">目標達成までの期間</span>
+                  <span className="text-lg font-semibold text-gray-900 dark:text-white">
                     {result.months_to_target}ヶ月
                   </span>
                 </div>
@@ -263,15 +263,15 @@ export default function EmergencyFundCalculator({
 
           {/* 可視化 */}
           <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               緊急資金の内訳
             </h3>
             <div className="space-y-4">
               {/* 現在の資金 */}
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-gray-600">現在の緊急資金</span>
-                  <span className="text-sm font-medium text-gray-900">
+                  <span className="text-sm text-gray-600 dark:text-gray-300">現在の緊急資金</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">
                     {new Intl.NumberFormat('ja-JP', {
                       style: 'currency',
                       currency: 'JPY',
@@ -300,7 +300,7 @@ export default function EmergencyFundCalculator({
               {result.shortfall > 0 && (
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm text-gray-600">不足分</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">不足分</span>
                     <span className="text-sm font-medium text-error-600">
                       {new Intl.NumberFormat('ja-JP', {
                         style: 'currency',
@@ -327,14 +327,14 @@ export default function EmergencyFundCalculator({
 
             {/* 月数表示 */}
             <div className="mt-6 grid grid-cols-2 gap-4">
-              <div className="bg-success-50 border border-success-200 rounded-lg p-4 text-center">
-                <p className="text-sm text-gray-600 mb-1">現在カバーできる期間</p>
+              <div className="bg-success-50 dark:bg-success-900/30 border border-success-200 dark:border-success-700 rounded-lg p-4 text-center">
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">現在カバーできる期間</p>
                 <p className="text-2xl font-bold text-success-600">
                   {(result.current_amount / monthlyExpenses).toFixed(1)}ヶ月
                 </p>
               </div>
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 text-center">
-                <p className="text-sm text-gray-600 mb-1">目標期間</p>
+              <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-700 rounded-lg p-4 text-center">
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">目標期間</p>
                 <p className="text-2xl font-bold text-purple-600">{targetMonths}ヶ月</p>
               </div>
             </div>
@@ -342,17 +342,17 @@ export default function EmergencyFundCalculator({
 
           {/* アドバイス */}
           {result.shortfall > 0 ? (
-            <div className="card bg-warning-50 border-warning-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="card bg-warning-50 dark:bg-warning-900/30 border-warning-200 dark:border-warning-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 ⚠️ 緊急資金が不足しています
               </h3>
-              <p className="text-gray-700 mb-4">
+              <p className="text-gray-700 dark:text-gray-300 mb-4">
                 予期せぬ出来事に備えて、緊急資金を増やすことをお勧めします。
               </p>
 
               <div className="space-y-3">
-                <div className="bg-white rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">
+                <div className="bg-white dark:bg-gray-700 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
                     月々の貯蓄で目標達成する場合
                   </p>
                   {result.months_to_target > 0 && (
@@ -365,18 +365,18 @@ export default function EmergencyFundCalculator({
                           maximumFractionDigits: 0,
                         }).format(result.shortfall / result.months_to_target)}
                       </p>
-                      <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                         {result.months_to_target}ヶ月で目標達成
                       </p>
                     </>
                   )}
                 </div>
 
-                <div className="bg-white rounded-lg p-4">
-                  <p className="text-sm font-semibold text-gray-900 mb-2">
+                <div className="bg-white dark:bg-gray-700 rounded-lg p-4">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
                     緊急資金を増やす方法
                   </p>
-                  <ul className="space-y-2 text-sm text-gray-700">
+                  <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
                     <li className="flex items-start gap-2">
                       <span className="text-success-600">✓</span>
                       <span>毎月の収入から一定額を自動的に緊急資金口座に移す</span>
@@ -398,8 +398,8 @@ export default function EmergencyFundCalculator({
                   </ul>
                 </div>
 
-                <div className="bg-white rounded-lg p-4">
-                  <p className="text-sm font-semibold text-gray-900 mb-2">
+                <div className="bg-white dark:bg-gray-700 rounded-lg p-4">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
                     緊急資金の重要性
                   </p>
                   <ul className="space-y-2 text-sm text-gray-700">
@@ -424,18 +424,18 @@ export default function EmergencyFundCalculator({
               </div>
             </div>
           ) : (
-            <div className="card bg-success-50 border-success-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="card bg-success-50 dark:bg-success-900/30 border-success-200 dark:border-success-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 ✅ 緊急資金は十分に確保されています
               </h3>
-              <p className="text-gray-700 mb-4">
+              <p className="text-gray-700 dark:text-gray-300 mb-4">
                 予期せぬ出来事にも対応できる十分な緊急資金が確保されています。
               </p>
-              <div className="bg-white rounded-lg p-4">
-                <p className="text-sm font-semibold text-gray-900 mb-2">
+              <div className="bg-white dark:bg-gray-700 rounded-lg p-4">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
                   今後の注意点
                 </p>
-                <ul className="space-y-2 text-sm text-gray-700">
+                <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
                   <li className="flex items-start gap-2">
                     <span className="text-success-600">✓</span>
                     <span>生活費が変わったら緊急資金の目標額も見直しましょう</span>

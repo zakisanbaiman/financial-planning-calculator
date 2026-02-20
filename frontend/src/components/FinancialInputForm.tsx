@@ -244,10 +244,10 @@ const FinancialInputForm: React.FC<FinancialInputFormProps> = ({
             </div>
           ))}
         </div>
-        <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
           <div className="flex justify-between items-center">
-            <span className="font-medium text-gray-700">合計支出</span>
-            <span className="text-lg font-semibold text-gray-900">
+            <span className="font-medium text-gray-700 dark:text-gray-200">合計支出</span>
+            <span className="text-lg font-semibold text-gray-900 dark:text-white">
               ¥{totalExpenses.toLocaleString()}
             </span>
           </div>
@@ -289,7 +289,7 @@ const FinancialInputForm: React.FC<FinancialInputFormProps> = ({
                   onChange={(e) =>
                     handleSavingChange(index, 'type', e.target.value as SavingsItem['type'])
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   required
                 >
                   <option value="deposit">預金</option>
@@ -322,10 +322,10 @@ const FinancialInputForm: React.FC<FinancialInputFormProps> = ({
             </div>
           ))}
         </div>
-        <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
           <div className="flex justify-between items-center">
-            <span className="font-medium text-gray-700">総資産</span>
-            <span className="text-lg font-semibold text-gray-900">
+            <span className="font-medium text-gray-700 dark:text-gray-200">総資産</span>
+            <span className="text-lg font-semibold text-gray-900 dark:text-white">
               ¥{totalSavings.toLocaleString()}
             </span>
           </div>

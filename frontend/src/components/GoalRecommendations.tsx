@@ -188,28 +188,28 @@ const GoalRecommendations: React.FC<GoalRecommendationsProps> = ({ goal, financi
 
   const colorMap = {
     success: {
-      bg: 'bg-success-50',
-      border: 'border-success-200',
-      text: 'text-success-800',
-      title: 'text-success-900',
+      bg: 'bg-success-50 dark:bg-success-900/30',
+      border: 'border-success-200 dark:border-success-700',
+      text: 'text-success-800 dark:text-success-200',
+      title: 'text-success-900 dark:text-success-100',
     },
     warning: {
-      bg: 'bg-warning-50',
-      border: 'border-warning-200',
-      text: 'text-warning-800',
-      title: 'text-warning-900',
+      bg: 'bg-warning-50 dark:bg-warning-900/30',
+      border: 'border-warning-200 dark:border-warning-700',
+      text: 'text-warning-800 dark:text-warning-200',
+      title: 'text-warning-900 dark:text-warning-100',
     },
     info: {
-      bg: 'bg-primary-50',
-      border: 'border-primary-200',
-      text: 'text-primary-800',
-      title: 'text-primary-900',
+      bg: 'bg-primary-50 dark:bg-primary-900/30',
+      border: 'border-primary-200 dark:border-primary-700',
+      text: 'text-primary-800 dark:text-primary-200',
+      title: 'text-primary-900 dark:text-primary-100',
     },
     error: {
-      bg: 'bg-error-50',
-      border: 'border-error-200',
-      text: 'text-error-800',
-      title: 'text-error-900',
+      bg: 'bg-error-50 dark:bg-error-900/30',
+      border: 'border-error-200 dark:border-error-700',
+      text: 'text-error-800 dark:text-error-200',
+      title: 'text-error-900 dark:text-error-100',
     },
   };
 
