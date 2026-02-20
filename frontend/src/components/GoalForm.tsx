@@ -171,8 +171,8 @@ const GoalForm: React.FC<GoalFormProps> = ({
               onClick={() => setType(goalType)}
               className={`px-4 py-3 rounded-lg border-2 transition-colors ${
                 type === goalType
-                  ? 'border-primary-500 bg-primary-50 text-primary-700'
-                  : 'border-gray-300 hover:border-gray-400 text-gray-700'
+                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 text-gray-700 dark:text-gray-200'
               }`}
             >
               {goalTypeLabels[goalType]}
@@ -238,22 +238,22 @@ const GoalForm: React.FC<GoalFormProps> = ({
 
       {/* 進捗状況表示 */}
       {targetAmount > 0 && (
-        <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+        <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-3">
           <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-600">進捗状況</span>
-            <span className="font-semibold text-gray-900">
+            <span className="text-gray-600 dark:text-gray-300">進捗状況</span>
+            <span className="font-semibold text-gray-900 dark:text-white">
               {progressRate.toFixed(1)}%
             </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
             <div
               className="bg-primary-500 h-2 rounded-full transition-all"
               style={{ width: `${Math.min(progressRate, 100)}%` }}
             />
           </div>
           <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-600">残り</span>
-            <span className="font-semibold text-gray-900">
+            <span className="text-gray-600 dark:text-gray-300">残り</span>
+            <span className="font-semibold text-gray-900 dark:text-white">
               ¥{remainingAmount.toLocaleString()}
             </span>
           </div>

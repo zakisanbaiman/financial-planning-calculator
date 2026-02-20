@@ -152,12 +152,12 @@ export default function SecurityPage() {
   // 初期ロード中の表示
   if (initialLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
-          <div className="bg-white shadow rounded-lg p-6">
+          <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <span className="ml-3 text-gray-600">読み込み中...</span>
+              <span className="ml-3 text-gray-600 dark:text-gray-300">読み込み中...</span>
             </div>
           </div>
         </div>
@@ -166,12 +166,12 @@ export default function SecurityPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-gray-900">セキュリティ設定</h1>
-            <p className="mt-1 text-sm text-gray-600">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">セキュリティ設定</h1>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
               アカウントのセキュリティを強化するための設定
             </p>
           </div>
@@ -179,22 +179,22 @@ export default function SecurityPage() {
           <div className="p-6 space-y-6">
             {/* エラー・成功メッセージ */}
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded">
                 {error}
               </div>
             )}
             {success && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+              <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-green-700 dark:text-green-300 px-4 py-3 rounded">
                 {success}
               </div>
             )}
 
             {/* 2段階認証セクション */}
-            <div className="border-b border-gray-200 pb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">
-                2段階認証（2FA）
+            <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                2段階認証ﾈ2FAﾉ
               </h2>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                 Google Authenticator などの認証アプリを使用して、ログイン時に追加のセキュリティコードを要求します。
               </p>
 
@@ -211,26 +211,26 @@ export default function SecurityPage() {
               {/* 2FA設定フロー */}
               {showSetup && setupData && (
                 <div className="space-y-4">
-                  <div className="bg-gray-50 p-4 rounded">
-                    <h3 className="font-semibold mb-2">ステップ1: QRコードをスキャン</h3>
-                    <p className="text-sm text-gray-600 mb-4">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded">
+                    <h3 className="font-semibold dark:text-white mb-2">ステップ1: QRコードをスキャン</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                       Google Authenticator または Authy などの認証アプリでこのQRコードをスキャンしてください。
                     </p>
                     <div className="flex justify-center my-4">
                       <QRCodeSVG value={setupData.qr_code_url} size={200} />
                     </div>
-                    <p className="text-xs text-gray-500 text-center">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
                       手動入力: {setupData.secret}
                     </p>
                   </div>
 
-                  <div className="bg-gray-50 p-4 rounded">
-                    <h3 className="font-semibold mb-2">ステップ2: バックアップコード</h3>
-                    <p className="text-sm text-gray-600 mb-2">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded">
+                    <h3 className="font-semibold dark:text-white mb-2">ステップ2: バックアップコード</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
                       認証アプリにアクセスできなくなった場合に使用できるバックアップコードです。
                       安全な場所に保管してください。
                     </p>
-                    <div className="bg-white p-3 rounded border border-gray-300 font-mono text-sm space-y-1">
+                    <div className="bg-white dark:bg-gray-600 p-3 rounded border border-gray-300 dark:border-gray-500 font-mono text-sm dark:text-white space-y-1">
                       {setupData.backup_codes.map((code, index) => (
                         <div key={index}>{code}</div>
                       ))}
@@ -245,7 +245,7 @@ export default function SecurityPage() {
 
                   <form onSubmit={handleEnable2FA} className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                         ステップ3: 認証コードを入力
                       </label>
                       <input
@@ -260,7 +260,7 @@ export default function SecurityPage() {
                         }}
                         placeholder="6桁のコード"
                         maxLength={6}
-                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-lg tracking-widest"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:ring-blue-500 focus:border-blue-500 text-lg tracking-widest"
                         required
                       />
                     </div>
@@ -279,7 +279,7 @@ export default function SecurityPage() {
                           setSetupData(null);
                           setVerificationCode('');
                         }}
-                        className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+                        className="bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded hover:bg-gray-400 dark:hover:bg-gray-500"
                       >
                         キャンセル
                       </button>
@@ -291,9 +291,9 @@ export default function SecurityPage() {
               {/* 2FA有効時の管理 */}
               {is2FAEnabled && (
                 <div className="space-y-4">
-                  <div className="bg-green-50 border border-green-200 p-4 rounded">
-                    <p className="text-green-800 font-semibold">✓ 2段階認証が有効です</p>
-                    <p className="text-sm text-green-700 mt-1">
+                  <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 p-4 rounded">
+                    <p className="text-green-800 dark:text-green-200 font-semibold">✓ 2段階認証が有効です</p>
+                    <p className="text-sm text-green-700 dark:text-green-300 mt-1">
                       ログイン時に認証コードの入力が必要になります。
                     </p>
                   </div>
@@ -309,9 +309,9 @@ export default function SecurityPage() {
                   </div>
 
                   {showBackupCodes && newBackupCodes.length > 0 && (
-                    <div className="bg-yellow-50 border border-yellow-200 p-4 rounded">
-                      <h4 className="font-semibold mb-2">新しいバックアップコード</h4>
-                      <div className="bg-white p-3 rounded border border-gray-300 font-mono text-sm space-y-1">
+                    <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 p-4 rounded">
+                      <h4 className="font-semibold dark:text-yellow-200 mb-2">新しいバックアップコード</h4>
+                      <div className="bg-white dark:bg-gray-600 p-3 rounded border border-gray-300 dark:border-gray-500 font-mono text-sm dark:text-white space-y-1">
                         {newBackupCodes.map((code, index) => (
                           <div key={index}>{code}</div>
                         ))}

@@ -152,21 +152,21 @@ const GoalsSummaryChart: React.FC<GoalsSummaryChartProps> = ({ goals, chartType 
     <div className="space-y-6">
       {/* 全体サマリー */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card bg-primary-50">
-          <div className="text-sm text-primary-600 font-medium mb-1">総目標金額</div>
-          <div className="text-2xl font-bold text-primary-900">
+        <div className="card bg-primary-50 dark:bg-primary-900/30">
+          <div className="text-sm text-primary-600 dark:text-primary-300 font-medium mb-1">総目標金額</div>
+          <div className="text-2xl font-bold text-primary-900 dark:text-primary-200">
             ¥{totalTarget.toLocaleString()}
           </div>
         </div>
-        <div className="card bg-success-50">
-          <div className="text-sm text-success-600 font-medium mb-1">現在の積立額</div>
-          <div className="text-2xl font-bold text-success-900">
+        <div className="card bg-success-50 dark:bg-success-900/30">
+          <div className="text-sm text-success-600 dark:text-success-300 font-medium mb-1">現在の積立額</div>
+          <div className="text-2xl font-bold text-success-900 dark:text-success-200">
             ¥{totalCurrent.toLocaleString()}
           </div>
         </div>
-        <div className="card bg-orange-50">
-          <div className="text-sm text-orange-600 font-medium mb-1">残り金額</div>
-          <div className="text-2xl font-bold text-orange-900">
+        <div className="card bg-orange-50 dark:bg-orange-900/30">
+          <div className="text-sm text-orange-600 dark:text-orange-300 font-medium mb-1">残り金額</div>
+          <div className="text-2xl font-bold text-orange-900 dark:text-orange-200">
             ¥{totalRemaining.toLocaleString()}
           </div>
         </div>
@@ -175,10 +175,10 @@ const GoalsSummaryChart: React.FC<GoalsSummaryChartProps> = ({ goals, chartType 
       {/* 全体進捗バー */}
       <div className="card">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-medium text-gray-700">全体達成率</span>
-          <span className="text-lg font-bold text-gray-900">{overallProgress.toFixed(1)}%</span>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-200">全体達成率</span>
+          <span className="text-lg font-bold text-gray-900 dark:text-white">{overallProgress.toFixed(1)}%</span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-4">
+        <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-4">
           <div
             className="bg-gradient-to-r from-primary-500 to-success-500 h-4 rounded-full transition-all"
             style={{ width: `${Math.min(overallProgress, 100)}%` }}
@@ -199,19 +199,19 @@ const GoalsSummaryChart: React.FC<GoalsSummaryChartProps> = ({ goals, chartType 
 
       {/* 目標別詳細 */}
       <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">目標別詳細</h3>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">目標別詳細</h3>
         <div className="space-y-3">
           {activeGoals.map((goal) => {
             const progress = (goal.current_amount / goal.target_amount) * 100;
             return (
-              <div key={goal.id} className="border-b border-gray-200 pb-3 last:border-b-0">
+              <div key={goal.id} className="border-b border-gray-200 dark:border-gray-600 pb-3 last:border-b-0">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="font-medium text-gray-900">{goal.title}</span>
-                  <span className="text-sm font-semibold text-gray-700">
+                  <span className="font-medium text-gray-900 dark:text-white">{goal.title}</span>
+                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
                     {progress.toFixed(1)}%
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full transition-all ${
                       progress >= 100
@@ -225,7 +225,7 @@ const GoalsSummaryChart: React.FC<GoalsSummaryChartProps> = ({ goals, chartType 
                     style={{ width: `${Math.min(progress, 100)}%` }}
                   />
                 </div>
-                <div className="flex justify-between items-center mt-1 text-xs text-gray-500">
+                <div className="flex justify-between items-center mt-1 text-xs text-gray-500 dark:text-gray-400">
                   <span>¥{goal.current_amount.toLocaleString()}</span>
                   <span>¥{goal.target_amount.toLocaleString()}</span>
                 </div>

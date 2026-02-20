@@ -125,20 +125,21 @@ const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
     const inputClasses = `
       px-3 py-2 border rounded-lg w-full
       focus:outline-none focus:ring-2 focus:border-transparent
-      disabled:bg-gray-100 disabled:cursor-not-allowed
-      ${error ? 'border-error-500 focus:ring-error-500' : 'border-gray-300 focus:ring-primary-500'}
+      disabled:bg-gray-100 disabled:cursor-not-allowed dark:disabled:bg-gray-700
+      dark:bg-gray-800 dark:text-white
+      ${error ? 'border-error-500 focus:ring-error-500' : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500'}
     `.trim().replace(/\s+/g, ' ');
 
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
             {label}
             {required && <span className="text-error-500 ml-1">*</span>}
           </label>
         )}
         <div className="relative">
-          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
             ¥
           </span>
           <input
@@ -155,7 +156,7 @@ const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
           />
         </div>
         {error && <p className="mt-1 text-sm text-error-500">{error}</p>}
-        {helperText && !error && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
+        {helperText && !error && <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{helperText}</p>}
       </div>
     );
   }

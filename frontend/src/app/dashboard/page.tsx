@@ -389,7 +389,7 @@ export default function DashboardPage() {
             <div className="space-y-3">
               <Link
                 href="/financial-data"
-                className="block w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-300 hover:bg-primary-50 transition-colors"
+                className="block w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors"
               >
                 <div className="flex items-center space-x-3">
                   <span className="text-xl">💰</span>
@@ -402,7 +402,7 @@ export default function DashboardPage() {
 
               <Link
                 href="/goals"
-                className="block w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-300 hover:bg-primary-50 transition-colors"
+                className="block w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors"
               >
                 <div className="flex items-center space-x-3">
                   <span className="text-xl">🎯</span>
@@ -415,7 +415,7 @@ export default function DashboardPage() {
 
               <Link
                 href="/reports"
-                className="block w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-300 hover:bg-primary-50 transition-colors"
+                className="block w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors"
               >
                 <div className="flex items-center space-x-3">
                   <span className="text-xl">📋</span>
@@ -433,40 +433,40 @@ export default function DashboardPage() {
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">推奨事項</h2>
             <div className="space-y-3">
               {!financialStats.hasData ? (
-                <div className="p-3 bg-primary-50 border border-primary-200 rounded-lg">
-                  <p className="text-sm font-medium text-primary-800">💡 財務データを入力すると、パーソナライズされた推奨事項が表示されます</p>
+                <div className="p-3 bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-700 rounded-lg">
+                  <p className="text-sm font-medium text-primary-800 dark:text-primary-200">💡 財務データを入力すると、パーソナライズされた推奨事項が表示されます</p>
                 </div>
               ) : (
                 <>
                   {financialStats.emergencyMonths >= 6 ? (
-                    <div className="p-3 bg-success-50 border border-success-200 rounded-lg">
-                      <p className="text-sm font-medium text-success-800">✅ 緊急資金は十分確保されています（{financialStats.emergencyMonths.toFixed(1)}ヶ月分）</p>
+                    <div className="p-3 bg-success-50 dark:bg-success-900/30 border border-success-200 dark:border-success-700 rounded-lg">
+                      <p className="text-sm font-medium text-success-800 dark:text-success-200">✅ 絊急資金は十分確保されています（{financialStats.emergencyMonths.toFixed(1)}ケ月分）</p>
                     </div>
                   ) : financialStats.emergencyMonths >= 3 ? (
-                    <div className="p-3 bg-warning-50 border border-warning-200 rounded-lg">
-                      <p className="text-sm font-medium text-warning-800">⚠️ 緊急資金を6ヶ月分まで増やすことを推奨（現在{financialStats.emergencyMonths.toFixed(1)}ヶ月分）</p>
+                    <div className="p-3 bg-warning-50 dark:bg-warning-900/30 border border-warning-200 dark:border-warning-700 rounded-lg">
+                      <p className="text-sm font-medium text-warning-800 dark:text-warning-200">⚠️ 絊急資金を6ケ月分まで増やすことを推奨（現在{financialStats.emergencyMonths.toFixed(1)}ケ月分）</p>
                     </div>
                   ) : (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <p className="text-sm font-medium text-red-800">🚨 緊急資金が不足しています。最低3ヶ月分の確保を優先してください</p>
+                    <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg">
+                      <p className="text-sm font-medium text-red-800 dark:text-red-200">🚨 絊急資金が不足しています。最低3ケ月分の確保を優先してください</p>
                     </div>
                   )}
 
                   {financialStats.retirementSufficiency > 0 && financialStats.retirementSufficiency < 100 && (
-                    <div className="p-3 bg-warning-50 border border-warning-200 rounded-lg">
-                      <p className="text-sm font-medium text-warning-800">
+                    <div className="p-3 bg-warning-50 dark:bg-warning-900/30 border border-warning-200 dark:border-warning-700 rounded-lg">
+                      <p className="text-sm font-medium text-warning-800 dark:text-warning-200">
                         ⚠️ 老後資金の充足率は{financialStats.retirementSufficiency.toFixed(0)}%です。積立額の増額を検討してください
                       </p>
                     </div>
                   )}
 
                   {financialStats.monthlySavings <= 0 ? (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <p className="text-sm font-medium text-red-800">🚨 支出が収入を上回っています。支出の見直しを検討してください</p>
+                    <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg">
+                      <p className="text-sm font-medium text-red-800 dark:text-red-200">🚨 支出が収入を上回っています。支出の見直しを検討してください</p>
                     </div>
                   ) : financialStats.monthlySavings < financialStats.monthlyIncome * 0.2 && (
-                    <div className="p-3 bg-primary-50 border border-primary-200 rounded-lg">
-                      <p className="text-sm font-medium text-primary-800">💡 収入の20%以上を貯蓄に回すことで、目標達成が早まります</p>
+                    <div className="p-3 bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-700 rounded-lg">
+                      <p className="text-sm font-medium text-primary-800 dark:text-primary-200">💡 収入の20%以上を貯蓄に回すことで、目標達成が早まります</p>
                     </div>
                   )}
                 </>
@@ -487,7 +487,7 @@ export default function DashboardPage() {
                 className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
                   chartType === 'bar'
                     ? 'bg-primary-500 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 hover:bg-gray-300'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
                 }`}
               >
                 棒グラフ

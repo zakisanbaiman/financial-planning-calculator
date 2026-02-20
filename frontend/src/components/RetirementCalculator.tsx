@@ -331,9 +331,9 @@ export default function RetirementCalculator({
 
             {/* 詳細数値 */}
             <div className="space-y-4">
-              <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                <span className="text-gray-600">必要老後資金</span>
-                <span className="text-lg font-semibold text-gray-900">
+              <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-600">
+                <span className="text-gray-600 dark:text-gray-300">必要老後資金</span>
+                <span className="text-lg font-semibold text-gray-900 dark:text-white">
                   {new Intl.NumberFormat('ja-JP', {
                     style: 'currency',
                     currency: 'JPY',
@@ -342,9 +342,9 @@ export default function RetirementCalculator({
                 </span>
               </div>
 
-              <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                <span className="text-gray-600">予想達成額</span>
-                <span className="text-lg font-semibold text-gray-900">
+              <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-600">
+                <span className="text-gray-600 dark:text-gray-300">予想達成額</span>
+                <span className="text-lg font-semibold text-gray-900 dark:text-white">
                   {new Intl.NumberFormat('ja-JP', {
                     style: 'currency',
                     currency: 'JPY',
@@ -353,8 +353,8 @@ export default function RetirementCalculator({
                 </span>
               </div>
 
-              <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                <span className="text-gray-600">
+              <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-600">
+                <span className="text-gray-600 dark:text-gray-300">
                   {result.shortfall > 0 ? '不足額' : '余裕額'}
                 </span>
                 <span
@@ -372,8 +372,8 @@ export default function RetirementCalculator({
               </div>
 
               <div className="flex justify-between items-center py-3">
-                <span className="text-gray-600">退職までの期間</span>
-                <span className="text-lg font-semibold text-gray-900">
+                <span className="text-gray-600 dark:text-gray-300">退職までの期間</span>
+                <span className="text-lg font-semibold text-gray-900 dark:text-white">
                   {result.years_until_retirement}年
                 </span>
               </div>
@@ -382,17 +382,17 @@ export default function RetirementCalculator({
 
           {/* 推奨事項 */}
           {result.shortfall > 0 && (
-            <div className="card bg-warning-50 border-warning-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="card bg-warning-50 dark:bg-warning-900/30 border-warning-200 dark:border-warning-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 ⚠️ 推奨事項
               </h3>
-              <p className="text-gray-700 mb-4">
+              <p className="text-gray-700 dark:text-gray-300 mb-4">
                 現在の貯蓄ペースでは老後資金が不足する可能性があります。
                 以下の対策をご検討ください：
               </p>
               <div className="space-y-3">
-                <div className="bg-white rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">推奨月間貯蓄額</p>
+                <div className="bg-white dark:bg-gray-700 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">推奨月間貯蓄額</p>
                   <p className="text-2xl font-bold text-warning-600">
                     {new Intl.NumberFormat('ja-JP', {
                       style: 'currency',
@@ -400,7 +400,7 @@ export default function RetirementCalculator({
                       maximumFractionDigits: 0,
                     }).format(result.recommended_monthly_savings)}
                   </p>
-                  <p className="text-sm text-gray-600 mt-2">
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
                     現在より
                     <strong className="text-warning-600">
                       {' '}
@@ -416,8 +416,8 @@ export default function RetirementCalculator({
                   </p>
                 </div>
 
-                <div className="bg-white rounded-lg p-4">
-                  <ul className="space-y-2 text-sm text-gray-700">
+                <div className="bg-white dark:bg-gray-700 rounded-lg p-4">
+                  <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
                     <li className="flex items-start gap-2">
                       <span className="text-success-600">✓</span>
                       <span>支出を見直して貯蓄額を増やす</span>
@@ -441,15 +441,15 @@ export default function RetirementCalculator({
           )}
 
           {result.shortfall <= 0 && (
-            <div className="card bg-success-50 border-success-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="card bg-success-50 dark:bg-success-900/30 border-success-200 dark:border-success-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 ✅ 良好な状態です
               </h3>
-              <p className="text-gray-700 mb-4">
+              <p className="text-gray-700 dark:text-gray-300 mb-4">
                 現在の貯蓄ペースを維持すれば、老後資金は十分に確保できる見込みです。
               </p>
-              <div className="bg-white rounded-lg p-4">
-                <ul className="space-y-2 text-sm text-gray-700">
+              <div className="bg-white dark:bg-gray-700 rounded-lg p-4">
+                <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
                   <li className="flex items-start gap-2">
                     <span className="text-success-600">✓</span>
                     <span>定期的に計画を見直しましょう</span>
@@ -469,23 +469,23 @@ export default function RetirementCalculator({
 
           {/* 計算の前提 */}
           <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               計算の前提条件
             </h3>
             <div className="grid md:grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-gray-600 mb-1">退職までの積立期間</p>
-                <p className="font-medium text-gray-900">
+                <p className="text-gray-600 dark:text-gray-300 mb-1">退職までの積立期間</p>
+                <p className="font-medium text-gray-900 dark:text-white">
                   {result.years_until_retirement}年間
                 </p>
               </div>
               <div>
-                <p className="text-gray-600 mb-1">退職後の生活期間</p>
-                <p className="font-medium text-gray-900">{yearsInRetirement}年間</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-1">退職後の生活期間</p>
+                <p className="font-medium text-gray-900 dark:text-white">{yearsInRetirement}年間</p>
               </div>
               <div>
-                <p className="text-gray-600 mb-1">年金不足額（月額）</p>
-                <p className="font-medium text-gray-900">
+                <p className="text-gray-600 dark:text-gray-300 mb-1">年金不足額（月額）</p>
+                <p className="font-medium text-gray-900 dark:text-white">
                   {new Intl.NumberFormat('ja-JP', {
                     style: 'currency',
                     currency: 'JPY',
@@ -494,14 +494,14 @@ export default function RetirementCalculator({
                 </p>
               </div>
               <div>
-                <p className="text-gray-600 mb-1">複利効果</p>
-                <p className="font-medium text-gray-900">
+                <p className="text-gray-600 dark:text-gray-300 mb-1">複利効果</p>
+                <p className="font-medium text-gray-900 dark:text-white">
                   投資利回り考慮済み
                 </p>
               </div>
             </div>
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-              <p className="text-xs text-gray-600">
+            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+              <p className="text-xs text-gray-600 dark:text-gray-400">
                 ※ この計算は簡易的なシミュレーションです。実際の老後資金計画には、
                 医療費、介護費用、住宅費用なども考慮する必要があります。
               </p>

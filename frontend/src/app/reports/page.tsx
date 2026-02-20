@@ -231,7 +231,7 @@ export default function ReportsPage() {
             </div>
             
             {/* Mock Report Content */}
-            <div className="bg-white border border-gray-200 dark:border-gray-700 rounded-lg p-6 min-h-96">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 min-h-96">
               <div className="text-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">財務計画レポート</h1>
                 <p className="text-gray-600 dark:text-gray-300">作成日: 2024年11月7日</p>
@@ -241,19 +241,19 @@ export default function ReportsPage() {
                 <section>
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">現在の財務状況</h2>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gray-50 p-3 rounded">
+                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded">
                       <p className="text-sm text-gray-600 dark:text-gray-300">月収</p>
                       <p className="text-lg font-semibold">¥400,000</p>
                     </div>
-                    <div className="bg-gray-50 p-3 rounded">
+                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded">
                       <p className="text-sm text-gray-600 dark:text-gray-300">月間支出</p>
                       <p className="text-lg font-semibold">¥280,000</p>
                     </div>
-                    <div className="bg-gray-50 p-3 rounded">
+                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded">
                       <p className="text-sm text-gray-600 dark:text-gray-300">月間貯蓄</p>
                       <p className="text-lg font-semibold text-success-600">¥120,000</p>
                     </div>
-                    <div className="bg-gray-50 p-3 rounded">
+                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded">
                       <p className="text-sm text-gray-600 dark:text-gray-300">総資産</p>
                       <p className="text-lg font-semibold">¥1,500,000</p>
                     </div>
