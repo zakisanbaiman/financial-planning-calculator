@@ -267,6 +267,8 @@ func setupTestServer() (*echo.Echo, *MockManageFinancialDataUseCase, *MockCalcul
 			GitHubCallbackURL:    "http://localhost:8080/api/auth/github/callback",
 			OAuthSuccessRedirect: "/auth/callback",
 			OAuthFailureRedirect: "/login?error=oauth_failed",
+			AuthRateLimitRPS:     10,
+			AuthRateLimitBurst:   5,
 		},
 	}
 

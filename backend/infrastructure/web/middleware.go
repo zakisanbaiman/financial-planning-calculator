@@ -140,6 +140,49 @@ func RateLimitHeaderMiddleware(store *CustomRateLimiterStore) echo.MiddlewareFun
 	}
 }
 
+// AuthRateLimiterMiddleware creates a stricter rate limiter middleware for authentication endpoints.
+// This protects against brute-force attacks on login, register, and other auth endpoints.
+func AuthRateLimiterMiddleware(cfg *config.ServerConfig) echo.MiddlewareFunc {
+	authStore := NewCustomRateLimiterStore(
+		float64(cfg.AuthRateLimitRPS),
+		cfg.AuthRateLimitBurst,
+		5*time.Minute,
+	)
+
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			identifier, err := extractIdentifier(c)
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, map[string]any{
+					"error":   "Internal Server Error",
+					"message": "Failed to identify client",
+					"code":    "INTERNAL_ERROR",
+				})
+			}
+
+			allowed, _ := authStore.Allow(identifier)
+			if !allowed {
+				info := authStore.GetInfo(identifier)
+				return c.JSON(http.StatusTooManyRequests, map[string]any{
+					"error":       "Too Many Requests",
+					"message":     "Too many authentication attempts. Please wait before retrying.",
+					"code":        "AUTH_RATE_LIMIT_EXCEEDED",
+					"retry_after": fmt.Sprintf("%ds", info.Reset-time.Now().Unix()),
+				})
+			}
+
+			// Add auth-specific rate limit headers
+			info := authStore.GetInfo(identifier)
+			h := c.Response().Header()
+			h.Set("X-Auth-RateLimit-Limit", fmt.Sprintf("%d", info.Limit))
+			h.Set("X-Auth-RateLimit-Remaining", fmt.Sprintf("%d", info.Remaining))
+			h.Set("X-Auth-RateLimit-Reset", fmt.Sprintf("%d", info.Reset))
+
+			return next(c)
+		}
+	}
+}
+
 // CustomHTTPErrorHandler provides consistent error responses using our unified error format
 func CustomHTTPErrorHandler(err error, c echo.Context) {
 	var (

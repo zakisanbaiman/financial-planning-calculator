@@ -51,8 +51,11 @@ func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencie
 	// レートリミットステータスエンドポイント（認証不要）
 	api.GET("/rate-limit/status", RateLimitStatusHandler(rateLimitStore))
 
+	// 認証レートリミッターミドルウェア（ブルートフォース対策）
+	authRateLimiter := AuthRateLimiterMiddleware(deps.ServerConfig)
+
 	// 認証エンドポイント（認証不要）
-	setupAuthRoutes(api, controllers.Auth, deps)
+	setupAuthRoutes(api, controllers.Auth, deps, authRateLimiter)
 
 	// 計算エンドポイント（ゲストモード対応のため認証不要）
 	setupCalculationRoutes(api, controllers.Calculations)
@@ -67,10 +70,10 @@ func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencie
 	}
 
 	// パスキー認証エンドポイント
-	setupPasskeyRoutes(api, protected, controllers.WebAuthn)
+	setupPasskeyRoutes(api, protected, controllers.WebAuthn, authRateLimiter)
 
 	// 2段階認証エンドポイント（認証が必要）
-	setup2FARoutes(protected, controllers.TwoFactor)
+	setup2FARoutes(protected, controllers.TwoFactor, authRateLimiter)
 
 	// 財務データ管理エンドポイント
 	setupFinancialDataRoutes(protected, controllers.FinancialData)
@@ -80,8 +83,11 @@ func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencie
 }
 
 // setupAuthRoutes sets up authentication routes
-func setupAuthRoutes(api *echo.Group, controller *controllers.AuthController, deps *ServerDependencies) {
+func setupAuthRoutes(api *echo.Group, controller *controllers.AuthController, deps *ServerDependencies, authRateLimiter echo.MiddlewareFunc) {
 	auth := api.Group("/auth")
+
+	// 認証レートリミッターをグループに適用（ブルートフォース対策）
+	auth.Use(authRateLimiter)
 
 	auth.POST("/register", controller.Register) // POST /api/auth/register
 	auth.POST("/login", controller.Login)       // POST /api/auth/login
@@ -96,19 +102,19 @@ func setupAuthRoutes(api *echo.Group, controller *controllers.AuthController, de
 }
 
 // setup2FARoutes sets up two-factor authentication routes
-func setup2FARoutes(api *echo.Group, controller *controllers.TwoFactorController) {
+func setup2FARoutes(api *echo.Group, controller *controllers.TwoFactorController, authRateLimiter echo.MiddlewareFunc) {
 	twoFactor := api.Group("/auth/2fa")
 
 	twoFactor.GET("/status", controller.Get2FAStatus)                   // GET /api/auth/2fa/status
 	twoFactor.POST("/setup", controller.Setup2FA)                       // POST /api/auth/2fa/setup
 	twoFactor.POST("/enable", controller.Enable2FA)                     // POST /api/auth/2fa/enable
-	twoFactor.POST("/verify", controller.Verify2FA)                     // POST /api/auth/2fa/verify
+	twoFactor.POST("/verify", controller.Verify2FA, authRateLimiter)    // POST /api/auth/2fa/verify（レートリミット適用）
 	twoFactor.DELETE("", controller.Disable2FA)                         // DELETE /api/auth/2fa
 	twoFactor.POST("/backup-codes", controller.RegenerateBackupCodes)   // POST /api/auth/2fa/backup-codes
 }
 
 // setupPasskeyRoutes sets up passkey (WebAuthn) authentication routes
-func setupPasskeyRoutes(api *echo.Group, protected *echo.Group, controller *controllers.WebAuthnController) {
+func setupPasskeyRoutes(api *echo.Group, protected *echo.Group, controller *controllers.WebAuthnController, authRateLimiter echo.MiddlewareFunc) {
 	// WebAuthn機能が利用できない場合はルートを設定しない
 	if controller == nil {
 		return
@@ -116,9 +122,9 @@ func setupPasskeyRoutes(api *echo.Group, protected *echo.Group, controller *cont
 
 	passkey := api.Group("/auth/passkey")
 
-	// パスキーログイン（認証不要）
-	passkey.POST("/login/begin", controller.BeginLogin)   // POST /api/auth/passkey/login/begin
-	passkey.POST("/login/finish", controller.FinishLogin) // POST /api/auth/passkey/login/finish
+	// パスキーログイン（認証不要・レートリミット適用）
+	passkey.POST("/login/begin", controller.BeginLogin, authRateLimiter)   // POST /api/auth/passkey/login/begin
+	passkey.POST("/login/finish", controller.FinishLogin, authRateLimiter) // POST /api/auth/passkey/login/finish
 
 	// パスキー登録と管理（認証が必要）
 	passkeyProtected := protected.Group("/auth/passkey")
