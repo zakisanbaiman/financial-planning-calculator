@@ -367,169 +367,168 @@ func TestCalculateGoalProjection(t *testing.T) {
 
 // TestCalculateRetirementProjection_Scenarios tests different retirement sufficiency scenarios
 func TestCalculateRetirementProjection_Scenarios(t *testing.T) {
-// These tests exercise different sufficiency calculation paths
-tests := []struct {
-name               string
-setupRetirement    func(userID string) *aggregates.FinancialPlan
-expectedSufficiency string
-}{
-{
-name: "シナリオ: 現在年齢が退職年齢に近い",
-setupRetirement: func(userID string) *aggregates.FinancialPlan {
-plan := newTestFinancialPlan(userID)
-monthlyExpenses := mustCreateMoneyUsecase(250000)
-pension := mustCreateMoneyUsecase(200000)
-rd, _ := entities.NewRetirementData(
-entities.UserID(userID),
-63, // 現在年齢（退職年齢に近い）
-65,
-85,
-monthlyExpenses,
-pension,
-)
-plan.SetRetirementData(rd)
-return plan
-},
-},
-{
-name: "シナリオ: 年金が多い（充足率高）",
-setupRetirement: func(userID string) *aggregates.FinancialPlan {
-plan := newTestFinancialPlan(userID)
-monthlyExpenses := mustCreateMoneyUsecase(150000)
-// 年金が支出をカバー
-pension := mustCreateMoneyUsecase(180000)
-rd, _ := entities.NewRetirementData(
-entities.UserID(userID),
-40,
-65,
-85,
-monthlyExpenses,
-pension,
-)
-plan.SetRetirementData(rd)
-return plan
-},
-},
-{
-name: "シナリオ: 長寿命・少年金（不足）",
-setupRetirement: func(userID string) *aggregates.FinancialPlan {
-plan := newTestFinancialPlan(userID)
-monthlyExpenses := mustCreateMoneyUsecase(350000)
-pension := mustCreateMoneyUsecase(50000)
-rd, _ := entities.NewRetirementData(
-entities.UserID(userID),
-30,
-60, // 早期退職
-95, // 長寿命
-monthlyExpenses,
-pension,
-)
-plan.SetRetirementData(rd)
-return plan
-},
-},
-}
+	// These tests exercise different sufficiency calculation paths
+	tests := []struct {
+		name            string
+		setupRetirement func(userID string) *aggregates.FinancialPlan
+	}{
+		{
+			name: "シナリオ: 現在年齢が退職年齢に近い",
+			setupRetirement: func(userID string) *aggregates.FinancialPlan {
+				plan := newTestFinancialPlan(userID)
+				monthlyExpenses := mustCreateMoneyUsecase(250000)
+				pension := mustCreateMoneyUsecase(200000)
+				rd, _ := entities.NewRetirementData(
+					entities.UserID(userID),
+					63, // 現在年齢（退職年齢に近い）
+					65,
+					85,
+					monthlyExpenses,
+					pension,
+				)
+				plan.SetRetirementData(rd)
+				return plan
+			},
+		},
+		{
+			name: "シナリオ: 年金が多い（充足率高）",
+			setupRetirement: func(userID string) *aggregates.FinancialPlan {
+				plan := newTestFinancialPlan(userID)
+				monthlyExpenses := mustCreateMoneyUsecase(150000)
+				// 年金が支出をカバー
+				pension := mustCreateMoneyUsecase(180000)
+				rd, _ := entities.NewRetirementData(
+					entities.UserID(userID),
+					40,
+					65,
+					85,
+					monthlyExpenses,
+					pension,
+				)
+				plan.SetRetirementData(rd)
+				return plan
+			},
+		},
+		{
+			name: "シナリオ: 長寿命・少年金（不足）",
+			setupRetirement: func(userID string) *aggregates.FinancialPlan {
+				plan := newTestFinancialPlan(userID)
+				monthlyExpenses := mustCreateMoneyUsecase(350000)
+				pension := mustCreateMoneyUsecase(50000)
+				rd, _ := entities.NewRetirementData(
+					entities.UserID(userID),
+					30,
+					60, // 早期退職
+					95, // 長寿命
+					monthlyExpenses,
+					pension,
+				)
+				plan.SetRetirementData(rd)
+				return plan
+			},
+		},
+	}
 
-calcService := services.NewFinancialCalculationService()
-recommendService := services.NewGoalRecommendationService(calcService)
+	calcService := services.NewFinancialCalculationService()
+	recommendService := services.NewGoalRecommendationService(calcService)
 
-for i, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-userID := "scenario-user-" + string(rune('A'+i))
-planRepo := new(MockFinancialPlanRepository)
-goalRepo := new(MockGoalRepository)
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			userID := "scenario-user-" + string(rune('A'+i))
+			planRepo := new(MockFinancialPlanRepository)
+			goalRepo := new(MockGoalRepository)
 
-plan := tt.setupRetirement(userID)
-planRepo.On("FindByUserID", mock.Anything, entities.UserID(userID)).Return(plan, nil)
+			plan := tt.setupRetirement(userID)
+			planRepo.On("FindByUserID", mock.Anything, entities.UserID(userID)).Return(plan, nil)
 
-uc := NewCalculateProjectionUseCase(planRepo, goalRepo, calcService, recommendService)
-output, err := uc.CalculateRetirementProjection(context.Background(), RetirementProjectionInput{
-UserID: entities.UserID(userID),
-})
+			uc := NewCalculateProjectionUseCase(planRepo, goalRepo, calcService, recommendService)
+			output, err := uc.CalculateRetirementProjection(context.Background(), RetirementProjectionInput{
+				UserID: entities.UserID(userID),
+			})
 
-require.NoError(t, err)
-assert.NotNil(t, output)
-assert.NotNil(t, output.Calculation)
-assert.NotEmpty(t, output.SufficiencyLevel)
-assert.NotEmpty(t, output.Recommendations)
-planRepo.AssertExpectations(t)
-})
-}
+			require.NoError(t, err)
+			assert.NotNil(t, output)
+			assert.NotNil(t, output.Calculation)
+			assert.NotEmpty(t, output.SufficiencyLevel)
+			assert.NotEmpty(t, output.Recommendations)
+			planRepo.AssertExpectations(t)
+		})
+	}
 }
 
 // TestCalculateEmergencyFundProjection_Scenarios tests different emergency fund scenarios
 func TestCalculateEmergencyFundProjection_Scenarios(t *testing.T) {
-calcService := services.NewFinancialCalculationService()
-recommendService := services.NewGoalRecommendationService(calcService)
+	calcService := services.NewFinancialCalculationService()
+	recommendService := services.NewGoalRecommendationService(calcService)
 
-tests := []struct {
-name    string
-userID  string
-monthly float64
-savings float64
-}{
-{
-name:    "十分な緊急資金",
-userID:  "ef-user-1",
-monthly: 200000,
-savings: 2400000, // 12か月分
-},
-{
-name:    "部分的な緊急資金",
-userID:  "ef-user-2",
-monthly: 300000,
-savings: 600000, // 2か月分
-},
-{
-name:    "緊急資金なし",
-userID:  "ef-user-3",
-monthly: 400000,
-savings: 0,
-},
-}
+	tests := []struct {
+		name    string
+		userID  string
+		monthly float64
+		savings float64
+	}{
+		{
+			name:    "十分な緊急資金",
+			userID:  "ef-user-1",
+			monthly: 200000,
+			savings: 2400000, // 12か月分
+		},
+		{
+			name:    "部分的な緊急資金",
+			userID:  "ef-user-2",
+			monthly: 300000,
+			savings: 600000, // 2か月分
+		},
+		{
+			name:    "緊急資金なし",
+			userID:  "ef-user-3",
+			monthly: 400000,
+			savings: 0,
+		},
+	}
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-planRepo := new(MockFinancialPlanRepository)
-goalRepo := new(MockGoalRepository)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			planRepo := new(MockFinancialPlanRepository)
+			goalRepo := new(MockGoalRepository)
 
-income, _ := valueobjects.NewMoneyJPY(tt.monthly + 100000)
-expenses := entities.ExpenseCollection{
-{Category: "生活費", Amount: mustCreateMoneyUsecase(tt.monthly)},
-}
-var savings entities.SavingsCollection
-if tt.savings > 0 {
-savings = entities.SavingsCollection{
-{Type: "deposit", Amount: mustCreateMoneyUsecase(tt.savings)},
-}
-} else {
-savings = entities.SavingsCollection{}
-}
-investReturn, _ := valueobjects.NewRate(3.0)
-inflation, _ := valueobjects.NewRate(2.0)
+			income, _ := valueobjects.NewMoneyJPY(tt.monthly + 100000)
+			expenses := entities.ExpenseCollection{
+				{Category: "生活費", Amount: mustCreateMoneyUsecase(tt.monthly)},
+			}
+			var savings entities.SavingsCollection
+			if tt.savings > 0 {
+				savings = entities.SavingsCollection{
+					{Type: "deposit", Amount: mustCreateMoneyUsecase(tt.savings)},
+				}
+			} else {
+				savings = entities.SavingsCollection{}
+			}
+			investReturn, _ := valueobjects.NewRate(3.0)
+			inflation, _ := valueobjects.NewRate(2.0)
 
-profile, _ := entities.NewFinancialProfile(
-entities.UserID(tt.userID),
-income,
-expenses,
-savings,
-investReturn,
-inflation,
-)
-plan, _ := aggregates.NewFinancialPlan(profile)
+			profile, _ := entities.NewFinancialProfile(
+				entities.UserID(tt.userID),
+				income,
+				expenses,
+				savings,
+				investReturn,
+				inflation,
+			)
+			plan, _ := aggregates.NewFinancialPlan(profile)
 
-planRepo.On("FindByUserID", mock.Anything, entities.UserID(tt.userID)).Return(plan, nil)
+			planRepo.On("FindByUserID", mock.Anything, entities.UserID(tt.userID)).Return(plan, nil)
 
-uc := NewCalculateProjectionUseCase(planRepo, goalRepo, calcService, recommendService)
-output, err := uc.CalculateEmergencyFundProjection(context.Background(), EmergencyFundProjectionInput{
-UserID: entities.UserID(tt.userID),
-})
+			uc := NewCalculateProjectionUseCase(planRepo, goalRepo, calcService, recommendService)
+			output, err := uc.CalculateEmergencyFundProjection(context.Background(), EmergencyFundProjectionInput{
+				UserID: entities.UserID(tt.userID),
+			})
 
-require.NoError(t, err)
-assert.NotNil(t, output)
-assert.NotNil(t, output.Status)
-assert.NotEmpty(t, output.Priority)
-planRepo.AssertExpectations(t)
-})
-}
+			require.NoError(t, err)
+			assert.NotNil(t, output)
+			assert.NotNil(t, output.Status)
+			assert.NotEmpty(t, output.Priority)
+			planRepo.AssertExpectations(t)
+		})
+	}
 }

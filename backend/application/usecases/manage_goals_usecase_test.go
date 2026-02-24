@@ -625,144 +625,144 @@ func TestUpdateGoalProgress_Completed(t *testing.T) {
 }
 
 func TestGetGoalRecommendations(t *testing.T) {
-calcService := services.NewFinancialCalculationService()
-recommendService := services.NewGoalRecommendationService(calcService)
+	calcService := services.NewFinancialCalculationService()
+	recommendService := services.NewGoalRecommendationService(calcService)
 
-tests := []struct {
-name        string
-input       GetGoalRecommendationsInput
-setupMocks  func(*MockGoalRepository, *MockFinancialPlanRepository)
-expectError bool
-errContains string
-}{
-{
-name: "正常系: 目標推奨事項取得",
-input: GetGoalRecommendationsInput{
-GoalID: "goal-001",
-UserID: "user-001",
-},
-setupMocks: func(gr *MockGoalRepository, fp *MockFinancialPlanRepository) {
-goal := newTestGoal("user-001", entities.GoalTypeSavings)
-plan := newTestFinancialPlan("user-001")
-gr.On("FindByID", mock.Anything, entities.GoalID("goal-001")).Return(goal, nil)
-fp.On("FindByUserID", mock.Anything, entities.UserID("user-001")).Return(plan, nil)
-},
-expectError: false,
-},
-{
-name: "異常系: 目標が存在しない",
-input: GetGoalRecommendationsInput{
-GoalID: "goal-999",
-UserID: "user-001",
-},
-setupMocks: func(gr *MockGoalRepository, fp *MockFinancialPlanRepository) {
-gr.On("FindByID", mock.Anything, entities.GoalID("goal-999")).
-Return(nil, errors.New("目標が見つかりません"))
-},
-expectError: true,
-errContains: "目標の取得に失敗しました",
-},
-{
-name: "異常系: 別ユーザーのアクセス",
-input: GetGoalRecommendationsInput{
-GoalID: "goal-001",
-UserID: "other-user",
-},
-setupMocks: func(gr *MockGoalRepository, fp *MockFinancialPlanRepository) {
-goal := newTestGoal("user-001", entities.GoalTypeSavings)
-gr.On("FindByID", mock.Anything, entities.GoalID("goal-001")).Return(goal, nil)
-},
-expectError: true,
-errContains: "指定された目標にアクセスする権限がありません",
-},
-}
+	tests := []struct {
+		name        string
+		input       GetGoalRecommendationsInput
+		setupMocks  func(*MockGoalRepository, *MockFinancialPlanRepository)
+		expectError bool
+		errContains string
+	}{
+		{
+			name: "正常系: 目標推奨事項取得",
+			input: GetGoalRecommendationsInput{
+				GoalID: "goal-001",
+				UserID: "user-001",
+			},
+			setupMocks: func(gr *MockGoalRepository, fp *MockFinancialPlanRepository) {
+				goal := newTestGoal("user-001", entities.GoalTypeSavings)
+				plan := newTestFinancialPlan("user-001")
+				gr.On("FindByID", mock.Anything, entities.GoalID("goal-001")).Return(goal, nil)
+				fp.On("FindByUserID", mock.Anything, entities.UserID("user-001")).Return(plan, nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "異常系: 目標が存在しない",
+			input: GetGoalRecommendationsInput{
+				GoalID: "goal-999",
+				UserID: "user-001",
+			},
+			setupMocks: func(gr *MockGoalRepository, fp *MockFinancialPlanRepository) {
+				gr.On("FindByID", mock.Anything, entities.GoalID("goal-999")).
+					Return(nil, errors.New("目標が見つかりません"))
+			},
+			expectError: true,
+			errContains: "目標の取得に失敗しました",
+		},
+		{
+			name: "異常系: 別ユーザーのアクセス",
+			input: GetGoalRecommendationsInput{
+				GoalID: "goal-001",
+				UserID: "other-user",
+			},
+			setupMocks: func(gr *MockGoalRepository, fp *MockFinancialPlanRepository) {
+				goal := newTestGoal("user-001", entities.GoalTypeSavings)
+				gr.On("FindByID", mock.Anything, entities.GoalID("goal-001")).Return(goal, nil)
+			},
+			expectError: true,
+			errContains: "指定された目標にアクセスする権限がありません",
+		},
+	}
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-goalRepo := new(MockGoalRepository)
-planRepo := new(MockFinancialPlanRepository)
-tt.setupMocks(goalRepo, planRepo)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			goalRepo := new(MockGoalRepository)
+			planRepo := new(MockFinancialPlanRepository)
+			tt.setupMocks(goalRepo, planRepo)
 
-uc := NewManageGoalsUseCase(goalRepo, planRepo, recommendService)
-output, err := uc.GetGoalRecommendations(context.Background(), tt.input)
+			uc := NewManageGoalsUseCase(goalRepo, planRepo, recommendService)
+			output, err := uc.GetGoalRecommendations(context.Background(), tt.input)
 
-if tt.expectError {
-assert.Error(t, err)
-if tt.errContains != "" {
-assert.Contains(t, err.Error(), tt.errContains)
-}
-assert.Nil(t, output)
-} else {
-require.NoError(t, err)
-assert.NotNil(t, output)
-}
-goalRepo.AssertExpectations(t)
-planRepo.AssertExpectations(t)
-})
-}
+			if tt.expectError {
+				assert.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+				assert.Nil(t, output)
+			} else {
+				require.NoError(t, err)
+				assert.NotNil(t, output)
+			}
+			goalRepo.AssertExpectations(t)
+			planRepo.AssertExpectations(t)
+		})
+	}
 }
 
 func TestAnalyzeGoalFeasibility(t *testing.T) {
-calcService := services.NewFinancialCalculationService()
-recommendService := services.NewGoalRecommendationService(calcService)
+	calcService := services.NewFinancialCalculationService()
+	recommendService := services.NewGoalRecommendationService(calcService)
 
-tests := []struct {
-name        string
-input       AnalyzeGoalFeasibilityInput
-setupMocks  func(*MockGoalRepository, *MockFinancialPlanRepository)
-expectError bool
-errContains string
-}{
-{
-name: "正常系: 目標実現可能性分析",
-input: AnalyzeGoalFeasibilityInput{
-GoalID: "goal-001",
-UserID: "user-001",
-},
-setupMocks: func(gr *MockGoalRepository, fp *MockFinancialPlanRepository) {
-goal := newTestGoal("user-001", entities.GoalTypeSavings)
-plan := newTestFinancialPlan("user-001")
-gr.On("FindByID", mock.Anything, entities.GoalID("goal-001")).Return(goal, nil)
-fp.On("FindByUserID", mock.Anything, entities.UserID("user-001")).Return(plan, nil)
-},
-expectError: false,
-},
-{
-name: "異常系: 目標が存在しない",
-input: AnalyzeGoalFeasibilityInput{
-GoalID: "goal-999",
-UserID: "user-001",
-},
-setupMocks: func(gr *MockGoalRepository, fp *MockFinancialPlanRepository) {
-gr.On("FindByID", mock.Anything, entities.GoalID("goal-999")).
-Return(nil, errors.New("目標が見つかりません"))
-},
-expectError: true,
-errContains: "目標の取得に失敗しました",
-},
-}
+	tests := []struct {
+		name        string
+		input       AnalyzeGoalFeasibilityInput
+		setupMocks  func(*MockGoalRepository, *MockFinancialPlanRepository)
+		expectError bool
+		errContains string
+	}{
+		{
+			name: "正常系: 目標実現可能性分析",
+			input: AnalyzeGoalFeasibilityInput{
+				GoalID: "goal-001",
+				UserID: "user-001",
+			},
+			setupMocks: func(gr *MockGoalRepository, fp *MockFinancialPlanRepository) {
+				goal := newTestGoal("user-001", entities.GoalTypeSavings)
+				plan := newTestFinancialPlan("user-001")
+				gr.On("FindByID", mock.Anything, entities.GoalID("goal-001")).Return(goal, nil)
+				fp.On("FindByUserID", mock.Anything, entities.UserID("user-001")).Return(plan, nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "異常系: 目標が存在しない",
+			input: AnalyzeGoalFeasibilityInput{
+				GoalID: "goal-999",
+				UserID: "user-001",
+			},
+			setupMocks: func(gr *MockGoalRepository, fp *MockFinancialPlanRepository) {
+				gr.On("FindByID", mock.Anything, entities.GoalID("goal-999")).
+					Return(nil, errors.New("目標が見つかりません"))
+			},
+			expectError: true,
+			errContains: "目標の取得に失敗しました",
+		},
+	}
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-goalRepo := new(MockGoalRepository)
-planRepo := new(MockFinancialPlanRepository)
-tt.setupMocks(goalRepo, planRepo)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			goalRepo := new(MockGoalRepository)
+			planRepo := new(MockFinancialPlanRepository)
+			tt.setupMocks(goalRepo, planRepo)
 
-uc := NewManageGoalsUseCase(goalRepo, planRepo, recommendService)
-output, err := uc.AnalyzeGoalFeasibility(context.Background(), tt.input)
+			uc := NewManageGoalsUseCase(goalRepo, planRepo, recommendService)
+			output, err := uc.AnalyzeGoalFeasibility(context.Background(), tt.input)
 
-if tt.expectError {
-assert.Error(t, err)
-if tt.errContains != "" {
-assert.Contains(t, err.Error(), tt.errContains)
-}
-assert.Nil(t, output)
-} else {
-require.NoError(t, err)
-assert.NotNil(t, output)
-}
-goalRepo.AssertExpectations(t)
-planRepo.AssertExpectations(t)
-})
-}
+			if tt.expectError {
+				assert.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+				assert.Nil(t, output)
+			} else {
+				require.NoError(t, err)
+				assert.NotNil(t, output)
+			}
+			goalRepo.AssertExpectations(t)
+			planRepo.AssertExpectations(t)
+		})
+	}
 }

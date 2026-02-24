@@ -469,19 +469,55 @@ func TestWebAuthnUseCase_BeginRegistration(t *testing.T) {
 }
 
 func TestWebAuthnUseCase_BeginLogin(t *testing.T) {
-t.Run("正常系: パスキーログイン開始", func(t *testing.T) {
-userRepo := new(MockUserRepository)
-credRepo := new(MockWebAuthnCredentialRepository)
-rtRepo := new(MockRefreshTokenRepository)
+	t.Run("正常系: パスキーログイン開始", func(t *testing.T) {
+		userRepo := new(MockUserRepository)
+		credRepo := new(MockWebAuthnCredentialRepository)
+		rtRepo := new(MockRefreshTokenRepository)
 
-uc := newTestWebAuthnUseCase(userRepo, credRepo, rtRepo)
-output, err := uc.BeginLogin(context.Background(), BeginLoginInput{
-Email: "",
-})
+		// BeginLogin calls uc.webAuthn.BeginDiscoverableLogin() only - no repository calls needed
+		uc := newTestWebAuthnUseCase(userRepo, credRepo, rtRepo)
+		output, err := uc.BeginLogin(context.Background(), BeginLoginInput{
+			Email: "",
+		})
 
-require.NoError(t, err)
-assert.NotNil(t, output)
-assert.NotEmpty(t, output.PublicKeyOptions)
-assert.NotEmpty(t, output.SessionData)
-})
+		require.NoError(t, err)
+		assert.NotNil(t, output)
+		assert.NotEmpty(t, output.PublicKeyOptions)
+		assert.NotEmpty(t, output.SessionData)
+	})
+}
+
+func TestWebAuthnUseCase_BeginRegistration_WithExistingCredentials(t *testing.T) {
+	t.Run("正常系: 既存クレデンシャルありでパスキー登録開始", func(t *testing.T) {
+		userRepo := new(MockUserRepository)
+		credRepo := new(MockWebAuthnCredentialRepository)
+		rtRepo := new(MockRefreshTokenRepository)
+
+		// The user entity is only used for its name/email fields in the WebAuthn ceremony
+		user := newTestUser("passkey2@example.com", "Password123!")
+		existingCred, _ := entities.NewWebAuthnCredential(
+			"existing-cred-001",
+			entities.UserID("user-with-creds"),
+			[]byte("credential-id-bytes"),
+			[]byte("public-key-bytes"),
+			"none",
+			[]byte("aaguid"),
+			[]string{"internal"},
+			"Existing Passkey",
+		)
+
+		userRepo.On("FindByID", mock.Anything, entities.UserID("user-with-creds")).Return(user, nil)
+		credRepo.On("FindByUserID", mock.Anything, entities.UserID("user-with-creds")).
+			Return([]*entities.WebAuthnCredential{existingCred}, nil)
+
+		uc := newTestWebAuthnUseCase(userRepo, credRepo, rtRepo)
+		output, err := uc.BeginRegistration(context.Background(), "user-with-creds")
+
+		require.NoError(t, err)
+		assert.NotNil(t, output)
+		assert.NotEmpty(t, output.PublicKeyOptions)
+		assert.NotEmpty(t, output.SessionData)
+		userRepo.AssertExpectations(t)
+		credRepo.AssertExpectations(t)
+	})
 }

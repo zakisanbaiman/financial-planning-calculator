@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	testJWTSecret  = "test-secret-key-for-unit-tests"
-	testJWTExpiry  = 15 * time.Minute
-	testRTExpiry   = 7 * 24 * time.Hour
+	testJWTSecret = "test-secret-key-for-unit-tests"
+	testJWTExpiry = 15 * time.Minute
+	testRTExpiry  = 7 * 24 * time.Hour
 )
 
 func newTestAuthUseCase(userRepo *MockUserRepository, rtRepo *MockRefreshTokenRepository) AuthUseCase {
@@ -457,11 +457,11 @@ func TestAuthUseCase_Setup2FA(t *testing.T) {
 
 func TestAuthUseCase_Get2FAStatus(t *testing.T) {
 	tests := []struct {
-		name           string
-		userID         string
-		setupMock      func(*MockUserRepository, *MockRefreshTokenRepository)
-		expectError    bool
-		expectEnabled  bool
+		name          string
+		userID        string
+		setupMock     func(*MockUserRepository, *MockRefreshTokenRepository)
+		expectError   bool
+		expectEnabled bool
 	}{
 		{
 			name:   "正常系: 2FAが無効",
@@ -507,528 +507,637 @@ func TestAuthUseCase_Get2FAStatus(t *testing.T) {
 }
 
 func TestAuthUseCase_RefreshAccessToken(t *testing.T) {
-// First register a user to get a refresh token
-userRepo := new(MockUserRepository)
-rtRepo := new(MockRefreshTokenRepository)
+	t.Run("正常系: トークンリフレッシュ成功", func(t *testing.T) {
+		user := newTestUser("refresh@example.com", "Password123!")
 
-email, _ := entities.NewEmail("refresh@example.com")
-userRepo.On("ExistsByEmail", mock.Anything, email).Return(false, nil)
-userRepo.On("Save", mock.Anything, mock.AnythingOfType("*entities.User")).Return(nil)
-rtRepo.On("Save", mock.Anything, mock.AnythingOfType("*entities.RefreshToken")).Return(nil)
+		// リフレッシュトークンを手動で作成
+		rt, plainToken, _ := entities.NewRefreshToken(user.ID(), time.Now().Add(7*24*time.Hour))
 
-uc := newTestAuthUseCase(userRepo, rtRepo)
-regOut, err := uc.Register(context.Background(), RegisterInput{
-Email:    "refresh@example.com",
-Password: "Password123!",
-})
-require.NoError(t, err)
+		rtRepo2 := new(MockRefreshTokenRepository)
+		userRepo2 := new(MockUserRepository)
 
-t.Run("正常系: トークンリフレッシュ成功", func(t *testing.T) {
-// モックのRefreshTokenを作成
-user := newTestUser("refresh@example.com", "Password123!")
+		rtRepo2.On("FindByTokenHash", mock.Anything, mock.Anything).Return(rt, nil)
+		userRepo2.On("FindByID", mock.Anything, mock.Anything).Return(user, nil)
+		rtRepo2.On("Update", mock.Anything, mock.AnythingOfType("*entities.RefreshToken")).Return(nil)
 
-// FindByTokenHash は呼ばれるが、返り値は動的なトークンに依存するため、
-// テストのリフレッシュトークンを手動で作成
-rt, plainToken, _ := entities.NewRefreshToken(user.ID(), time.Now().Add(7*24*time.Hour))
-_ = rt
+		uc2 := newTestAuthUseCase(userRepo2, rtRepo2)
+		out, err := uc2.RefreshAccessToken(context.Background(), plainToken)
 
-rtRepo2 := new(MockRefreshTokenRepository)
-userRepo2 := new(MockUserRepository)
+		require.NoError(t, err)
+		assert.NotNil(t, out)
+		assert.NotEmpty(t, out.Token)
+		rtRepo2.AssertExpectations(t)
+	})
 
-// plainTokenのハッシュを使ってマッチさせる
-rtRepo2.On("FindByTokenHash", mock.Anything, mock.Anything).Return(rt, nil)
-userRepo2.On("FindByID", mock.Anything, mock.Anything).Return(user, nil)
-rtRepo2.On("Update", mock.Anything, mock.AnythingOfType("*entities.RefreshToken")).Return(nil)
+	t.Run("異常系: 無効なリフレッシュトークン", func(t *testing.T) {
+		rtRepo2 := new(MockRefreshTokenRepository)
+		userRepo2 := new(MockUserRepository)
+		rtRepo2.On("FindByTokenHash", mock.Anything, mock.Anything).
+			Return(nil, errors.New("トークンが見つかりません"))
 
-uc2 := newTestAuthUseCase(userRepo2, rtRepo2)
-out, err := uc2.RefreshAccessToken(context.Background(), plainToken)
-
-require.NoError(t, err)
-assert.NotNil(t, out)
-assert.NotEmpty(t, out.Token)
-rtRepo2.AssertExpectations(t)
-})
-
-t.Run("異常系: 無効なリフレッシュトークン", func(t *testing.T) {
-rtRepo2 := new(MockRefreshTokenRepository)
-userRepo2 := new(MockUserRepository)
-rtRepo2.On("FindByTokenHash", mock.Anything, mock.Anything).
-Return(nil, errors.New("トークンが見つかりません"))
-
-uc2 := newTestAuthUseCase(userRepo2, rtRepo2)
-_, err := uc2.RefreshAccessToken(context.Background(), "invalid-refresh-token")
-assert.Error(t, err)
-assert.Contains(t, err.Error(), "無効なリフレッシュトークンです")
-})
-_ = regOut
+		uc2 := newTestAuthUseCase(userRepo2, rtRepo2)
+		_, err := uc2.RefreshAccessToken(context.Background(), "invalid-refresh-token")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "無効なリフレッシュトークンです")
+	})
 }
 
 func TestAuthUseCase_GitHubOAuthLogin_NewUser(t *testing.T) {
-t.Run("正常系: 新規GitHubユーザー作成", func(t *testing.T) {
-userRepo := new(MockUserRepository)
-rtRepo := new(MockRefreshTokenRepository)
+	t.Run("正常系: 新規GitHubユーザー作成", func(t *testing.T) {
+		userRepo := new(MockUserRepository)
+		rtRepo := new(MockRefreshTokenRepository)
 
-// GitHubプロバイダーIDによる検索失敗（新規ユーザー）
-userRepo.On("FindByProviderUserID", mock.Anything, entities.AuthProviderGitHub, "github-new-user").
-Return(nil, errors.New("ユーザーが見つかりません"))
+		// GitHubプロバイダーIDによる検索失敗（新規ユーザー）
+		userRepo.On("FindByProviderUserID", mock.Anything, entities.AuthProviderGitHub, "github-new-user").
+			Return(nil, errors.New("ユーザーが見つかりません"))
 
-email, _ := entities.NewEmail("newgithub@example.com")
-userRepo.On("FindByEmail", mock.Anything, email).
-Return(nil, errors.New("ユーザーが見つかりません"))
+		email, _ := entities.NewEmail("newgithub@example.com")
+		userRepo.On("FindByEmail", mock.Anything, email).
+			Return(nil, errors.New("ユーザーが見つかりません"))
 
-userRepo.On("Save", mock.Anything, mock.AnythingOfType("*entities.User")).Return(nil)
-rtRepo.On("Save", mock.Anything, mock.AnythingOfType("*entities.RefreshToken")).Return(nil)
+		userRepo.On("Save", mock.Anything, mock.AnythingOfType("*entities.User")).Return(nil)
+		rtRepo.On("Save", mock.Anything, mock.AnythingOfType("*entities.RefreshToken")).Return(nil)
 
-uc := newTestAuthUseCase(userRepo, rtRepo)
-output, err := uc.GitHubOAuthLogin(context.Background(), GitHubOAuthInput{
-GitHubUserID: "github-new-user",
-Email:        "newgithub@example.com",
-Name:         "New GitHub User",
-AvatarURL:    "https://example.com/avatar.png",
-})
+		uc := newTestAuthUseCase(userRepo, rtRepo)
+		output, err := uc.GitHubOAuthLogin(context.Background(), GitHubOAuthInput{
+			GitHubUserID: "github-new-user",
+			Email:        "newgithub@example.com",
+			Name:         "New GitHub User",
+			AvatarURL:    "https://example.com/avatar.png",
+		})
 
-require.NoError(t, err)
-assert.NotNil(t, output)
-assert.NotEmpty(t, output.Token)
-userRepo.AssertExpectations(t)
-rtRepo.AssertExpectations(t)
-})
+		require.NoError(t, err)
+		assert.NotNil(t, output)
+		assert.NotEmpty(t, output.Token)
+		userRepo.AssertExpectations(t)
+		rtRepo.AssertExpectations(t)
+	})
 
-t.Run("異常系: 同一メールアドレスの既存アカウント", func(t *testing.T) {
-userRepo := new(MockUserRepository)
-rtRepo := new(MockRefreshTokenRepository)
+	t.Run("異常系: 同一メールアドレスの既存アカウント", func(t *testing.T) {
+		userRepo := new(MockUserRepository)
+		rtRepo := new(MockRefreshTokenRepository)
 
-existingUser := newTestUser("existing@example.com", "Password123!")
-email, _ := entities.NewEmail("existing@example.com")
+		existingUser := newTestUser("existing@example.com", "Password123!")
+		email, _ := entities.NewEmail("existing@example.com")
 
-userRepo.On("FindByProviderUserID", mock.Anything, entities.AuthProviderGitHub, "github-conflict").
-Return(nil, errors.New("ユーザーが見つかりません"))
-userRepo.On("FindByEmail", mock.Anything, email).Return(existingUser, nil)
+		userRepo.On("FindByProviderUserID", mock.Anything, entities.AuthProviderGitHub, "github-conflict").
+			Return(nil, errors.New("ユーザーが見つかりません"))
+		userRepo.On("FindByEmail", mock.Anything, email).Return(existingUser, nil)
 
-uc := newTestAuthUseCase(userRepo, rtRepo)
-_, err := uc.GitHubOAuthLogin(context.Background(), GitHubOAuthInput{
-GitHubUserID: "github-conflict",
-Email:        "existing@example.com",
-})
+		uc := newTestAuthUseCase(userRepo, rtRepo)
+		_, err := uc.GitHubOAuthLogin(context.Background(), GitHubOAuthInput{
+			GitHubUserID: "github-conflict",
+			Email:        "existing@example.com",
+		})
 
-assert.Error(t, err)
-assert.Contains(t, err.Error(), "このメールアドレスは既に登録されています")
-userRepo.AssertExpectations(t)
-})
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "このメールアドレスは既に登録されています")
+		userRepo.AssertExpectations(t)
+	})
 }
 
 func TestAuthUseCase_Enable2FA(t *testing.T) {
-tests := []struct {
-name        string
-input       Enable2FAInput
-setupMock   func(*MockUserRepository, *MockRefreshTokenRepository)
-expectError bool
-errContains string
-}{
-{
-name: "異常系: ユーザーが存在しない",
-input: Enable2FAInput{
-UserID: "nonexistent",
-Code:   "123456",
-Secret: "JBSWY3DPEHPK3PXP",
-},
-setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
-ur.On("FindByID", mock.Anything, entities.UserID("nonexistent")).
-Return(nil, errors.New("ユーザーが見つかりません"))
-},
-expectError: true,
-errContains: "ユーザーが見つかりません",
-},
-}
+	tests := []struct {
+		name        string
+		input       Enable2FAInput
+		setupMock   func(*MockUserRepository, *MockRefreshTokenRepository)
+		expectError bool
+		errContains string
+	}{
+		{
+			name: "異常系: ユーザーが存在しない",
+			input: Enable2FAInput{
+				UserID: "nonexistent",
+				Code:   "123456",
+				Secret: "JBSWY3DPEHPK3PXP",
+			},
+			setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
+				ur.On("FindByID", mock.Anything, entities.UserID("nonexistent")).
+					Return(nil, errors.New("ユーザーが見つかりません"))
+			},
+			expectError: true,
+			errContains: "ユーザーが見つかりません",
+		},
+	}
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-userRepo := new(MockUserRepository)
-rtRepo := new(MockRefreshTokenRepository)
-tt.setupMock(userRepo, rtRepo)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			userRepo := new(MockUserRepository)
+			rtRepo := new(MockRefreshTokenRepository)
+			tt.setupMock(userRepo, rtRepo)
 
-uc := newTestAuthUseCase(userRepo, rtRepo)
-err := uc.Enable2FA(context.Background(), tt.input)
+			uc := newTestAuthUseCase(userRepo, rtRepo)
+			err := uc.Enable2FA(context.Background(), tt.input)
 
-if tt.expectError {
-assert.Error(t, err)
-if tt.errContains != "" {
-assert.Contains(t, err.Error(), tt.errContains)
-}
-} else {
-require.NoError(t, err)
-}
-userRepo.AssertExpectations(t)
-})
-}
+			if tt.expectError {
+				assert.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+			} else {
+				require.NoError(t, err)
+			}
+			userRepo.AssertExpectations(t)
+		})
+	}
 }
 
 func TestAuthUseCase_Disable2FA(t *testing.T) {
-tests := []struct {
-name        string
-input       Disable2FAInput
-setupMock   func(*MockUserRepository, *MockRefreshTokenRepository)
-expectError bool
-errContains string
-}{
-{
-name: "異常系: ユーザーが存在しない",
-input: Disable2FAInput{
-UserID:   "nonexistent",
-Password: "Password123!",
-},
-setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
-ur.On("FindByID", mock.Anything, entities.UserID("nonexistent")).
-Return(nil, errors.New("ユーザーが見つかりません"))
-},
-expectError: true,
-errContains: "ユーザーが見つかりません",
-},
-}
+	tests := []struct {
+		name        string
+		input       Disable2FAInput
+		setupMock   func(*MockUserRepository, *MockRefreshTokenRepository)
+		expectError bool
+		errContains string
+	}{
+		{
+			name: "異常系: ユーザーが存在しない",
+			input: Disable2FAInput{
+				UserID:   "nonexistent",
+				Password: "Password123!",
+			},
+			setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
+				ur.On("FindByID", mock.Anything, entities.UserID("nonexistent")).
+					Return(nil, errors.New("ユーザーが見つかりません"))
+			},
+			expectError: true,
+			errContains: "ユーザーが見つかりません",
+		},
+	}
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-userRepo := new(MockUserRepository)
-rtRepo := new(MockRefreshTokenRepository)
-tt.setupMock(userRepo, rtRepo)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			userRepo := new(MockUserRepository)
+			rtRepo := new(MockRefreshTokenRepository)
+			tt.setupMock(userRepo, rtRepo)
 
-uc := newTestAuthUseCase(userRepo, rtRepo)
-err := uc.Disable2FA(context.Background(), tt.input)
+			uc := newTestAuthUseCase(userRepo, rtRepo)
+			err := uc.Disable2FA(context.Background(), tt.input)
 
-if tt.expectError {
-assert.Error(t, err)
-if tt.errContains != "" {
-assert.Contains(t, err.Error(), tt.errContains)
-}
-} else {
-require.NoError(t, err)
-}
-userRepo.AssertExpectations(t)
-})
-}
+			if tt.expectError {
+				assert.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+			} else {
+				require.NoError(t, err)
+			}
+			userRepo.AssertExpectations(t)
+		})
+	}
 }
 
 func TestAuthUseCase_Verify2FA(t *testing.T) {
-tests := []struct {
-name        string
-input       Verify2FAInput
-setupMock   func(*MockUserRepository, *MockRefreshTokenRepository)
-expectError bool
-errContains string
-}{
-{
-name: "異常系: ユーザーが存在しない",
-input: Verify2FAInput{
-UserID: "nonexistent",
-Code:  "123456",
-},
-setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
-ur.On("FindByID", mock.Anything, entities.UserID("nonexistent")).
-Return(nil, errors.New("ユーザーが見つかりません"))
-},
-expectError: true,
-errContains: "ユーザーが見つかりません",
-},
-}
+	tests := []struct {
+		name        string
+		input       Verify2FAInput
+		setupMock   func(*MockUserRepository, *MockRefreshTokenRepository)
+		expectError bool
+		errContains string
+	}{
+		{
+			name: "異常系: ユーザーが存在しない",
+			input: Verify2FAInput{
+				UserID: "nonexistent",
+				Code:   "123456",
+			},
+			setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
+				ur.On("FindByID", mock.Anything, entities.UserID("nonexistent")).
+					Return(nil, errors.New("ユーザーが見つかりません"))
+			},
+			expectError: true,
+			errContains: "ユーザーが見つかりません",
+		},
+	}
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-userRepo := new(MockUserRepository)
-rtRepo := new(MockRefreshTokenRepository)
-tt.setupMock(userRepo, rtRepo)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			userRepo := new(MockUserRepository)
+			rtRepo := new(MockRefreshTokenRepository)
+			tt.setupMock(userRepo, rtRepo)
 
-uc := newTestAuthUseCase(userRepo, rtRepo)
-output, err := uc.Verify2FA(context.Background(), tt.input)
+			uc := newTestAuthUseCase(userRepo, rtRepo)
+			output, err := uc.Verify2FA(context.Background(), tt.input)
 
-if tt.expectError {
-assert.Error(t, err)
-if tt.errContains != "" {
-assert.Contains(t, err.Error(), tt.errContains)
-}
-assert.Nil(t, output)
-} else {
-require.NoError(t, err)
-assert.NotNil(t, output)
-}
-userRepo.AssertExpectations(t)
-})
-}
+			if tt.expectError {
+				assert.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+				assert.Nil(t, output)
+			} else {
+				require.NoError(t, err)
+				assert.NotNil(t, output)
+			}
+			userRepo.AssertExpectations(t)
+		})
+	}
 }
 
 func TestAuthUseCase_RegenerateBackupCodes(t *testing.T) {
-tests := []struct {
-name        string
-userID      string
-setupMock   func(*MockUserRepository, *MockRefreshTokenRepository)
-expectError bool
-errContains string
-}{
-{
-name:   "異常系: ユーザーが存在しない",
-userID: "nonexistent",
-setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
-ur.On("FindByID", mock.Anything, entities.UserID("nonexistent")).
-Return(nil, errors.New("ユーザーが見つかりません"))
-},
-expectError: true,
-errContains: "ユーザーが見つかりません",
-},
-}
+	tests := []struct {
+		name        string
+		userID      string
+		setupMock   func(*MockUserRepository, *MockRefreshTokenRepository)
+		expectError bool
+		errContains string
+	}{
+		{
+			name:   "異常系: ユーザーが存在しない",
+			userID: "nonexistent",
+			setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
+				ur.On("FindByID", mock.Anything, entities.UserID("nonexistent")).
+					Return(nil, errors.New("ユーザーが見つかりません"))
+			},
+			expectError: true,
+			errContains: "ユーザーが見つかりません",
+		},
+	}
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-userRepo := new(MockUserRepository)
-rtRepo := new(MockRefreshTokenRepository)
-tt.setupMock(userRepo, rtRepo)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			userRepo := new(MockUserRepository)
+			rtRepo := new(MockRefreshTokenRepository)
+			tt.setupMock(userRepo, rtRepo)
 
-uc := newTestAuthUseCase(userRepo, rtRepo)
-output, err := uc.RegenerateBackupCodes(context.Background(), tt.userID)
+			uc := newTestAuthUseCase(userRepo, rtRepo)
+			output, err := uc.RegenerateBackupCodes(context.Background(), tt.userID)
 
-if tt.expectError {
-assert.Error(t, err)
-if tt.errContains != "" {
-assert.Contains(t, err.Error(), tt.errContains)
-}
-assert.Nil(t, output)
-} else {
-require.NoError(t, err)
-assert.NotNil(t, output)
-assert.NotEmpty(t, output.BackupCodes)
-}
-userRepo.AssertExpectations(t)
-})
-}
+			if tt.expectError {
+				assert.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+				assert.Nil(t, output)
+			} else {
+				require.NoError(t, err)
+				assert.NotNil(t, output)
+				assert.NotEmpty(t, output.BackupCodes)
+			}
+			userRepo.AssertExpectations(t)
+		})
+	}
 }
 
 func TestAuthUseCase_Enable2FA_MoreCases(t *testing.T) {
-tests := []struct {
-name        string
-input       Enable2FAInput
-setupMock   func(*MockUserRepository, *MockRefreshTokenRepository)
-expectError bool
-errContains string
-}{
-{
-name: "異常系: ユーザーIDが空",
-input: Enable2FAInput{
-UserID: "",
-Code:   "123456",
-Secret: "JBSWY3DPEHPK3PXP",
-},
-setupMock:   func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {},
-expectError: true,
-errContains: "ユーザーIDは必須です",
-},
-{
-name: "異常系: 認証コードが空",
-input: Enable2FAInput{
-UserID: "valid-user-id",
-Code:   "",
-Secret: "JBSWY3DPEHPK3PXP",
-},
-setupMock:   func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {},
-expectError: true,
-errContains: "認証コードは必須です",
-},
-{
-name: "異常系: 2FAが既に有効",
-input: Enable2FAInput{
-UserID: "valid-user-with-2fa",
-Code:   "123456",
-Secret: "JBSWY3DPEHPK3PXP",
-},
-setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
-user := newTestUser("with2fa@example.com", "Password123!")
-// 2FAを有効化状態にする
-_ = user.EnableTwoFactor("JBSWY3DPEHPK3PXP", []string{"hash1", "hash2"})
-ur.On("FindByID", mock.Anything, entities.UserID("valid-user-with-2fa")).Return(user, nil)
-},
-expectError: true,
-errContains: "2段階認証は既に有効です",
-},
-{
-name: "異常系: 無効なTOTPコード",
-input: Enable2FAInput{
-UserID: "valid-user-id",
-Code:   "000000", // 無効なコード
-Secret: "JBSWY3DPEHPK3PXP",
-},
-setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
-user := newTestUser("no2fa@example.com", "Password123!")
-ur.On("FindByID", mock.Anything, entities.UserID("valid-user-id")).Return(user, nil)
-},
-expectError: true,
-errContains: "認証コードが無効です",
-},
-}
+	tests := []struct {
+		name        string
+		input       Enable2FAInput
+		setupMock   func(*MockUserRepository, *MockRefreshTokenRepository)
+		expectError bool
+		errContains string
+	}{
+		{
+			name: "異常系: ユーザーIDが空",
+			input: Enable2FAInput{
+				UserID: "",
+				Code:   "123456",
+				Secret: "JBSWY3DPEHPK3PXP",
+			},
+			setupMock:   func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {},
+			expectError: true,
+			errContains: "ユーザーIDは必須です",
+		},
+		{
+			name: "異常系: 認証コードが空",
+			input: Enable2FAInput{
+				UserID: "valid-user-id",
+				Code:   "",
+				Secret: "JBSWY3DPEHPK3PXP",
+			},
+			setupMock:   func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {},
+			expectError: true,
+			errContains: "認証コードは必須です",
+		},
+		{
+			name: "異常系: 2FAが既に有効",
+			input: Enable2FAInput{
+				UserID: "valid-user-with-2fa",
+				Code:   "123456",
+				Secret: "JBSWY3DPEHPK3PXP",
+			},
+			setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
+				user := newTestUser("with2fa@example.com", "Password123!")
+				// 2FAを有効化状態にする
+				_ = user.EnableTwoFactor("JBSWY3DPEHPK3PXP", []string{"hash1", "hash2"})
+				ur.On("FindByID", mock.Anything, entities.UserID("valid-user-with-2fa")).Return(user, nil)
+			},
+			expectError: true,
+			errContains: "2段階認証は既に有効です",
+		},
+		{
+			name: "異常系: 無効なTOTPコード",
+			input: Enable2FAInput{
+				UserID: "valid-user-id",
+				Code:   "000000", // 無効なコード
+				Secret: "JBSWY3DPEHPK3PXP",
+			},
+			setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
+				user := newTestUser("no2fa@example.com", "Password123!")
+				ur.On("FindByID", mock.Anything, entities.UserID("valid-user-id")).Return(user, nil)
+			},
+			expectError: true,
+			errContains: "認証コードが無効です",
+		},
+	}
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-userRepo := new(MockUserRepository)
-rtRepo := new(MockRefreshTokenRepository)
-tt.setupMock(userRepo, rtRepo)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			userRepo := new(MockUserRepository)
+			rtRepo := new(MockRefreshTokenRepository)
+			tt.setupMock(userRepo, rtRepo)
 
-uc := newTestAuthUseCase(userRepo, rtRepo)
-err := uc.Enable2FA(context.Background(), tt.input)
+			uc := newTestAuthUseCase(userRepo, rtRepo)
+			err := uc.Enable2FA(context.Background(), tt.input)
 
-assert.Error(t, err)
-if tt.errContains != "" {
-assert.Contains(t, err.Error(), tt.errContains)
-}
-userRepo.AssertExpectations(t)
-})
-}
+			assert.Error(t, err)
+			if tt.errContains != "" {
+				assert.Contains(t, err.Error(), tt.errContains)
+			}
+			userRepo.AssertExpectations(t)
+		})
+	}
 }
 
 func TestAuthUseCase_Verify2FA_MoreCases(t *testing.T) {
-tests := []struct {
-name        string
-input       Verify2FAInput
-setupMock   func(*MockUserRepository, *MockRefreshTokenRepository)
-expectError bool
-errContains string
-}{
-{
-name: "異常系: 2FAが有効でない",
-input: Verify2FAInput{
-UserID: "user-no-2fa",
-Code:   "123456",
-},
-setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
-user := newTestUser("no2fa@example.com", "Password123!")
-ur.On("FindByID", mock.Anything, entities.UserID("user-no-2fa")).Return(user, nil)
-},
-expectError: true,
-errContains: "2段階認証が有効になっていません",
-},
-}
+	tests := []struct {
+		name        string
+		input       Verify2FAInput
+		setupMock   func(*MockUserRepository, *MockRefreshTokenRepository)
+		expectError bool
+		errContains string
+	}{
+		{
+			name: "異常系: 2FAが有効でない",
+			input: Verify2FAInput{
+				UserID: "user-no-2fa",
+				Code:   "123456",
+			},
+			setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
+				user := newTestUser("no2fa@example.com", "Password123!")
+				ur.On("FindByID", mock.Anything, entities.UserID("user-no-2fa")).Return(user, nil)
+			},
+			expectError: true,
+			errContains: "2段階認証が有効になっていません",
+		},
+	}
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-userRepo := new(MockUserRepository)
-rtRepo := new(MockRefreshTokenRepository)
-tt.setupMock(userRepo, rtRepo)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			userRepo := new(MockUserRepository)
+			rtRepo := new(MockRefreshTokenRepository)
+			tt.setupMock(userRepo, rtRepo)
 
-uc := newTestAuthUseCase(userRepo, rtRepo)
-output, err := uc.Verify2FA(context.Background(), tt.input)
+			uc := newTestAuthUseCase(userRepo, rtRepo)
+			output, err := uc.Verify2FA(context.Background(), tt.input)
 
-assert.Error(t, err)
-if tt.errContains != "" {
-assert.Contains(t, err.Error(), tt.errContains)
-}
-assert.Nil(t, output)
-userRepo.AssertExpectations(t)
-})
-}
+			assert.Error(t, err)
+			if tt.errContains != "" {
+				assert.Contains(t, err.Error(), tt.errContains)
+			}
+			assert.Nil(t, output)
+			userRepo.AssertExpectations(t)
+		})
+	}
 }
 
 func TestAuthUseCase_Disable2FA_MoreCases(t *testing.T) {
-tests := []struct {
-name        string
-input       Disable2FAInput
-setupMock   func(*MockUserRepository, *MockRefreshTokenRepository)
-expectError bool
-errContains string
-}{
-{
-name: "異常系: 2FAが有効でない",
-input: Disable2FAInput{
-UserID:   "user-no-2fa",
-Password: "Password123!",
-},
-setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
-user := newTestUser("no2fa@example.com", "Password123!")
-ur.On("FindByID", mock.Anything, entities.UserID("user-no-2fa")).Return(user, nil)
-},
-expectError: true,
-errContains: "2段階認証は有効になっていません",
-},
-{
-name: "異常系: パスワードが正しくない",
-input: Disable2FAInput{
-UserID:   "user-with-2fa",
-Password: "WrongPassword!",
-},
-setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
-user := newTestUser("with2fa@example.com", "Password123!")
-_ = user.EnableTwoFactor("JBSWY3DPEHPK3PXP", []string{"hash1", "hash2"})
-ur.On("FindByID", mock.Anything, entities.UserID("user-with-2fa")).Return(user, nil)
-},
-expectError: true,
-errContains: "パスワードが正しくありません",
-},
-}
+	tests := []struct {
+		name        string
+		input       Disable2FAInput
+		setupMock   func(*MockUserRepository, *MockRefreshTokenRepository)
+		expectError bool
+		errContains string
+	}{
+		{
+			name: "異常系: 2FAが有効でない",
+			input: Disable2FAInput{
+				UserID:   "user-no-2fa",
+				Password: "Password123!",
+			},
+			setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
+				user := newTestUser("no2fa@example.com", "Password123!")
+				ur.On("FindByID", mock.Anything, entities.UserID("user-no-2fa")).Return(user, nil)
+			},
+			expectError: true,
+			errContains: "2段階認証は有効になっていません",
+		},
+		{
+			name: "異常系: パスワードが正しくない",
+			input: Disable2FAInput{
+				UserID:   "user-with-2fa",
+				Password: "WrongPassword!",
+			},
+			setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
+				user := newTestUser("with2fa@example.com", "Password123!")
+				_ = user.EnableTwoFactor("JBSWY3DPEHPK3PXP", []string{"hash1", "hash2"})
+				ur.On("FindByID", mock.Anything, entities.UserID("user-with-2fa")).Return(user, nil)
+			},
+			expectError: true,
+			errContains: "パスワードが正しくありません",
+		},
+	}
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-userRepo := new(MockUserRepository)
-rtRepo := new(MockRefreshTokenRepository)
-tt.setupMock(userRepo, rtRepo)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			userRepo := new(MockUserRepository)
+			rtRepo := new(MockRefreshTokenRepository)
+			tt.setupMock(userRepo, rtRepo)
 
-uc := newTestAuthUseCase(userRepo, rtRepo)
-err := uc.Disable2FA(context.Background(), tt.input)
+			uc := newTestAuthUseCase(userRepo, rtRepo)
+			err := uc.Disable2FA(context.Background(), tt.input)
 
-assert.Error(t, err)
-if tt.errContains != "" {
-assert.Contains(t, err.Error(), tt.errContains)
-}
-userRepo.AssertExpectations(t)
-})
-}
+			assert.Error(t, err)
+			if tt.errContains != "" {
+				assert.Contains(t, err.Error(), tt.errContains)
+			}
+			userRepo.AssertExpectations(t)
+		})
+	}
 }
 
 func TestAuthUseCase_RegenerateBackupCodes_MoreCases(t *testing.T) {
-tests := []struct {
-name        string
-userID      string
-setupMock   func(*MockUserRepository, *MockRefreshTokenRepository)
-expectError bool
-errContains string
-}{
-{
-name:   "異常系: 2FAが有効でない",
-userID: "user-no-2fa",
-setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
-user := newTestUser("no2fa@example.com", "Password123!")
-ur.On("FindByID", mock.Anything, entities.UserID("user-no-2fa")).Return(user, nil)
-},
-expectError: true,
-errContains: "2段階認証が有効になっていません",
-},
-{
-name:   "正常系: バックアップコード再生成",
-userID: "user-with-2fa",
-setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
-user := newTestUser("with2fa@example.com", "Password123!")
-_ = user.EnableTwoFactor("JBSWY3DPEHPK3PXP", []string{"hash1", "hash2"})
-ur.On("FindByID", mock.Anything, entities.UserID("user-with-2fa")).Return(user, nil)
-ur.On("Update", mock.Anything, mock.AnythingOfType("*entities.User")).Return(nil)
-},
-expectError: false,
-},
+	tests := []struct {
+		name        string
+		userID      string
+		setupMock   func(*MockUserRepository, *MockRefreshTokenRepository)
+		expectError bool
+		errContains string
+	}{
+		{
+			name:   "異常系: 2FAが有効でない",
+			userID: "user-no-2fa",
+			setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
+				user := newTestUser("no2fa@example.com", "Password123!")
+				ur.On("FindByID", mock.Anything, entities.UserID("user-no-2fa")).Return(user, nil)
+			},
+			expectError: true,
+			errContains: "2段階認証が有効になっていません",
+		},
+		{
+			name:   "正常系: バックアップコード再生成",
+			userID: "user-with-2fa",
+			setupMock: func(ur *MockUserRepository, rtr *MockRefreshTokenRepository) {
+				user := newTestUser("with2fa@example.com", "Password123!")
+				_ = user.EnableTwoFactor("JBSWY3DPEHPK3PXP", []string{"hash1", "hash2"})
+				ur.On("FindByID", mock.Anything, entities.UserID("user-with-2fa")).Return(user, nil)
+				ur.On("Update", mock.Anything, mock.AnythingOfType("*entities.User")).Return(nil)
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			userRepo := new(MockUserRepository)
+			rtRepo := new(MockRefreshTokenRepository)
+			tt.setupMock(userRepo, rtRepo)
+
+			uc := newTestAuthUseCase(userRepo, rtRepo)
+			output, err := uc.RegenerateBackupCodes(context.Background(), tt.userID)
+
+			if tt.expectError {
+				assert.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+				assert.Nil(t, output)
+			} else {
+				require.NoError(t, err)
+				assert.NotNil(t, output)
+				assert.NotEmpty(t, output.BackupCodes)
+			}
+			userRepo.AssertExpectations(t)
+		})
+	}
 }
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-userRepo := new(MockUserRepository)
-rtRepo := new(MockRefreshTokenRepository)
-tt.setupMock(userRepo, rtRepo)
+func TestAuthUseCase_Login_With2FA(t *testing.T) {
+	t.Run("正常系: 2FA有効ユーザーのログイン（仮トークン返却）", func(t *testing.T) {
+		userRepo := new(MockUserRepository)
+		rtRepo := new(MockRefreshTokenRepository)
 
-uc := newTestAuthUseCase(userRepo, rtRepo)
-output, err := uc.RegenerateBackupCodes(context.Background(), tt.userID)
+		user := newTestUser("with2fa@example.com", "Password123!")
+		// 2FAを有効化
+		_ = user.EnableTwoFactor("JBSWY3DPEHPK3PXP", []string{"hash1", "hash2"})
 
-if tt.expectError {
-assert.Error(t, err)
-if tt.errContains != "" {
-assert.Contains(t, err.Error(), tt.errContains)
+		email, _ := entities.NewEmail("with2fa@example.com")
+		userRepo.On("FindByEmail", mock.Anything, email).Return(user, nil)
+
+		uc := newTestAuthUseCase(userRepo, rtRepo)
+		output, err := uc.Login(context.Background(), LoginInput{
+			Email:    "with2fa@example.com",
+			Password: "Password123!",
+		})
+
+		require.NoError(t, err)
+		assert.NotNil(t, output)
+		assert.NotEmpty(t, output.Token)
+		assert.Empty(t, output.RefreshToken) // 2FA前はリフレッシュトークンなし
+		userRepo.AssertExpectations(t)
+	})
 }
-assert.Nil(t, output)
-} else {
-require.NoError(t, err)
-assert.NotNil(t, output)
-assert.NotEmpty(t, output.BackupCodes)
+
+func TestAuthUseCase_Verify2FA_ValidationCases(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       Verify2FAInput
+		expectError bool
+		errContains string
+	}{
+		{
+			name: "異常系: ユーザーIDが空",
+			input: Verify2FAInput{
+				UserID: "",
+				Code:   "123456",
+			},
+			expectError: true,
+			errContains: "ユーザーIDは必須です",
+		},
+		{
+			name: "異常系: 認証コードが空",
+			input: Verify2FAInput{
+				UserID: "valid-user",
+				Code:   "",
+			},
+			expectError: true,
+			errContains: "認証コードは必須です",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			userRepo := new(MockUserRepository)
+			rtRepo := new(MockRefreshTokenRepository)
+			uc := newTestAuthUseCase(userRepo, rtRepo)
+
+			output, err := uc.Verify2FA(context.Background(), tt.input)
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), tt.errContains)
+			assert.Nil(t, output)
+		})
+	}
 }
-userRepo.AssertExpectations(t)
-})
+
+func TestAuthUseCase_Verify2FA_InvalidTOTP(t *testing.T) {
+	t.Run("異常系: 無効なTOTPコード", func(t *testing.T) {
+		userRepo := new(MockUserRepository)
+		rtRepo := new(MockRefreshTokenRepository)
+
+		user := newTestUser("with2fa@example.com", "Password123!")
+		_ = user.EnableTwoFactor("JBSWY3DPEHPK3PXP", []string{"hash1", "hash2"})
+
+		userRepo.On("FindByID", mock.Anything, entities.UserID("user-with-2fa")).Return(user, nil)
+
+		uc := newTestAuthUseCase(userRepo, rtRepo)
+		output, err := uc.Verify2FA(context.Background(), Verify2FAInput{
+			UserID: "user-with-2fa",
+			Code:   "000000", // 無効なコード
+		})
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "認証コードが無効です")
+		assert.Nil(t, output)
+		userRepo.AssertExpectations(t)
+	})
 }
+
+func TestAuthUseCase_Disable2FA_ValidationCases(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       Disable2FAInput
+		expectError bool
+		errContains string
+	}{
+		{
+			name: "異常系: ユーザーIDが空",
+			input: Disable2FAInput{
+				UserID:   "",
+				Password: "Password123!",
+			},
+			expectError: true,
+			errContains: "ユーザーIDは必須です",
+		},
+		{
+			name: "異常系: パスワードが空",
+			input: Disable2FAInput{
+				UserID:   "valid-user",
+				Password: "",
+			},
+			expectError: true,
+			errContains: "パスワードは必須です",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			userRepo := new(MockUserRepository)
+			rtRepo := new(MockRefreshTokenRepository)
+			uc := newTestAuthUseCase(userRepo, rtRepo)
+
+			err := uc.Disable2FA(context.Background(), tt.input)
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), tt.errContains)
+		})
+	}
 }
