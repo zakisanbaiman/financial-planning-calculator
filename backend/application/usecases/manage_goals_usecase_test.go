@@ -32,7 +32,8 @@ func newTestGoal(userID entities.UserID, goalID entities.GoalID) *entities.Goal 
 
 func TestManageGoalsUseCase_CreateGoal(t *testing.T) {
 	ctx := context.Background()
-	recService := services.NewGoalRecommendationService()
+	calcService := services.NewFinancialCalculationService()
+	recService := services.NewGoalRecommendationService(calcService)
 
 	baseInput := CreateGoalInput{
 		UserID:              "user-001",
@@ -48,9 +49,9 @@ func TestManageGoalsUseCase_CreateGoal(t *testing.T) {
 		mockGoalRepo := new(MockGoalRepository)
 		mockPlanRepo := new(MockFinancialPlanRepository)
 		// 財務データが見つからないエラーを返す → 達成可能性チェックをスキップして保存
-		mockPlanRepo.On("FindByUserID", ctx, entities.UserID("user-001")).
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).
 			Return(nil, errors.New("財務データが見つかりません"))
-		mockGoalRepo.On("Save", ctx, mock_anything()).Return(nil)
+		mockGoalRepo.On("Save", mock_anything(), mock_anything()).Return(nil)
 
 		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
 		output, err := uc.CreateGoal(ctx, baseInput)
@@ -102,9 +103,9 @@ func TestManageGoalsUseCase_CreateGoal(t *testing.T) {
 	t.Run("異常系: Saveリポジトリエラーでエラーになる", func(t *testing.T) {
 		mockGoalRepo := new(MockGoalRepository)
 		mockPlanRepo := new(MockFinancialPlanRepository)
-		mockPlanRepo.On("FindByUserID", ctx, entities.UserID("user-001")).
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).
 			Return(nil, errors.New("財務データが見つかりません"))
-		mockGoalRepo.On("Save", ctx, mock_anything()).Return(errors.New("db error"))
+		mockGoalRepo.On("Save", mock_anything(), mock_anything()).Return(errors.New("db error"))
 
 		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
 		_, err := uc.CreateGoal(ctx, baseInput)
@@ -118,9 +119,9 @@ func TestManageGoalsUseCase_CreateGoal(t *testing.T) {
 		mockGoalRepo := new(MockGoalRepository)
 		mockPlanRepo := new(MockFinancialPlanRepository)
 		plan := newTestFinancialPlan("user-001")
-		mockPlanRepo.On("FindByUserID", ctx, entities.UserID("user-001")).Return(plan, nil)
-		mockGoalRepo.On("Save", ctx, mock_anything()).Return(nil)
-		mockPlanRepo.On("Update", ctx, mock_anything()).Return(nil)
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
+		mockGoalRepo.On("Save", mock_anything(), mock_anything()).Return(nil)
+		mockPlanRepo.On("Update", mock_anything(), mock_anything()).Return(nil)
 
 		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
 		output, err := uc.CreateGoal(ctx, baseInput)
@@ -139,13 +140,14 @@ func TestManageGoalsUseCase_CreateGoal(t *testing.T) {
 
 func TestManageGoalsUseCase_GetGoal(t *testing.T) {
 	ctx := context.Background()
-	recService := services.NewGoalRecommendationService()
+	calcService := services.NewFinancialCalculationService()
+	recService := services.NewGoalRecommendationService(calcService)
 
 	t.Run("正常系: 目標を取得できる", func(t *testing.T) {
 		mockGoalRepo := new(MockGoalRepository)
 		mockPlanRepo := new(MockFinancialPlanRepository)
 		goal := newTestGoal("user-001", "goal-001")
-		mockGoalRepo.On("FindByID", ctx, goal.ID()).Return(goal, nil)
+		mockGoalRepo.On("FindByID", mock_anything(), goal.ID()).Return(goal, nil)
 
 		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
 		output, err := uc.GetGoal(ctx, GetGoalInput{
@@ -162,7 +164,7 @@ func TestManageGoalsUseCase_GetGoal(t *testing.T) {
 	t.Run("異常系: 目標が存在しない場合はエラー", func(t *testing.T) {
 		mockGoalRepo := new(MockGoalRepository)
 		mockPlanRepo := new(MockFinancialPlanRepository)
-		mockGoalRepo.On("FindByID", ctx, entities.GoalID("goal-999")).Return(nil, errors.New("not found"))
+		mockGoalRepo.On("FindByID", mock_anything(), entities.GoalID("goal-999")).Return(nil, errors.New("not found"))
 
 		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
 		_, err := uc.GetGoal(ctx, GetGoalInput{
@@ -179,7 +181,7 @@ func TestManageGoalsUseCase_GetGoal(t *testing.T) {
 		mockGoalRepo := new(MockGoalRepository)
 		mockPlanRepo := new(MockFinancialPlanRepository)
 		goal := newTestGoal("user-001", "goal-001")
-		mockGoalRepo.On("FindByID", ctx, goal.ID()).Return(goal, nil)
+		mockGoalRepo.On("FindByID", mock_anything(), goal.ID()).Return(goal, nil)
 
 		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
 		_, err := uc.GetGoal(ctx, GetGoalInput{
@@ -199,13 +201,14 @@ func TestManageGoalsUseCase_GetGoal(t *testing.T) {
 
 func TestManageGoalsUseCase_GetGoalsByUser(t *testing.T) {
 	ctx := context.Background()
-	recService := services.NewGoalRecommendationService()
+	calcService := services.NewFinancialCalculationService()
+	recService := services.NewGoalRecommendationService(calcService)
 
 	t.Run("正常系: ユーザーの全目標を取得できる", func(t *testing.T) {
 		mockGoalRepo := new(MockGoalRepository)
 		mockPlanRepo := new(MockFinancialPlanRepository)
 		goal := newTestGoal("user-001", "goal-001")
-		mockGoalRepo.On("FindByUserID", ctx, entities.UserID("user-001")).Return([]*entities.Goal{goal}, nil)
+		mockGoalRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return([]*entities.Goal{goal}, nil)
 
 		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
 		output, err := uc.GetGoalsByUser(ctx, GetGoalsByUserInput{
@@ -221,7 +224,7 @@ func TestManageGoalsUseCase_GetGoalsByUser(t *testing.T) {
 	t.Run("正常系: 目標が0件の場合も正常に返す", func(t *testing.T) {
 		mockGoalRepo := new(MockGoalRepository)
 		mockPlanRepo := new(MockFinancialPlanRepository)
-		mockGoalRepo.On("FindByUserID", ctx, entities.UserID("user-001")).Return([]*entities.Goal{}, nil)
+		mockGoalRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return([]*entities.Goal{}, nil)
 
 		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
 		output, err := uc.GetGoalsByUser(ctx, GetGoalsByUserInput{
@@ -237,7 +240,7 @@ func TestManageGoalsUseCase_GetGoalsByUser(t *testing.T) {
 	t.Run("異常系: リポジトリエラーの場合はエラーを返す", func(t *testing.T) {
 		mockGoalRepo := new(MockGoalRepository)
 		mockPlanRepo := new(MockFinancialPlanRepository)
-		mockGoalRepo.On("FindByUserID", ctx, entities.UserID("user-001")).Return(nil, errors.New("db error"))
+		mockGoalRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(nil, errors.New("db error"))
 
 		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
 		_, err := uc.GetGoalsByUser(ctx, GetGoalsByUserInput{
@@ -253,7 +256,7 @@ func TestManageGoalsUseCase_GetGoalsByUser(t *testing.T) {
 		mockGoalRepo := new(MockGoalRepository)
 		mockPlanRepo := new(MockFinancialPlanRepository)
 		goal := newTestGoal("user-001", "goal-001")
-		mockGoalRepo.On("FindActiveGoalsByUserID", ctx, entities.UserID("user-001")).Return([]*entities.Goal{goal}, nil)
+		mockGoalRepo.On("FindActiveGoalsByUserID", mock_anything(), entities.UserID("user-001")).Return([]*entities.Goal{goal}, nil)
 
 		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
 		output, err := uc.GetGoalsByUser(ctx, GetGoalsByUserInput{
@@ -273,14 +276,15 @@ func TestManageGoalsUseCase_GetGoalsByUser(t *testing.T) {
 
 func TestManageGoalsUseCase_DeleteGoal(t *testing.T) {
 	ctx := context.Background()
-	recService := services.NewGoalRecommendationService()
+	calcService := services.NewFinancialCalculationService()
+	recService := services.NewGoalRecommendationService(calcService)
 
 	t.Run("正常系: 目標を削除できる", func(t *testing.T) {
 		mockGoalRepo := new(MockGoalRepository)
 		mockPlanRepo := new(MockFinancialPlanRepository)
 		goal := newTestGoal("user-001", "goal-001")
-		mockGoalRepo.On("FindByID", ctx, goal.ID()).Return(goal, nil)
-		mockGoalRepo.On("Delete", ctx, goal.ID()).Return(nil)
+		mockGoalRepo.On("FindByID", mock_anything(), goal.ID()).Return(goal, nil)
+		mockGoalRepo.On("Delete", mock_anything(), goal.ID()).Return(nil)
 
 		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
 		err := uc.DeleteGoal(ctx, DeleteGoalInput{
@@ -296,7 +300,7 @@ func TestManageGoalsUseCase_DeleteGoal(t *testing.T) {
 		mockGoalRepo := new(MockGoalRepository)
 		mockPlanRepo := new(MockFinancialPlanRepository)
 		goal := newTestGoal("user-001", "goal-001")
-		mockGoalRepo.On("FindByID", ctx, goal.ID()).Return(goal, nil)
+		mockGoalRepo.On("FindByID", mock_anything(), goal.ID()).Return(goal, nil)
 
 		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
 		err := uc.DeleteGoal(ctx, DeleteGoalInput{

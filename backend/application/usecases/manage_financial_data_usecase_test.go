@@ -62,8 +62,8 @@ func TestManageFinancialDataUseCase_CreateFinancialPlan(t *testing.T) {
 
 	t.Run("正常系: 財務計画を新規作成できる", func(t *testing.T) {
 		mockRepo := new(MockFinancialPlanRepository)
-		mockRepo.On("ExistsByUserID", ctx, entities.UserID("user-001")).Return(false, nil)
-		mockRepo.On("Save", ctx, mock_anything()).Return(nil)
+		mockRepo.On("ExistsByUserID", mock_anything(), entities.UserID("user-001")).Return(false, nil)
+		mockRepo.On("Save", mock_anything(), mock_anything()).Return(nil)
 
 		uc := NewManageFinancialDataUseCase(mockRepo)
 		output, err := uc.CreateFinancialPlan(ctx, baseInput)
@@ -76,7 +76,7 @@ func TestManageFinancialDataUseCase_CreateFinancialPlan(t *testing.T) {
 
 	t.Run("異常系: 財務計画が既に存在する場合はエラー", func(t *testing.T) {
 		mockRepo := new(MockFinancialPlanRepository)
-		mockRepo.On("ExistsByUserID", ctx, entities.UserID("user-001")).Return(true, nil)
+		mockRepo.On("ExistsByUserID", mock_anything(), entities.UserID("user-001")).Return(true, nil)
 
 		uc := NewManageFinancialDataUseCase(mockRepo)
 		_, err := uc.CreateFinancialPlan(ctx, baseInput)
@@ -88,7 +88,7 @@ func TestManageFinancialDataUseCase_CreateFinancialPlan(t *testing.T) {
 
 	t.Run("異常系: ExistsByUserIDでリポジトリエラーが発生した場合", func(t *testing.T) {
 		mockRepo := new(MockFinancialPlanRepository)
-		mockRepo.On("ExistsByUserID", ctx, entities.UserID("user-001")).Return(false, errors.New("db error"))
+		mockRepo.On("ExistsByUserID", mock_anything(), entities.UserID("user-001")).Return(false, errors.New("db error"))
 
 		uc := NewManageFinancialDataUseCase(mockRepo)
 		_, err := uc.CreateFinancialPlan(ctx, baseInput)
@@ -100,8 +100,8 @@ func TestManageFinancialDataUseCase_CreateFinancialPlan(t *testing.T) {
 
 	t.Run("異常系: Saveでリポジトリエラーが発生した場合", func(t *testing.T) {
 		mockRepo := new(MockFinancialPlanRepository)
-		mockRepo.On("ExistsByUserID", ctx, entities.UserID("user-001")).Return(false, nil)
-		mockRepo.On("Save", ctx, mock_anything()).Return(errors.New("db error"))
+		mockRepo.On("ExistsByUserID", mock_anything(), entities.UserID("user-001")).Return(false, nil)
+		mockRepo.On("Save", mock_anything(), mock_anything()).Return(errors.New("db error"))
 
 		uc := NewManageFinancialDataUseCase(mockRepo)
 		_, err := uc.CreateFinancialPlan(ctx, baseInput)
@@ -121,7 +121,7 @@ func TestManageFinancialDataUseCase_GetFinancialPlan(t *testing.T) {
 	t.Run("正常系: 財務計画を取得できる", func(t *testing.T) {
 		mockRepo := new(MockFinancialPlanRepository)
 		plan := newTestFinancialPlan("user-001")
-		mockRepo.On("FindByUserID", ctx, entities.UserID("user-001")).Return(plan, nil)
+		mockRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
 
 		uc := NewManageFinancialDataUseCase(mockRepo)
 		output, err := uc.GetFinancialPlan(ctx, GetFinancialPlanInput{UserID: "user-001"})
@@ -133,7 +133,7 @@ func TestManageFinancialDataUseCase_GetFinancialPlan(t *testing.T) {
 
 	t.Run("異常系: 財務計画が存在しない場合はエラー", func(t *testing.T) {
 		mockRepo := new(MockFinancialPlanRepository)
-		mockRepo.On("FindByUserID", ctx, entities.UserID("user-999")).Return(nil, errors.New("not found"))
+		mockRepo.On("FindByUserID", mock_anything(), entities.UserID("user-999")).Return(nil, errors.New("not found"))
 
 		uc := NewManageFinancialDataUseCase(mockRepo)
 		_, err := uc.GetFinancialPlan(ctx, GetFinancialPlanInput{UserID: "user-999"})
@@ -161,8 +161,8 @@ func TestManageFinancialDataUseCase_UpdateFinancialProfile(t *testing.T) {
 	t.Run("正常系: 財務プロファイルを更新できる", func(t *testing.T) {
 		mockRepo := new(MockFinancialPlanRepository)
 		plan := newTestFinancialPlan("user-001")
-		mockRepo.On("FindByUserID", ctx, entities.UserID("user-001")).Return(plan, nil)
-		mockRepo.On("Update", ctx, mock_anything()).Return(nil)
+		mockRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
+		mockRepo.On("Update", mock_anything(), mock_anything()).Return(nil)
 
 		uc := NewManageFinancialDataUseCase(mockRepo)
 		output, err := uc.UpdateFinancialProfile(ctx, input)
@@ -174,7 +174,7 @@ func TestManageFinancialDataUseCase_UpdateFinancialProfile(t *testing.T) {
 
 	t.Run("異常系: FindByUserIDでエラーが発生した場合", func(t *testing.T) {
 		mockRepo := new(MockFinancialPlanRepository)
-		mockRepo.On("FindByUserID", ctx, entities.UserID("user-001")).Return(nil, errors.New("not found"))
+		mockRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(nil, errors.New("not found"))
 
 		uc := NewManageFinancialDataUseCase(mockRepo)
 		_, err := uc.UpdateFinancialProfile(ctx, input)
@@ -186,8 +186,8 @@ func TestManageFinancialDataUseCase_UpdateFinancialProfile(t *testing.T) {
 	t.Run("異常系: Updateでエラーが発生した場合", func(t *testing.T) {
 		mockRepo := new(MockFinancialPlanRepository)
 		plan := newTestFinancialPlan("user-001")
-		mockRepo.On("FindByUserID", ctx, entities.UserID("user-001")).Return(plan, nil)
-		mockRepo.On("Update", ctx, mock_anything()).Return(errors.New("db error"))
+		mockRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
+		mockRepo.On("Update", mock_anything(), mock_anything()).Return(errors.New("db error"))
 
 		uc := NewManageFinancialDataUseCase(mockRepo)
 		_, err := uc.UpdateFinancialProfile(ctx, input)
@@ -207,8 +207,8 @@ func TestManageFinancialDataUseCase_DeleteFinancialPlan(t *testing.T) {
 	t.Run("正常系: 財務計画を削除できる", func(t *testing.T) {
 		mockRepo := new(MockFinancialPlanRepository)
 		plan := newTestFinancialPlan("user-001")
-		mockRepo.On("FindByUserID", ctx, entities.UserID("user-001")).Return(plan, nil)
-		mockRepo.On("Delete", ctx, plan.ID()).Return(nil)
+		mockRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
+		mockRepo.On("Delete", mock_anything(), plan.ID()).Return(nil)
 
 		uc := NewManageFinancialDataUseCase(mockRepo)
 		err := uc.DeleteFinancialPlan(ctx, DeleteFinancialPlanInput{UserID: "user-001"})
@@ -219,7 +219,7 @@ func TestManageFinancialDataUseCase_DeleteFinancialPlan(t *testing.T) {
 
 	t.Run("異常系: FindByUserIDでエラーが発生した場合", func(t *testing.T) {
 		mockRepo := new(MockFinancialPlanRepository)
-		mockRepo.On("FindByUserID", ctx, entities.UserID("user-001")).Return(nil, errors.New("not found"))
+		mockRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(nil, errors.New("not found"))
 
 		uc := NewManageFinancialDataUseCase(mockRepo)
 		err := uc.DeleteFinancialPlan(ctx, DeleteFinancialPlanInput{UserID: "user-001"})
@@ -231,8 +231,8 @@ func TestManageFinancialDataUseCase_DeleteFinancialPlan(t *testing.T) {
 	t.Run("異常系: Deleteでエラーが発生した場合", func(t *testing.T) {
 		mockRepo := new(MockFinancialPlanRepository)
 		plan := newTestFinancialPlan("user-001")
-		mockRepo.On("FindByUserID", ctx, entities.UserID("user-001")).Return(plan, nil)
-		mockRepo.On("Delete", ctx, plan.ID()).Return(errors.New("db error"))
+		mockRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
+		mockRepo.On("Delete", mock_anything(), plan.ID()).Return(errors.New("db error"))
 
 		uc := NewManageFinancialDataUseCase(mockRepo)
 		err := uc.DeleteFinancialPlan(ctx, DeleteFinancialPlanInput{UserID: "user-001"})

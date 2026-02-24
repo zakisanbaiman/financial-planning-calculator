@@ -32,9 +32,9 @@ func TestAuthUseCase_Register(t *testing.T) {
 		mockUserRepo := new(MockUserRepository)
 		mockTokenRepo := new(MockRefreshTokenRepository)
 		email, _ := entities.NewEmail("test@example.com")
-		mockUserRepo.On("ExistsByEmail", ctx, email).Return(false, nil)
-		mockUserRepo.On("Save", ctx, mock_anything()).Return(nil)
-		mockTokenRepo.On("Save", ctx, mock_anything()).Return(nil)
+		mockUserRepo.On("ExistsByEmail", mock_anything(), email).Return(false, nil)
+		mockUserRepo.On("Save", mock_anything(), mock_anything()).Return(nil)
+		mockTokenRepo.On("Save", mock_anything(), mock_anything()).Return(nil)
 
 		uc := newTestAuthUseCase(mockUserRepo, mockTokenRepo)
 		output, err := uc.Register(ctx, RegisterInput{
@@ -83,7 +83,7 @@ func TestAuthUseCase_Register(t *testing.T) {
 		mockUserRepo := new(MockUserRepository)
 		mockTokenRepo := new(MockRefreshTokenRepository)
 		email, _ := entities.NewEmail("existing@example.com")
-		mockUserRepo.On("ExistsByEmail", ctx, email).Return(true, nil)
+		mockUserRepo.On("ExistsByEmail", mock_anything(), email).Return(true, nil)
 
 		uc := newTestAuthUseCase(mockUserRepo, mockTokenRepo)
 		_, err := uc.Register(ctx, RegisterInput{
@@ -99,7 +99,7 @@ func TestAuthUseCase_Register(t *testing.T) {
 		mockUserRepo := new(MockUserRepository)
 		mockTokenRepo := new(MockRefreshTokenRepository)
 		email, _ := entities.NewEmail("test@example.com")
-		mockUserRepo.On("ExistsByEmail", ctx, email).Return(false, errors.New("db error"))
+		mockUserRepo.On("ExistsByEmail", mock_anything(), email).Return(false, errors.New("db error"))
 
 		uc := newTestAuthUseCase(mockUserRepo, mockTokenRepo)
 		_, err := uc.Register(ctx, RegisterInput{
@@ -123,7 +123,7 @@ func TestAuthUseCase_Login(t *testing.T) {
 		mockUserRepo := new(MockUserRepository)
 		mockTokenRepo := new(MockRefreshTokenRepository)
 		email, _ := entities.NewEmail("notfound@example.com")
-		mockUserRepo.On("FindByEmail", ctx, email).Return(nil, errors.New("not found"))
+		mockUserRepo.On("FindByEmail", mock_anything(), email).Return(nil, errors.New("not found"))
 
 		uc := newTestAuthUseCase(mockUserRepo, mockTokenRepo)
 		_, err := uc.Login(ctx, LoginInput{
@@ -187,7 +187,7 @@ func TestAuthUseCase_RevokeRefreshToken(t *testing.T) {
 	t.Run("正常系: リフレッシュトークンを失効できる", func(t *testing.T) {
 		mockUserRepo := new(MockUserRepository)
 		mockTokenRepo := new(MockRefreshTokenRepository)
-		mockTokenRepo.On("RevokeByUserID", ctx, entities.UserID("user-001")).Return(nil)
+		mockTokenRepo.On("RevokeByUserID", mock_anything(), entities.UserID("user-001")).Return(nil)
 
 		uc := newTestAuthUseCase(mockUserRepo, mockTokenRepo)
 		err := uc.RevokeRefreshToken(ctx, "user-001")
@@ -199,7 +199,7 @@ func TestAuthUseCase_RevokeRefreshToken(t *testing.T) {
 	t.Run("異常系: リポジトリエラーの場合はエラーを返す", func(t *testing.T) {
 		mockUserRepo := new(MockUserRepository)
 		mockTokenRepo := new(MockRefreshTokenRepository)
-		mockTokenRepo.On("RevokeByUserID", ctx, entities.UserID("user-001")).Return(errors.New("db error"))
+		mockTokenRepo.On("RevokeByUserID", mock_anything(), entities.UserID("user-001")).Return(errors.New("db error"))
 
 		uc := newTestAuthUseCase(mockUserRepo, mockTokenRepo)
 		err := uc.RevokeRefreshToken(ctx, "user-001")

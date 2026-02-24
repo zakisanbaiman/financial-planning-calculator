@@ -14,13 +14,13 @@ import (
 func TestCalculateProjectionUseCase_CalculateAssetProjection(t *testing.T) {
 	ctx := context.Background()
 	calcService := services.NewFinancialCalculationService()
-	recService := services.NewGoalRecommendationService()
+	recService := services.NewGoalRecommendationService(calcService)
 
 	t.Run("正常系: 資産推移を計算できる", func(t *testing.T) {
 		mockPlanRepo := new(MockFinancialPlanRepository)
 		mockGoalRepo := new(MockGoalRepository)
 		plan := newTestFinancialPlan("user-001")
-		mockPlanRepo.On("FindByUserID", ctx, entities.UserID("user-001")).Return(plan, nil)
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
 
 		uc := NewCalculateProjectionUseCase(mockPlanRepo, mockGoalRepo, calcService, recService)
 		output, err := uc.CalculateAssetProjection(ctx, AssetProjectionInput{
@@ -38,7 +38,7 @@ func TestCalculateProjectionUseCase_CalculateAssetProjection(t *testing.T) {
 	t.Run("異常系: 財務計画が存在しない場合はエラー", func(t *testing.T) {
 		mockPlanRepo := new(MockFinancialPlanRepository)
 		mockGoalRepo := new(MockGoalRepository)
-		mockPlanRepo.On("FindByUserID", ctx, entities.UserID("user-999")).Return(nil, errors.New("not found"))
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-999")).Return(nil, errors.New("not found"))
 
 		uc := NewCalculateProjectionUseCase(mockPlanRepo, mockGoalRepo, calcService, recService)
 		_, err := uc.CalculateAssetProjection(ctx, AssetProjectionInput{
@@ -55,7 +55,7 @@ func TestCalculateProjectionUseCase_CalculateAssetProjection(t *testing.T) {
 		mockPlanRepo := new(MockFinancialPlanRepository)
 		mockGoalRepo := new(MockGoalRepository)
 		plan := newTestFinancialPlan("user-001")
-		mockPlanRepo.On("FindByUserID", ctx, entities.UserID("user-001")).Return(plan, nil)
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
 
 		uc := NewCalculateProjectionUseCase(mockPlanRepo, mockGoalRepo, calcService, recService)
 		output, err := uc.CalculateAssetProjection(ctx, AssetProjectionInput{
@@ -74,12 +74,12 @@ func TestCalculateProjectionUseCase_CalculateAssetProjection(t *testing.T) {
 func TestCalculateProjectionUseCase_CalculateRetirementProjection(t *testing.T) {
 	ctx := context.Background()
 	calcService := services.NewFinancialCalculationService()
-	recService := services.NewGoalRecommendationService()
+	recService := services.NewGoalRecommendationService(calcService)
 
 	t.Run("異常系: FindByUserIDのエラーを伝播する", func(t *testing.T) {
 		mockPlanRepo := new(MockFinancialPlanRepository)
 		mockGoalRepo := new(MockGoalRepository)
-		mockPlanRepo.On("FindByUserID", ctx, entities.UserID("user-999")).Return(nil, errors.New("db connection error"))
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-999")).Return(nil, errors.New("db connection error"))
 
 		uc := NewCalculateProjectionUseCase(mockPlanRepo, mockGoalRepo, calcService, recService)
 		_, err := uc.CalculateRetirementProjection(ctx, RetirementProjectionInput{
@@ -94,12 +94,12 @@ func TestCalculateProjectionUseCase_CalculateRetirementProjection(t *testing.T) 
 func TestCalculateProjectionUseCase_CalculateGoalProjection(t *testing.T) {
 	ctx := context.Background()
 	calcService := services.NewFinancialCalculationService()
-	recService := services.NewGoalRecommendationService()
+	recService := services.NewGoalRecommendationService(calcService)
 
 	t.Run("異常系: 目標が存在しない場合はエラー", func(t *testing.T) {
 		mockPlanRepo := new(MockFinancialPlanRepository)
 		mockGoalRepo := new(MockGoalRepository)
-		mockGoalRepo.On("FindByID", ctx, entities.GoalID("goal-999")).Return(nil, errors.New("not found"))
+		mockGoalRepo.On("FindByID", mock_anything(), entities.GoalID("goal-999")).Return(nil, errors.New("not found"))
 
 		uc := NewCalculateProjectionUseCase(mockPlanRepo, mockGoalRepo, calcService, recService)
 		_, err := uc.CalculateGoalProjection(ctx, GoalProjectionInput{
@@ -115,12 +115,12 @@ func TestCalculateProjectionUseCase_CalculateGoalProjection(t *testing.T) {
 func TestCalculateProjectionUseCase_CalculateComprehensiveProjection(t *testing.T) {
 	ctx := context.Background()
 	calcService := services.NewFinancialCalculationService()
-	recService := services.NewGoalRecommendationService()
+	recService := services.NewGoalRecommendationService(calcService)
 
 	t.Run("異常系: FindByUserIDのエラーを伝播する", func(t *testing.T) {
 		mockPlanRepo := new(MockFinancialPlanRepository)
 		mockGoalRepo := new(MockGoalRepository)
-		mockPlanRepo.On("FindByUserID", ctx, entities.UserID("user-999")).Return(nil, errors.New("not found"))
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-999")).Return(nil, errors.New("not found"))
 
 		uc := NewCalculateProjectionUseCase(mockPlanRepo, mockGoalRepo, calcService, recService)
 		_, err := uc.CalculateComprehensiveProjection(ctx, ComprehensiveProjectionInput{
