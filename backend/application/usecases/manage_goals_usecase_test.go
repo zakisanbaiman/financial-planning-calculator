@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/financial-planning-calculator/backend/domain/aggregates"
 	"github.com/financial-planning-calculator/backend/domain/entities"
 	"github.com/financial-planning-calculator/backend/domain/services"
 	"github.com/financial-planning-calculator/backend/domain/valueobjects"
@@ -270,6 +271,15 @@ func TestManageGoalsUseCase_GetGoalsByUser(t *testing.T) {
 	})
 }
 
+// newTestFinancialPlanWithGoal はゴールを含むテスト用財務計画を作成するヘルパー
+func newTestFinancialPlanWithGoal(userID entities.UserID, goal *entities.Goal) *aggregates.FinancialPlan {
+	plan := newTestFinancialPlan(userID)
+	if err := plan.AddGoal(goal); err != nil {
+		panic("テスト用財務計画へのゴール追加に失敗: " + err.Error())
+	}
+	return plan
+}
+
 // ===========================
 // DeleteGoal Tests
 // ===========================
@@ -283,7 +293,10 @@ func TestManageGoalsUseCase_DeleteGoal(t *testing.T) {
 		mockGoalRepo := new(MockGoalRepository)
 		mockPlanRepo := new(MockFinancialPlanRepository)
 		goal := newTestGoal("user-001", "goal-001")
+		plan := newTestFinancialPlanWithGoal("user-001", goal)
 		mockGoalRepo.On("FindByID", mock_anything(), goal.ID()).Return(goal, nil)
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
+		mockPlanRepo.On("Update", mock_anything(), mock_anything()).Return(nil)
 		mockGoalRepo.On("Delete", mock_anything(), goal.ID()).Return(nil)
 
 		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
@@ -294,6 +307,7 @@ func TestManageGoalsUseCase_DeleteGoal(t *testing.T) {
 
 		require.NoError(t, err)
 		mockGoalRepo.AssertExpectations(t)
+		mockPlanRepo.AssertExpectations(t)
 	})
 
 	t.Run("異常系: 別ユーザーの目標は削除できない", func(t *testing.T) {

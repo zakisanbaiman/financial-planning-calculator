@@ -107,8 +107,10 @@ func TestGenerateReportsUseCase_GenerateGoalsProgressReport(t *testing.T) {
 	t.Run("正常系: 目標進捗レポートを生成できる", func(t *testing.T) {
 		mockPlanRepo := new(MockFinancialPlanRepository)
 		mockGoalRepo := new(MockGoalRepository)
+		plan := newTestFinancialPlan("user-001")
 		goal := newTestGoal("user-001", "goal-001")
 		mockGoalRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return([]*entities.Goal{goal}, nil)
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
 
 		uc := NewGenerateReportsUseCase(mockPlanRepo, mockGoalRepo, calcService, recService)
 		output, err := uc.GenerateGoalsProgressReport(ctx, GoalsProgressReportInput{
@@ -118,6 +120,7 @@ func TestGenerateReportsUseCase_GenerateGoalsProgressReport(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, output)
 		mockGoalRepo.AssertExpectations(t)
+		mockPlanRepo.AssertExpectations(t)
 	})
 
 	t.Run("異常系: FindByUserIDのエラーを伝播する", func(t *testing.T) {
