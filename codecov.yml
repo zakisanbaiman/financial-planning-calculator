@@ -19,3 +19,7 @@ flags:
     paths:
       - backend/
     carryforward: true
+  frontend:
+    paths:
+      - frontend/
+    carryforward: true
