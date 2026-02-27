@@ -237,3 +237,50 @@ func (m *MockRefreshTokenRepository) RevokeByUserID(ctx context.Context, userID 
 	args := m.Called(ctx, userID)
 	return args.Error(0)
 }
+
+// -------------------------------------------------------------------
+// MockWebAuthnCredentialRepository
+// -------------------------------------------------------------------
+
+type MockWebAuthnCredentialRepository struct {
+	mock.Mock
+}
+
+func (m *MockWebAuthnCredentialRepository) Save(ctx context.Context, credential *entities.WebAuthnCredential) error {
+	args := m.Called(ctx, credential)
+	return args.Error(0)
+}
+
+func (m *MockWebAuthnCredentialRepository) FindByID(ctx context.Context, id entities.CredentialID) (*entities.WebAuthnCredential, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entities.WebAuthnCredential), args.Error(1)
+}
+
+func (m *MockWebAuthnCredentialRepository) FindByCredentialID(ctx context.Context, credentialID []byte) (*entities.WebAuthnCredential, error) {
+	args := m.Called(ctx, credentialID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entities.WebAuthnCredential), args.Error(1)
+}
+
+func (m *MockWebAuthnCredentialRepository) FindByUserID(ctx context.Context, userID entities.UserID) ([]*entities.WebAuthnCredential, error) {
+	args := m.Called(ctx, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*entities.WebAuthnCredential), args.Error(1)
+}
+
+func (m *MockWebAuthnCredentialRepository) Update(ctx context.Context, credential *entities.WebAuthnCredential) error {
+	args := m.Called(ctx, credential)
+	return args.Error(0)
+}
+
+func (m *MockWebAuthnCredentialRepository) Delete(ctx context.Context, id entities.CredentialID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
