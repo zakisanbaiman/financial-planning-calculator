@@ -1,0 +1,85 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "依存ライブラリの自動アップデート設定 (Issue: #143)",
+  "extends": [
+    "config:recommended",
+    "security:openssf-scorecard"
+  ],
+  "timezone": "Asia/Tokyo",
+  "schedule": ["after 9am and before 5pm on monday"],
+  "labels": ["dependencies"],
+  "reviewers": ["zakisanbaiman"],
+  "prHourlyLimit": 5,
+  "prConcurrentLimit": 10,
+  "minimumReleaseAge": "3 days",
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["dependencies", "security"],
+    "schedule": ["at any time"],
+    "minimumReleaseAge": null,
+    "prPriority": 10
+  },
+  "packageRules": [
+    {
+      "description": "Go modules - 週次バッチアップデート",
+      "matchManagers": ["gomod"],
+      "groupName": "Go dependencies",
+      "labels": ["dependencies", "area/backend"],
+      "schedule": ["after 9am and before 5pm on monday"]
+    },
+    {
+      "description": "Frontend (Next.js) npm パッケージ",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["frontend/package.json"],
+      "groupName": "Frontend npm dependencies",
+      "labels": ["dependencies", "area/frontend"],
+      "schedule": ["after 9am and before 5pm on monday"]
+    },
+    {
+      "description": "E2E テスト npm パッケージ",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["e2e/package.json"],
+      "groupName": "E2E test dependencies",
+      "labels": ["dependencies", "type/test"],
+      "schedule": ["after 9am and before 5pm on monday"]
+    },
+    {
+      "description": "ルート・スクリプト npm パッケージ",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["package.json", "scripts/package.json"],
+      "groupName": "Scripts/Root npm dependencies",
+      "labels": ["dependencies", "type/infra"],
+      "schedule": ["after 9am and before 5pm on monday"]
+    },
+    {
+      "description": "セキュリティパッチ - 即時PR (高優先度)",
+      "isVulnerabilityAlert": true,
+      "labels": ["dependencies", "security", "priority/high"],
+      "schedule": ["at any time"],
+      "minimumReleaseAge": null,
+      "prPriority": 10,
+      "automerge": false
+    },
+    {
+      "description": "メジャーバージョンアップは個別PR",
+      "matchUpdateTypes": ["major"],
+      "groupName": null,
+      "labels": ["dependencies", "type/infra"],
+      "schedule": ["after 9am and before 5pm on monday"]
+    },
+    {
+      "description": "GitHub Actions の自動アップデート",
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions",
+      "labels": ["dependencies", "area/ci-cd"],
+      "schedule": ["after 9am and before 5pm on monday"]
+    },
+    {
+      "description": "Docker イメージの自動アップデート",
+      "matchManagers": ["dockerfile", "docker-compose"],
+      "groupName": "Docker images",
+      "labels": ["dependencies", "type/infra"],
+      "schedule": ["after 9am and before 5pm on monday"]
+    }
+  ]
+}
