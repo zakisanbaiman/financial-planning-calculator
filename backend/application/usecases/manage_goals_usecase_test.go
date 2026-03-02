@@ -327,3 +327,272 @@ func TestManageGoalsUseCase_DeleteGoal(t *testing.T) {
 		mockGoalRepo.AssertExpectations(t)
 	})
 }
+// ===========================
+// UpdateGoal Tests
+// ===========================
+
+func TestManageGoalsUseCase_UpdateGoal(t *testing.T) {
+	ctx := context.Background()
+	calcService := services.NewFinancialCalculationService()
+	recService := services.NewGoalRecommendationService(calcService)
+
+	t.Run("正常系: 目標タイトルを更新できる", func(t *testing.T) {
+		mockGoalRepo := new(MockGoalRepository)
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		goal := newTestGoal("user-001", "goal-001")
+		mockGoalRepo.On("FindByID", mock_anything(), goal.ID()).Return(goal, nil)
+		mockGoalRepo.On("Update", mock_anything(), mock_anything()).Return(nil)
+
+		title := "新しい目標タイトル"
+		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
+		output, err := uc.UpdateGoal(ctx, UpdateGoalInput{
+			GoalID: goal.ID(),
+			UserID: "user-001",
+			Title:  &title,
+		})
+
+		require.NoError(t, err)
+		assert.True(t, output.Success)
+		mockGoalRepo.AssertExpectations(t)
+	})
+
+	t.Run("異常系: 別ユーザーの目標は更新できない", func(t *testing.T) {
+		mockGoalRepo := new(MockGoalRepository)
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		goal := newTestGoal("user-001", "goal-001")
+		mockGoalRepo.On("FindByID", mock_anything(), goal.ID()).Return(goal, nil)
+
+		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
+		_, err := uc.UpdateGoal(ctx, UpdateGoalInput{
+			GoalID: goal.ID(),
+			UserID: "user-002",
+		})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "権限がありません")
+		mockGoalRepo.AssertExpectations(t)
+	})
+
+	t.Run("異常系: 目標が存在しない場合はエラー", func(t *testing.T) {
+		mockGoalRepo := new(MockGoalRepository)
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		mockGoalRepo.On("FindByID", mock_anything(), entities.GoalID("goal-999")).Return(nil, errors.New("not found"))
+
+		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
+		_, err := uc.UpdateGoal(ctx, UpdateGoalInput{
+			GoalID: "goal-999",
+			UserID: "user-001",
+		})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "目標の取得に失敗しました")
+		mockGoalRepo.AssertExpectations(t)
+	})
+
+	t.Run("異常系: Updateでリポジトリエラーが発生した場合", func(t *testing.T) {
+		mockGoalRepo := new(MockGoalRepository)
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		goal := newTestGoal("user-001", "goal-001")
+		mockGoalRepo.On("FindByID", mock_anything(), goal.ID()).Return(goal, nil)
+		mockGoalRepo.On("Update", mock_anything(), mock_anything()).Return(errors.New("db error"))
+
+		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
+		_, err := uc.UpdateGoal(ctx, UpdateGoalInput{
+			GoalID: goal.ID(),
+			UserID: "user-001",
+		})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "目標の保存に失敗しました")
+		mockGoalRepo.AssertExpectations(t)
+	})
+}
+
+// ===========================
+// UpdateGoalProgress Tests
+// ===========================
+
+func TestManageGoalsUseCase_UpdateGoalProgress(t *testing.T) {
+	ctx := context.Background()
+	calcService := services.NewFinancialCalculationService()
+	recService := services.NewGoalRecommendationService(calcService)
+
+	t.Run("正常系: 目標進捗を更新できる", func(t *testing.T) {
+		mockGoalRepo := new(MockGoalRepository)
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		goal := newTestGoal("user-001", "goal-001")
+		mockGoalRepo.On("FindByID", mock_anything(), goal.ID()).Return(goal, nil)
+		mockGoalRepo.On("Update", mock_anything(), mock_anything()).Return(nil)
+
+		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
+		output, err := uc.UpdateGoalProgress(ctx, UpdateGoalProgressInput{
+			GoalID:        goal.ID(),
+			UserID:        "user-001",
+			CurrentAmount: 500000,
+		})
+
+		require.NoError(t, err)
+		assert.True(t, output.Success)
+		mockGoalRepo.AssertExpectations(t)
+	})
+
+	t.Run("異常系: 別ユーザーの目標進捗は更新できない", func(t *testing.T) {
+		mockGoalRepo := new(MockGoalRepository)
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		goal := newTestGoal("user-001", "goal-001")
+		mockGoalRepo.On("FindByID", mock_anything(), goal.ID()).Return(goal, nil)
+
+		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
+		_, err := uc.UpdateGoalProgress(ctx, UpdateGoalProgressInput{
+			GoalID:        goal.ID(),
+			UserID:        "user-002",
+			CurrentAmount: 500000,
+		})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "権限がありません")
+		mockGoalRepo.AssertExpectations(t)
+	})
+
+	t.Run("異常系: 目標が存在しない場合はエラー", func(t *testing.T) {
+		mockGoalRepo := new(MockGoalRepository)
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		mockGoalRepo.On("FindByID", mock_anything(), entities.GoalID("goal-999")).Return(nil, errors.New("not found"))
+
+		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
+		_, err := uc.UpdateGoalProgress(ctx, UpdateGoalProgressInput{
+			GoalID:        "goal-999",
+			UserID:        "user-001",
+			CurrentAmount: 500000,
+		})
+
+		require.Error(t, err)
+		mockGoalRepo.AssertExpectations(t)
+	})
+}
+
+// ===========================
+// GetGoalRecommendations Tests
+// ===========================
+
+func TestManageGoalsUseCase_GetGoalRecommendations(t *testing.T) {
+	ctx := context.Background()
+	calcService := services.NewFinancialCalculationService()
+	recService := services.NewGoalRecommendationService(calcService)
+
+	t.Run("正常系: 目標推奨事項を取得できる", func(t *testing.T) {
+		mockGoalRepo := new(MockGoalRepository)
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		goal := newTestGoal("user-001", "goal-001")
+		plan := newTestFinancialPlan("user-001")
+		mockGoalRepo.On("FindByID", mock_anything(), goal.ID()).Return(goal, nil)
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
+
+		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
+		output, err := uc.GetGoalRecommendations(ctx, GetGoalRecommendationsInput{
+			GoalID: goal.ID(),
+			UserID: "user-001",
+		})
+
+		require.NoError(t, err)
+		assert.NotNil(t, output)
+		mockGoalRepo.AssertExpectations(t)
+		mockPlanRepo.AssertExpectations(t)
+	})
+
+	t.Run("異常系: 目標が存在しない場合はエラー", func(t *testing.T) {
+		mockGoalRepo := new(MockGoalRepository)
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		mockGoalRepo.On("FindByID", mock_anything(), entities.GoalID("goal-999")).Return(nil, errors.New("not found"))
+
+		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
+		_, err := uc.GetGoalRecommendations(ctx, GetGoalRecommendationsInput{
+			GoalID: "goal-999",
+			UserID: "user-001",
+		})
+
+		require.Error(t, err)
+		mockGoalRepo.AssertExpectations(t)
+	})
+
+	t.Run("異常系: 別ユーザーの目標は推奨事項を取得できない", func(t *testing.T) {
+		mockGoalRepo := new(MockGoalRepository)
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		goal := newTestGoal("user-001", "goal-001")
+		mockGoalRepo.On("FindByID", mock_anything(), goal.ID()).Return(goal, nil)
+
+		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
+		_, err := uc.GetGoalRecommendations(ctx, GetGoalRecommendationsInput{
+			GoalID: goal.ID(),
+			UserID: "user-002",
+		})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "権限がありません")
+		mockGoalRepo.AssertExpectations(t)
+	})
+}
+
+// ===========================
+// AnalyzeGoalFeasibility Tests
+// ===========================
+
+func TestManageGoalsUseCase_AnalyzeGoalFeasibility(t *testing.T) {
+	ctx := context.Background()
+	calcService := services.NewFinancialCalculationService()
+	recService := services.NewGoalRecommendationService(calcService)
+
+	t.Run("正常系: 目標実現可能性を分析できる", func(t *testing.T) {
+		mockGoalRepo := new(MockGoalRepository)
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		goal := newTestGoal("user-001", "goal-001")
+		plan := newTestFinancialPlan("user-001")
+		mockGoalRepo.On("FindByID", mock_anything(), goal.ID()).Return(goal, nil)
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
+
+		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
+		output, err := uc.AnalyzeGoalFeasibility(ctx, AnalyzeGoalFeasibilityInput{
+			GoalID: goal.ID(),
+			UserID: "user-001",
+		})
+
+		require.NoError(t, err)
+		assert.NotNil(t, output)
+		mockGoalRepo.AssertExpectations(t)
+		mockPlanRepo.AssertExpectations(t)
+	})
+
+	t.Run("異常系: 目標が存在しない場合はエラー", func(t *testing.T) {
+		mockGoalRepo := new(MockGoalRepository)
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		mockGoalRepo.On("FindByID", mock_anything(), entities.GoalID("goal-999")).Return(nil, errors.New("not found"))
+
+		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
+		_, err := uc.AnalyzeGoalFeasibility(ctx, AnalyzeGoalFeasibilityInput{
+			GoalID: "goal-999",
+			UserID: "user-001",
+		})
+
+		require.Error(t, err)
+		mockGoalRepo.AssertExpectations(t)
+	})
+
+	t.Run("異常系: 財務計画が存在しない場合はエラー", func(t *testing.T) {
+		mockGoalRepo := new(MockGoalRepository)
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		goal := newTestGoal("user-001", "goal-001")
+		mockGoalRepo.On("FindByID", mock_anything(), goal.ID()).Return(goal, nil)
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(nil, errors.New("not found"))
+
+		uc := NewManageGoalsUseCase(mockGoalRepo, mockPlanRepo, recService)
+		_, err := uc.AnalyzeGoalFeasibility(ctx, AnalyzeGoalFeasibilityInput{
+			GoalID: goal.ID(),
+			UserID: "user-001",
+		})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "財務計画の取得に失敗しました")
+		mockGoalRepo.AssertExpectations(t)
+		mockPlanRepo.AssertExpectations(t)
+	})
+}

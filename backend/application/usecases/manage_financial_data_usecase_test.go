@@ -242,4 +242,107 @@ func TestManageFinancialDataUseCase_DeleteFinancialPlan(t *testing.T) {
 	})
 }
 
+// ===========================
+// UpdateRetirementData Tests
+// ===========================
 
+func TestManageFinancialDataUseCase_UpdateRetirementData(t *testing.T) {
+	ctx := context.Background()
+	input := UpdateRetirementDataInput{
+		UserID:                    "user-001",
+		RetirementAge:             65,
+		MonthlyRetirementExpenses: 200000,
+		PensionAmount:             80000,
+	}
+
+	t.Run("正常系: 退職データを更新できる", func(t *testing.T) {
+		mockRepo := new(MockFinancialPlanRepository)
+		plan := newTestFinancialPlan("user-001")
+		mockRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
+		mockRepo.On("Update", mock_anything(), mock_anything()).Return(nil)
+
+		uc := NewManageFinancialDataUseCase(mockRepo)
+		output, err := uc.UpdateRetirementData(ctx, input)
+
+		require.NoError(t, err)
+		assert.NotNil(t, output)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("異常系: 財務計画が存在しない場合はエラー", func(t *testing.T) {
+		mockRepo := new(MockFinancialPlanRepository)
+		mockRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(nil, errors.New("not found"))
+
+		uc := NewManageFinancialDataUseCase(mockRepo)
+		_, err := uc.UpdateRetirementData(ctx, input)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "財務計画の取得に失敗しました")
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("異常系: Updateでエラーが発生した場合", func(t *testing.T) {
+		mockRepo := new(MockFinancialPlanRepository)
+		plan := newTestFinancialPlan("user-001")
+		mockRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
+		mockRepo.On("Update", mock_anything(), mock_anything()).Return(errors.New("db error"))
+
+		uc := NewManageFinancialDataUseCase(mockRepo)
+		_, err := uc.UpdateRetirementData(ctx, input)
+
+		require.Error(t, err)
+		mockRepo.AssertExpectations(t)
+	})
+}
+
+// ===========================
+// UpdateEmergencyFund Tests
+// ===========================
+
+func TestManageFinancialDataUseCase_UpdateEmergencyFund(t *testing.T) {
+	ctx := context.Background()
+	input := UpdateEmergencyFundInput{
+		UserID:        "user-001",
+		TargetMonths:  6,
+		CurrentAmount: 300000,
+	}
+
+	t.Run("正常系: 緊急資金設定を更新できる", func(t *testing.T) {
+		mockRepo := new(MockFinancialPlanRepository)
+		plan := newTestFinancialPlan("user-001")
+		mockRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
+		mockRepo.On("Update", mock_anything(), mock_anything()).Return(nil)
+
+		uc := NewManageFinancialDataUseCase(mockRepo)
+		output, err := uc.UpdateEmergencyFund(ctx, input)
+
+		require.NoError(t, err)
+		assert.NotNil(t, output)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("異常系: 財務計画が存在しない場合はエラー", func(t *testing.T) {
+		mockRepo := new(MockFinancialPlanRepository)
+		mockRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(nil, errors.New("not found"))
+
+		uc := NewManageFinancialDataUseCase(mockRepo)
+		_, err := uc.UpdateEmergencyFund(ctx, input)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "財務計画の取得に失敗しました")
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("異常系: Updateでエラーが発生した場合", func(t *testing.T) {
+		mockRepo := new(MockFinancialPlanRepository)
+		plan := newTestFinancialPlan("user-001")
+		mockRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
+		mockRepo.On("Update", mock_anything(), mock_anything()).Return(errors.New("db error"))
+
+		uc := NewManageFinancialDataUseCase(mockRepo)
+		_, err := uc.UpdateEmergencyFund(ctx, input)
+
+		require.Error(t, err)
+		mockRepo.AssertExpectations(t)
+	})
+}
