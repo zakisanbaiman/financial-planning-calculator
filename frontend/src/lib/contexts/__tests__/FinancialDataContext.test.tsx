@@ -1,6 +1,7 @@
 import React, { ReactNode } from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { FinancialDataProvider, useFinancialData } from '../FinancialDataContext';
+import { GuestModeProvider } from '../GuestModeContext';
 import { financialDataAPI } from '@/lib/api-client';
 import type { FinancialData, FinancialProfile, RetirementData, EmergencyFund } from '@/types/api';
 
@@ -20,7 +21,9 @@ const mockedAPI = financialDataAPI as jest.Mocked<typeof financialDataAPI>;
 
 // テスト用ラッパー
 const wrapper = ({ children }: { children: ReactNode }) => (
-  <FinancialDataProvider>{children}</FinancialDataProvider>
+  <GuestModeProvider>
+    <FinancialDataProvider>{children}</FinancialDataProvider>
+  </GuestModeProvider>
 );
 
 // テスト用データ
