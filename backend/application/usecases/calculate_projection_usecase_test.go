@@ -5,11 +5,23 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/financial-planning-calculator/backend/domain/aggregates"
 	"github.com/financial-planning-calculator/backend/domain/entities"
 	"github.com/financial-planning-calculator/backend/domain/services"
+	"github.com/financial-planning-calculator/backend/domain/valueobjects"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// newTestFinancialPlanWithEmergencyFundData は緊急資金設定付きテスト用財務計画を作成するヘルパー
+func newTestFinancialPlanWithEmergencyFundData(userID entities.UserID) *aggregates.FinancialPlan {
+	plan := newTestFinancialPlan(userID)
+	currentFund, _ := valueobjects.NewMoneyJPY(300000)
+	config, _ := aggregates.NewEmergencyFundConfig(6, currentFund)
+	_ = plan.UpdateEmergencyFund(config)
+	return plan
+}
+
 
 func TestCalculateProjectionUseCase_CalculateAssetProjection(t *testing.T) {
 	ctx := context.Background()
@@ -129,6 +141,107 @@ func TestCalculateProjectionUseCase_CalculateComprehensiveProjection(t *testing.
 		})
 
 		require.Error(t, err)
+		mockPlanRepo.AssertExpectations(t)
+	})
+
+	t.Run("正常系: 包括的予測を計算できる", func(t *testing.T) {
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		mockGoalRepo := new(MockGoalRepository)
+		plan := newTestFinancialPlan("user-001")
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
+
+		uc := NewCalculateProjectionUseCase(mockPlanRepo, mockGoalRepo, calcService, recService)
+		output, err := uc.CalculateComprehensiveProjection(ctx, ComprehensiveProjectionInput{
+			UserID: "user-001",
+			Years:  5,
+		})
+
+		require.NoError(t, err)
+		assert.NotNil(t, output)
+		mockPlanRepo.AssertExpectations(t)
+	})
+}
+
+// ===========================
+// CalculateEmergencyFundProjection Tests
+// ===========================
+
+func TestCalculateProjectionUseCase_CalculateEmergencyFundProjection(t *testing.T) {
+	ctx := context.Background()
+	calcService := services.NewFinancialCalculationService()
+	recService := services.NewGoalRecommendationService(calcService)
+
+	t.Run("異常系: 財務計画が存在しない場合はエラー", func(t *testing.T) {
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		mockGoalRepo := new(MockGoalRepository)
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-999")).Return(nil, errors.New("not found"))
+
+		uc := NewCalculateProjectionUseCase(mockPlanRepo, mockGoalRepo, calcService, recService)
+		_, err := uc.CalculateEmergencyFundProjection(ctx, EmergencyFundProjectionInput{
+			UserID: "user-999",
+		})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "財務計画の取得に失敗しました")
+		mockPlanRepo.AssertExpectations(t)
+	})
+
+	t.Run("正常系: 緊急資金設定あり", func(t *testing.T) {
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		mockGoalRepo := new(MockGoalRepository)
+		plan := newTestFinancialPlanWithEmergencyFundData("user-001")
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
+
+		uc := NewCalculateProjectionUseCase(mockPlanRepo, mockGoalRepo, calcService, recService)
+		output, err := uc.CalculateEmergencyFundProjection(ctx, EmergencyFundProjectionInput{
+			UserID: "user-001",
+		})
+
+		require.NoError(t, err)
+		assert.NotNil(t, output)
+		mockPlanRepo.AssertExpectations(t)
+	})
+}
+
+// ===========================
+// CalculateRetirementProjection Tests (正常系)
+// ===========================
+
+func TestCalculateProjectionUseCase_CalculateRetirementProjection_WithData(t *testing.T) {
+	ctx := context.Background()
+	calcService := services.NewFinancialCalculationService()
+	recService := services.NewGoalRecommendationService(calcService)
+
+	t.Run("正常系: 退職データありで予測を計算できる", func(t *testing.T) {
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		mockGoalRepo := new(MockGoalRepository)
+		plan := newTestFinancialPlanWithRetirementData("user-001")
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
+
+		uc := NewCalculateProjectionUseCase(mockPlanRepo, mockGoalRepo, calcService, recService)
+		output, err := uc.CalculateRetirementProjection(ctx, RetirementProjectionInput{
+			UserID: "user-001",
+		})
+
+		require.NoError(t, err)
+		assert.NotNil(t, output)
+		assert.NotNil(t, output.Calculation)
+		mockPlanRepo.AssertExpectations(t)
+	})
+
+	t.Run("異常系: 退職データが設定されていない場合はエラー", func(t *testing.T) {
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		mockGoalRepo := new(MockGoalRepository)
+		plan := newTestFinancialPlan("user-001") // 退職データなし
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
+
+		uc := NewCalculateProjectionUseCase(mockPlanRepo, mockGoalRepo, calcService, recService)
+		_, err := uc.CalculateRetirementProjection(ctx, RetirementProjectionInput{
+			UserID: "user-001",
+		})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "退職データが設定されていません")
 		mockPlanRepo.AssertExpectations(t)
 	})
 }
