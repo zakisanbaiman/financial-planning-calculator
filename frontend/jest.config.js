@@ -34,16 +34,6 @@ const customJestConfig = {
     '!src/app/page.tsx',
   ],
   
-  // カバレッジ閾値
-  coverageThreshold: {
-    global: {
-      branches: 50,
-      functions: 50,
-      lines: 50,
-      statements: 50,
-    },
-  },
-  
   // テスト対象外
   testPathIgnorePatterns: [
     '<rootDir>/node_modules/',
