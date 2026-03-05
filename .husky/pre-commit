@@ -1,0 +1,84 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# lint-staged を実行（gofmt, go vet, prettier）
+npx lint-staged
+
+# ====================================================
+# Go: go mod tidy チェック
+# ====================================================
+if git diff --cached --name-only | grep -qE "(\.go$|go\.mod|go\.sum)"; then
+  echo "\n🔍 go mod tidy チェック..."
+  (cd backend && go mod tidy)
+  if ! git -C backend diff --exit-code go.mod go.sum > /dev/null 2>&1; then
+    echo "❌ go mod tidy で差分が発生しました。以下を実行してからコミットしてください:"
+    echo "   cd backend && go mod tidy && cd .. && git add backend/go.mod backend/go.sum"
+    exit 1
+  fi
+  echo "✅ go mod tidy: OK"
+fi
+
+# ====================================================
+# TypeScript: 型チェック（型エラー・重複宣言を検出）
+# ====================================================
+if git diff --cached --name-only | grep -qE "\.(ts|tsx)$"; then
+  echo "\n🔍 TypeScript型チェック..."
+  if (cd frontend && npx tsc --noEmit 2>&1); then
+    echo "✅ TypeScript型チェック: OK"
+  else
+    echo "❌ TypeScript型エラーが検出されました。修正してください。"
+    echo "   cd frontend && npx tsc --noEmit  で詳細を確認できます。"
+    exit 1
+  fi
+
+  echo "\n🔍 ESLint チェック..."
+  if (cd frontend && npm run lint 2>&1); then
+    echo "✅ ESLint: OK"
+  else
+    echo "❌ ESLint エラーが検出されました。修正してください。"
+    echo "   cd frontend && npm run lint  で詳細を確認できます。"
+    exit 1
+  fi
+fi
+
+# ====================================================
+# ハードコーディング検出（バックエンドGoファイル）
+# ====================================================
+if git diff --cached --name-only | grep -qE "backend/.*\.go$"; then
+  echo "\n🔍 ハードコーディング検出チェック..."
+  HARDCODE_PATTERN='(localhost:[0-9]+|"password"|"secret"|"change-this|http://localhost")'
+  STAGED_GO=$(git diff --cached --name-only | grep -E "backend/.*\.go$" | grep -v "_test\.go$")
+  FOUND=""
+  for file in $STAGED_GO; do
+    if grep -nP "$HARDCODE_PATTERN" "$file" 2>/dev/null; then
+      FOUND="$FOUND $file"
+    fi
+  done
+  if [ -n "$FOUND" ]; then
+    echo "⚠️  ハードコーディングの疑いがあるファイル:$FOUND"
+    echo "   config/server.go や config/database.go 経由の環境変数に置き換えることを検討してください。"
+    echo "   (このチェックはwarningです。コミットは続行されます)"
+  else
+    echo "✅ ハードコーディング検出: OK"
+  fi
+fi
+
+# ====================================================
+# Next.js: useSearchParams の Suspense チェック（警告のみ）
+# ====================================================
+if git diff --cached --name-only | grep -qE "frontend/.*\.(ts|tsx)$"; then
+  STAGED_TSX=$(git diff --cached --name-only | grep -E "frontend/.*\.(ts|tsx)$")
+  SUSPENSE_MISSING=""
+  for file in $STAGED_TSX; do
+    if grep -q "useSearchParams\|usePathname\|useParams" "$file" 2>/dev/null; then
+      if ! grep -q "Suspense" "$file" 2>/dev/null; then
+        SUSPENSE_MISSING="$SUSPENSE_MISSING\n  $file"
+      fi
+    fi
+  done
+  if [ -n "$SUSPENSE_MISSING" ]; then
+    echo "\n⚠️  useSearchParams/usePathname/useParams を使っているが <Suspense> が見つからないファイル:"
+    printf "$SUSPENSE_MISSING"
+    echo "\n   Next.js 14 では Suspense ラップが必要です。(警告のみ・コミットは続行)"
+  fi
+fi
