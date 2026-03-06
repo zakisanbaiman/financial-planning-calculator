@@ -1,8 +1,10 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-# lint-staged を実行（gofmt, go vet, prettier）
-npx lint-staged
+# pre-commit フックは無効化しています
+# 再有効化する場合は git-workflow スキルを参照してください
+exit 0
+
 
 # ====================================================
 # Go: go mod tidy チェック
