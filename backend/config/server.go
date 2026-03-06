@@ -49,6 +49,8 @@ type ServerConfig struct {
 	WebAuthnRPID             string // Relying Party ID (e.g., "example.com")
 	WebAuthnRPName           string // Relying Party Name (e.g., "財務計画計算機")
 	WebAuthnRPOrigin         string // Relying Party Origin (e.g., "https://example.com")
+	// CSP
+	ContentSecurityPolicy   string // Content-Security-Policy ヘッダー値（空文字の場合はヘッダーを設定しない）
 }
 
 // LoadServerConfig loads server configuration from environment variables
@@ -94,6 +96,10 @@ func LoadServerConfig() *ServerConfig {
 		WebAuthnRPID:         getEnv("WEBAUTHN_RP_ID", "localhost"),
 		WebAuthnRPName:       getEnv("WEBAUTHN_RP_NAME", "財務計画計算機"),
 		WebAuthnRPOrigin:     getEnv("WEBAUTHN_RP_ORIGIN", "http://localhost:3000"),
+		// CSP: バックエンドはAPIサーバーのためHTMLを返さない厳格なポリシーをデフォルトとする
+		// 本番環境では CONTENT_SECURITY_POLICY 環境変数で上書き可能
+		// 開発環境では ENABLE_SECURE_HEADERS=false でヘッダー自体を無効化する
+		ContentSecurityPolicy: getEnv("CONTENT_SECURITY_POLICY", "default-src 'none'; frame-ancestors 'none'; form-action 'none'"),
 	}
 
 	return config
