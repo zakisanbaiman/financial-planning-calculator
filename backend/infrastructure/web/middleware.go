@@ -50,16 +50,19 @@ func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) *CustomRateLimiterS
 		MaxAge:           cfg.CORSMaxAge,
 	}))
 
-	// セキュリティヘッダー（開発環境ではSwagger UI動作のため無効化）
-	// TODO: 本番環境では適切なCSPを設定すること
-	// if cfg.EnableSecureHeaders {
-	// 	e.Use(middleware.SecureWithConfig(middleware.SecureConfig{
-	// 		XSSProtection:      "1; mode=block",
-	// 		ContentTypeNosniff: "nosniff",
-	// 		XFrameOptions:      "DENY",
-	// 		HSTSMaxAge:         31536000,
-	// 	}))
-	// }
+	// セキュリティヘッダー（本番環境: ENABLE_SECURE_HEADERS=true / 開発環境: ENABLE_SECURE_HEADERS=false）
+	// 開発環境では Swagger UI が CSP の制約で動作しなくなるため無効化する
+	if cfg.EnableSecureHeaders {
+		e.Use(middleware.SecureWithConfig(middleware.SecureConfig{
+			XSSProtection:         "1; mode=block",
+			ContentTypeNosniff:    "nosniff",
+			XFrameOptions:         "DENY",
+			HSTSMaxAge:            31536000,
+			HSTSExcludeSubdomains: false,
+			HSTSPreloadEnabled:    true,
+			ContentSecurityPolicy: cfg.ContentSecurityPolicy,
+		}))
+	}
 
 	// リクエストサイズ制限
 	e.Use(middleware.BodyLimit(cfg.MaxRequestSize))

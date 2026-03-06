@@ -4,7 +4,6 @@
   "private": true,
   "description": "Financial Planning Calculator - 将来の資産形成と老後の財務計画を可視化するアプリケーション",
   "scripts": {
-    "prepare": "husky install",
     "lint": "npm run lint:frontend && npm run lint:backend",
     "lint:frontend": "cd frontend && npm run lint",
     "lint:backend": "cd backend && go vet ./... && gofmt -l .",
