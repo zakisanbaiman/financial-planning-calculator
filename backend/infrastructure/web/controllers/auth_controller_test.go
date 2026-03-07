@@ -110,6 +110,16 @@ func (m *MockAuthUseCase) Get2FAStatus(ctx context.Context, userID string) (*use
 	return args.Get(0).(*usecases.Get2FAStatusOutput), args.Error(1)
 }
 
+func (m *MockAuthUseCase) ForgotPassword(ctx context.Context, input usecases.ForgotPasswordInput) error {
+	args := m.Called(ctx, input)
+	return args.Error(0)
+}
+
+func (m *MockAuthUseCase) ResetPassword(ctx context.Context, input usecases.ResetPasswordInput) error {
+	args := m.Called(ctx, input)
+	return args.Error(0)
+}
+
 // newTestServerConfig creates a minimal ServerConfig for tests
 func newTestServerConfig() *config.ServerConfig {
 	return &config.ServerConfig{

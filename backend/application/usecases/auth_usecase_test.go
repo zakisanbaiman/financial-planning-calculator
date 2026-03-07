@@ -18,7 +18,9 @@ const (
 )
 
 func newTestAuthUseCase(userRepo *MockUserRepository, tokenRepo *MockRefreshTokenRepository) AuthUseCase {
-	return NewAuthUseCase(userRepo, tokenRepo, testJWTSecret, testJWTExpiration, testRefreshTokenExpiration)
+	passwordResetRepo := new(MockPasswordResetTokenRepository)
+	emailService := new(MockEmailService)
+	return NewAuthUseCase(userRepo, tokenRepo, passwordResetRepo, emailService, testJWTSecret, testJWTExpiration, testRefreshTokenExpiration)
 }
 
 // ===========================

@@ -51,6 +51,14 @@ type ServerConfig struct {
 	WebAuthnRPOrigin         string // Relying Party Origin (e.g., "https://example.com")
 	// CSP
 	ContentSecurityPolicy   string // Content-Security-Policy ヘッダー値（空文字の場合はヘッダーを設定しない）
+	// SMTP メール設定
+	SMTPHost     string // SMTP_HOST
+	SMTPPort     int    // SMTP_PORT
+	SMTPUser     string // SMTP_USER
+	SMTPPassword string // SMTP_PASSWORD
+	SMTPFrom     string // SMTP_FROM
+	// フロントエンドURL（パスワードリセットURLの生成に使用）
+	FrontendURL  string // FRONTEND_URL
 }
 
 // LoadServerConfig loads server configuration from environment variables
@@ -100,6 +108,14 @@ func LoadServerConfig() *ServerConfig {
 		// 本番環境では CONTENT_SECURITY_POLICY 環境変数で上書き可能
 		// 開発環境では ENABLE_SECURE_HEADERS=false でヘッダー自体を無効化する
 		ContentSecurityPolicy: getEnv("CONTENT_SECURITY_POLICY", "default-src 'none'; frame-ancestors 'none'; form-action 'none'"),
+		// SMTP メール設定
+		SMTPHost:     getEnv("SMTP_HOST", ""),
+		SMTPPort:     getEnvInt("SMTP_PORT", 587),
+		SMTPUser:     getEnv("SMTP_USER", ""),
+		SMTPPassword: getEnv("SMTP_PASSWORD", ""),
+		SMTPFrom:     getEnv("SMTP_FROM", "noreply@example.com"),
+		// フロントエンドURL
+		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
 	}
 
 	return config

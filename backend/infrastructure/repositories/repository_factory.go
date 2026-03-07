@@ -40,3 +40,8 @@ func (f *RepositoryFactory) NewGoalRepository() repositories.GoalRepository {
 func (f *RepositoryFactory) NewWebAuthnCredentialRepository() repositories.WebAuthnCredentialRepository {
 	return NewPostgreSQLWebAuthnCredentialRepository(f.db)
 }
+
+// NewPasswordResetTokenRepository はパスワードリセットトークンリポジトリを作成する
+func (f *RepositoryFactory) NewPasswordResetTokenRepository() repositories.PasswordResetTokenRepository {
+	return NewPostgreSQLPasswordResetTokenRepository(f.db)
+}

@@ -89,10 +89,12 @@ func setupAuthRoutes(api *echo.Group, controller *controllers.AuthController, de
 	// 認証レートリミッターをグループに適用（ブルートフォース対策）
 	auth.Use(authRateLimiter)
 
-	auth.POST("/register", controller.Register) // POST /api/auth/register
-	auth.POST("/login", controller.Login)       // POST /api/auth/login
-	auth.POST("/refresh", controller.Refresh)   // POST /api/auth/refresh
-	auth.POST("/logout", controller.Logout)     // POST /api/auth/logout
+	auth.POST("/register", controller.Register)              // POST /api/auth/register
+	auth.POST("/login", controller.Login)                    // POST /api/auth/login
+	auth.POST("/refresh", controller.Refresh)                // POST /api/auth/refresh
+	auth.POST("/logout", controller.Logout)                  // POST /api/auth/logout
+	auth.POST("/forgot-password", controller.ForgotPassword) // POST /api/auth/forgot-password
+	auth.POST("/reset-password", controller.ResetPassword)   // POST /api/auth/reset-password
 
 	// GitHub OAuth routes with middleware (Issue: #67)
 	githubOAuth := auth.Group("/github")

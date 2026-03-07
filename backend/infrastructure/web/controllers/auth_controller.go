@@ -298,3 +298,63 @@ func (c *AuthController) Logout(ctx echo.Context) error {
 		"message": "ログアウトしました",
 	})
 }
+
+// ForgotPasswordRequest はパスワードリセットメール送信リクエスト
+type ForgotPasswordRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+// ResetPasswordRequest はパスワードリセットリクエスト
+type ResetPasswordRequest struct {
+	Token       string `json:"token" validate:"required"`
+	NewPassword string `json:"new_password" validate:"required,min=8"`
+}
+
+// ForgotPassword はパスワードリセットメールを送信する
+// ユーザー列挙対策のため、メールアドレスの存否に関わらず200を返す
+func (c *AuthController) ForgotPassword(ctx echo.Context) error {
+	var req ForgotPasswordRequest
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "リクエストの解析に失敗しました", err.Error()))
+	}
+
+	input := usecases.ForgotPasswordInput{
+		Email:       req.Email,
+		FrontendURL: c.serverConfig.FrontendURL,
+	}
+
+	// エラーは無視（ユーザー列挙対策）
+	_ = c.authUseCase.ForgotPassword(ctx.Request().Context(), input)
+
+	return ctx.JSON(http.StatusOK, map[string]string{
+		"message": "パスワードリセットのメールを送信しました（登録済みの場合）",
+	})
+}
+
+// ResetPassword はトークンを使ってパスワードをリセットする
+func (c *AuthController) ResetPassword(ctx echo.Context) error {
+	var req ResetPasswordRequest
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "リクエストの解析に失敗しました", err.Error()))
+	}
+
+	if err := ctx.Validate(&req); err != nil {
+		return err
+	}
+
+	input := usecases.ResetPasswordInput{
+		Token:       req.Token,
+		NewPassword: req.NewPassword,
+	}
+
+	if err := c.authUseCase.ResetPassword(ctx.Request().Context(), input); err != nil {
+		if err.Error() == "無効または期限切れのトークンです" || err.Error() == "無効なトークンです" {
+			return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, err.Error(), nil))
+		}
+		return ctx.JSON(http.StatusInternalServerError, NewErrorResponse(ctx, ErrorCodeInternalServer, "パスワードリセットに失敗しました", err.Error()))
+	}
+
+	return ctx.JSON(http.StatusOK, map[string]string{
+		"message": "パスワードをリセットしました",
+	})
+}
