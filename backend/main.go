@@ -8,6 +8,7 @@ import (
 	"github.com/financial-planning-calculator/backend/config"
 	"github.com/financial-planning-calculator/backend/domain/services"
 	"github.com/financial-planning-calculator/backend/infrastructure/monitoring"
+	"github.com/financial-planning-calculator/backend/infrastructure/email"
 	"github.com/financial-planning-calculator/backend/infrastructure/repositories"
 	"github.com/financial-planning-calculator/backend/infrastructure/web"
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -109,6 +110,7 @@ func initializeDependencies() *web.ServerDependencies {
 
 	userRepo := repoFactory.NewUserRepository()
 	refreshTokenRepo := repoFactory.NewRefreshTokenRepository()
+	passwordResetTokenRepo := repoFactory.NewPasswordResetTokenRepository()
 	webAuthnCredentialRepo := repoFactory.NewWebAuthnCredentialRepository()
 	financialPlanRepo := repoFactory.NewFinancialPlanRepository()
 	goalRepo := repoFactory.NewGoalRepository()
@@ -120,6 +122,15 @@ func initializeDependencies() *web.ServerDependencies {
 	// Load server config for JWT settings
 	serverCfg := config.LoadServerConfig()
 
+	// Initialize email service
+	emailService := email.NewEmailService(
+		serverCfg.SMTPHost,
+		serverCfg.SMTPPort,
+		serverCfg.SMTPUser,
+		serverCfg.SMTPPassword,
+		serverCfg.SMTPFrom,
+	)
+
 	// Initialize WebAuthn
 	webAuthn, err := initializeWebAuthn(serverCfg)
 	if err != nil {
@@ -129,6 +140,8 @@ func initializeDependencies() *web.ServerDependencies {
 	return &web.ServerDependencies{
 		UserRepo:                 userRepo,
 		RefreshTokenRepo:         refreshTokenRepo,
+		PasswordResetTokenRepo:   passwordResetTokenRepo,
+		EmailService:             emailService,
 		WebAuthnCredentialRepo:   webAuthnCredentialRepo,
 		FinancialPlanRepo:        financialPlanRepo,
 		GoalRepo:                 goalRepo,

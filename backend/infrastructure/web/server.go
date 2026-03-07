@@ -7,6 +7,7 @@ import (
 	"github.com/financial-planning-calculator/backend/config"
 	"github.com/financial-planning-calculator/backend/domain/repositories"
 	"github.com/financial-planning-calculator/backend/domain/services"
+	infraemail "github.com/financial-planning-calculator/backend/infrastructure/email"
 	"github.com/financial-planning-calculator/backend/infrastructure/web/controllers"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/labstack/echo/v4"
@@ -16,6 +17,9 @@ import (
 type ServerDependencies struct {
 	// Repositories
 	UserRepo               repositories.UserRepository
+	PasswordResetTokenRepo repositories.PasswordResetTokenRepository
+	// Email service
+	EmailService           infraemail.EmailService
 	RefreshTokenRepo       repositories.RefreshTokenRepository
 	WebAuthnCredentialRepo repositories.WebAuthnCredentialRepository
 	FinancialPlanRepo      repositories.FinancialPlanRepository
@@ -49,6 +53,8 @@ func NewControllers(deps *ServerDependencies) *Controllers {
 	authUseCase := usecases.NewAuthUseCase(
 		deps.UserRepo,
 		deps.RefreshTokenRepo,
+		deps.PasswordResetTokenRepo,
+		deps.EmailService,
 		deps.JWTSecret,
 		deps.JWTExpiration,
 		deps.RefreshTokenExpiration,

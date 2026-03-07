@@ -284,3 +284,60 @@ func (m *MockWebAuthnCredentialRepository) Delete(ctx context.Context, id entiti
 	args := m.Called(ctx, id)
 	return args.Error(0)
 }
+
+// -------------------------------------------------------------------
+// MockPasswordResetTokenRepository
+// -------------------------------------------------------------------
+
+type MockPasswordResetTokenRepository struct {
+	mock.Mock
+}
+
+func (m *MockPasswordResetTokenRepository) Save(ctx context.Context, token *entities.PasswordResetToken) error {
+	args := m.Called(ctx, token)
+	return args.Error(0)
+}
+
+func (m *MockPasswordResetTokenRepository) FindByTokenHash(ctx context.Context, tokenHash string) (*entities.PasswordResetToken, error) {
+	args := m.Called(ctx, tokenHash)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entities.PasswordResetToken), args.Error(1)
+}
+
+func (m *MockPasswordResetTokenRepository) FindByUserID(ctx context.Context, userID entities.UserID) ([]*entities.PasswordResetToken, error) {
+	args := m.Called(ctx, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*entities.PasswordResetToken), args.Error(1)
+}
+
+func (m *MockPasswordResetTokenRepository) Update(ctx context.Context, token *entities.PasswordResetToken) error {
+	args := m.Called(ctx, token)
+	return args.Error(0)
+}
+
+func (m *MockPasswordResetTokenRepository) DeleteExpired(ctx context.Context) error {
+	args := m.Called(ctx)
+	return args.Error(0)
+}
+
+func (m *MockPasswordResetTokenRepository) DeleteByUserID(ctx context.Context, userID entities.UserID) error {
+	args := m.Called(ctx, userID)
+	return args.Error(0)
+}
+
+// -------------------------------------------------------------------
+// MockEmailService
+// -------------------------------------------------------------------
+
+type MockEmailService struct {
+	mock.Mock
+}
+
+func (m *MockEmailService) SendPasswordResetEmail(ctx context.Context, toEmail, resetURL string) error {
+	args := m.Called(ctx, toEmail, resetURL)
+	return args.Error(0)
+}

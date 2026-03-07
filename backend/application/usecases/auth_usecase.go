@@ -58,6 +58,12 @@ type AuthUseCase interface {
 
 	// Get2FAStatus は2FAの有効状態を取得する
 	Get2FAStatus(ctx context.Context, userID string) (*Get2FAStatusOutput, error)
+
+	// ForgotPassword はパスワードリセットメールを送信する
+	ForgotPassword(ctx context.Context, input ForgotPasswordInput) error
+
+	// ResetPassword はトークンを使ってパスワードをリセットする
+	ResetPassword(ctx context.Context, input ResetPasswordInput) error
 }
 
 // Get2FAStatusOutput は2FAステータス取得の出力
@@ -150,19 +156,40 @@ type RegenerateBackupCodesOutput struct {
 	BackupCodes []string `json:"backup_codes"`
 }
 
+// ForgotPasswordInput はパスワードリセットメール送信の入力
+type ForgotPasswordInput struct {
+	Email       string `json:"email"`
+	FrontendURL string `json:"-"`
+}
+
+// ResetPasswordInput はパスワードリセットの入力
+type ResetPasswordInput struct {
+	Token       string `json:"token"`
+	NewPassword string `json:"new_password"`
+}
+
+// emailSender はメール送信の抽象（循環インポートを避けるための最小インターフェース）
+type emailSender interface {
+	SendPasswordResetEmail(ctx context.Context, toEmail, resetURL string) error
+}
+
 // authUseCase は認証ユースケースの実装
 type authUseCase struct {
-	userRepo                repositories.UserRepository
-	refreshTokenRepo        repositories.RefreshTokenRepository
-	jwtSecret               string
-	jwtExpiration           time.Duration
-	refreshTokenExpiration  time.Duration
+	userRepo               repositories.UserRepository
+	refreshTokenRepo       repositories.RefreshTokenRepository
+	passwordResetTokenRepo repositories.PasswordResetTokenRepository
+	emailService           emailSender
+	jwtSecret              string
+	jwtExpiration          time.Duration
+	refreshTokenExpiration time.Duration
 }
 
 // NewAuthUseCase は新しい認証ユースケースを作成する
 func NewAuthUseCase(
 	userRepo repositories.UserRepository,
 	refreshTokenRepo repositories.RefreshTokenRepository,
+	passwordResetTokenRepo repositories.PasswordResetTokenRepository,
+	emailService emailSender,
 	jwtSecret string,
 	jwtExpiration time.Duration,
 	refreshTokenExpiration time.Duration,
@@ -170,6 +197,8 @@ func NewAuthUseCase(
 	return &authUseCase{
 		userRepo:               userRepo,
 		refreshTokenRepo:       refreshTokenRepo,
+		passwordResetTokenRepo: passwordResetTokenRepo,
+		emailService:           emailService,
 		jwtSecret:              jwtSecret,
 		jwtExpiration:          jwtExpiration,
 		refreshTokenExpiration: refreshTokenExpiration,
@@ -897,4 +926,107 @@ func (uc *authUseCase) Get2FAStatus(ctx context.Context, userID string) (*Get2FA
 	return &Get2FAStatusOutput{
 		Enabled: user.TwoFactorEnabled(),
 	}, nil
+}
+
+// ForgotPassword はパスワードリセットメールを送信する
+// 存在しないメールアドレスでも同じレスポンスを返す（ユーザー列挙対策）
+func (uc *authUseCase) ForgotPassword(ctx context.Context, input ForgotPasswordInput) error {
+	logger := slog.With("usecase", "ForgotPassword")
+	logger.InfoContext(ctx, "パスワードリセットリクエストを受け付けました")
+
+	email, err := entities.NewEmail(input.Email)
+	if err != nil {
+		// バリデーションエラーでも成功として扱う（ユーザー列挙対策）
+		return nil
+	}
+
+	user, err := uc.userRepo.FindByEmail(ctx, email)
+	if err != nil || user == nil {
+		// 存在しないメールでも成功として扱う（ユーザー列挙対策）
+		return nil
+	}
+
+	// 既存のリセットトークンを削除
+	if err := uc.passwordResetTokenRepo.DeleteByUserID(ctx, user.ID()); err != nil {
+		logger.ErrorContext(ctx, "既存トークンの削除に失敗しました", "error", err)
+		return nil
+	}
+
+	// 新しいリセットトークンを生成（有効期限30分）
+	expiresAt := time.Now().Add(30 * time.Minute)
+	token, plainToken, err := entities.NewPasswordResetToken(user.ID(), expiresAt)
+	if err != nil {
+		logger.ErrorContext(ctx, "リセットトークンの生成に失敗しました", "error", err)
+		return nil
+	}
+
+	if err := uc.passwordResetTokenRepo.Save(ctx, token); err != nil {
+		logger.ErrorContext(ctx, "リセットトークンの保存に失敗しました", "error", err)
+		return nil
+	}
+
+	resetURL := fmt.Sprintf("%s/reset-password?token=%s", input.FrontendURL, plainToken)
+	if err := uc.emailService.SendPasswordResetEmail(ctx, string(email), resetURL); err != nil {
+		logger.ErrorContext(ctx, "リセットメールの送信に失敗しました", "error", err)
+		// メール送信失敗でも成功として扱う（ユーザー列挙対策）
+	}
+
+	return nil
+}
+
+// ResetPassword はトークンを使ってパスワードをリセットする
+func (uc *authUseCase) ResetPassword(ctx context.Context, input ResetPasswordInput) error {
+	logger := slog.With("usecase", "ResetPassword")
+	logger.InfoContext(ctx, "パスワードリセットを開始します")
+
+	if input.Token == "" {
+		return errors.New("トークンは必須です")
+	}
+	if input.NewPassword == "" {
+		return errors.New("新しいパスワードは必須です")
+	}
+
+	// トークンのハッシュを計算して検索
+	tokenHash := sha256HexToken(input.Token)
+	resetToken, err := uc.passwordResetTokenRepo.FindByTokenHash(ctx, tokenHash)
+	if err != nil {
+		logger.ErrorContext(ctx, "トークンの検索に失敗しました", "error", err)
+		return errors.New("無効なトークンです")
+	}
+	if resetToken == nil || !resetToken.IsValid() {
+		return errors.New("無効または期限切れのトークンです")
+	}
+
+	// ユーザーを取得
+	user, err := uc.userRepo.FindByID(ctx, resetToken.UserID())
+	if err != nil || user == nil {
+		logger.ErrorContext(ctx, "ユーザーの取得に失敗しました", "error", err)
+		return errors.New("ユーザーが見つかりません")
+	}
+
+	// パスワードを更新
+	if err := user.UpdatePassword(input.NewPassword); err != nil {
+		return fmt.Errorf("パスワードの更新に失敗しました: %w", err)
+	}
+
+	if err := uc.userRepo.Update(ctx, user); err != nil {
+		logger.ErrorContext(ctx, "ユーザーの保存に失敗しました", "error", err)
+		return fmt.Errorf("パスワードの保存に失敗しました: %w", err)
+	}
+
+	// トークンを使用済みにする
+	resetToken.Use()
+	if err := uc.passwordResetTokenRepo.Update(ctx, resetToken); err != nil {
+		logger.ErrorContext(ctx, "トークンの更新に失敗しました", "error", err)
+		// パスワードは既に更新済みのためエラーは返さない
+	}
+
+	logger.InfoContext(ctx, "パスワードリセット完了", "user_id", string(resetToken.UserID()))
+	return nil
+}
+
+// sha256HexToken は文字列をSHA-256でハッシュ化してhex文字列を返す
+func sha256HexToken(token string) string {
+	h := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(h[:])
 }
