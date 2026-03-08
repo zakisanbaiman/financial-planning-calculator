@@ -425,6 +425,19 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </Link>
+
+              <Link
+                href="/settings/security"
+                className="block w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors"
+              >
+                <div className="flex items-center space-x-3">
+                  <span className="text-xl">🔒</span>
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-white">セキュリティ設定</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">2段階認証の管理</p>
+                  </div>
+                </div>
+              </Link>
             </div>
           </div>
 

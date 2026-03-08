@@ -66,6 +66,18 @@ const Navigation = () => {
                 <span className="text-sm text-gray-600 dark:text-gray-300">
                   {user?.email}
                 </span>
+                <Link
+                  href="/settings/security"
+                  className={`flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    pathname === '/settings/security'
+                      ? 'bg-primary-50 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700'
+                  }`}
+                  title="セキュリティ設定"
+                >
+                  <span>🔒</span>
+                  <span>セキュリティ</span>
+                </Link>
                 <button
                   onClick={logout}
                   className="flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700"
@@ -148,6 +160,17 @@ const Navigation = () => {
               <div className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300 border-t border-gray-200 dark:border-gray-700 mt-2 pt-2">
                 {user?.email}
               </div>
+              <Link
+                href="/settings/security"
+                className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full ${
+                  pathname === '/settings/security'
+                    ? 'bg-primary-50 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700'
+                }`}
+              >
+                <span>🔒</span>
+                <span>セキュリティ設定</span>
+              </Link>
               <button
                 onClick={logout}
                 className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 w-full"
