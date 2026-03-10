@@ -61,8 +61,8 @@ export async function checkAPIHealth(): Promise<{
   details?: any;
 }> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
-    const healthUrl = baseUrl.replace('/api', '/health/detailed');
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
+    const healthUrl = `${baseUrl}/health/detailed`;
     
     const response = await fetch(healthUrl, {
       method: 'GET',
@@ -96,8 +96,8 @@ export async function checkAPIHealth(): Promise<{
 // Check API readiness
 export async function checkAPIReadiness(): Promise<boolean> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
-    const readyUrl = baseUrl.replace('/api', '/ready');
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
+    const readyUrl = `${baseUrl}/ready`;
     
     const response = await fetch(readyUrl);
     if (response.ok) {

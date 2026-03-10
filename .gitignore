@@ -135,3 +135,4 @@ scripts/package-lock.json
 scripts/deployment-check.log
 scripts/*.log
 frontend/tsconfig.tsbuildinfo
+.claude/settings.local.json

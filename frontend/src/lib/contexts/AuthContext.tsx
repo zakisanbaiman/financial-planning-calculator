@@ -39,7 +39,7 @@ const USER_KEY = 'auth_user';
 const TEMP_TOKEN_KEY = 'auth_token';
 
 // API ベースURL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 interface AuthProviderProps {
   children: ReactNode;
