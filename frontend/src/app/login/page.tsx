@@ -125,7 +125,7 @@ export default function LoginPage() {
             fullWidth
             variant="secondary"
             onClick={() => {
-              window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/auth/github`;
+              window.location.href = `${process.env.NEXT_PUBLIC_API_URL || '/api'}/auth/github`;
             }}
             disabled={isLoading}
             className="flex items-center justify-center gap-2"

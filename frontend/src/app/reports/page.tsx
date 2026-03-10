@@ -5,7 +5,7 @@ import { LoadingSpinner } from '@/components';
 import AssetProjectionChart from '@/components/AssetProjectionChart';
 import { generateAssetProjections } from '@/lib/utils/projections';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 // Sample data constants for report preview
 const SAMPLE_INITIAL_ASSETS = 1500000; // ¥1,500,000

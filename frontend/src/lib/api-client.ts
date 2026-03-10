@@ -23,7 +23,7 @@ import type {
 } from '@/types/api';
 
 // API ベースURL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 // リフレッシュ中フラグ（複数のリクエストが同時にリフレッシュするのを防ぐ）
 let isRefreshing = false;
@@ -369,7 +369,7 @@ export const twoFactorAPI = {
 
 // ヘルスチェック
 export const healthCheck = async (): Promise<{ status: string; message: string }> => {
-  const url = `${API_BASE_URL.replace('/api', '')}/health`;
+  const url = `${API_BASE_URL}/health`;
   const response = await fetch(url, {
     credentials: 'include',
   });
