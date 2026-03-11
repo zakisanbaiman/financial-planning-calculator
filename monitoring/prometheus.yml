@@ -6,10 +6,11 @@ global:
     monitor: 'financial-planning-calculator'
 
 # 財務計画計算機APIからメトリクスを収集
+# financial_planning_network 経由でバックエンドコンテナに接続
 scrape_configs:
   - job_name: 'financial-planning-api'
     static_configs:
-      - targets: ['localhost:8080']
+      - targets: ['financial_planning_backend:8080']
         labels:
           service: 'financial-planning-calculator'
           environment: 'development'

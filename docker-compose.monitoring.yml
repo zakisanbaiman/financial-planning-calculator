@@ -1,10 +1,8 @@
 # 監視スタック用のDocker Compose設定
-# Prometheus + Grafana for monitoring
-
-version: '3.8'
+# Prometheus + Grafana + Loki + Promtail for monitoring & log aggregation
 
 services:
-  # Prometheusサーバー
+  # Prometheusサーバー（メトリクス収集）
   prometheus:
     image: prom/prometheus:latest
     container_name: financial-planning-prometheus
@@ -20,9 +18,39 @@ services:
       - '--web.console.templates=/usr/share/prometheus/consoles'
     networks:
       - monitoring
+      - financial_planning_network
     restart: unless-stopped
 
-  # Grafanaダッシュボード
+  # Loki（ログ集約）
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: financial-planning-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # Promtail（ログ収集エージェント）
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: financial-planning-promtail
+    volumes:
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - monitoring
+      - financial_planning_network
+    restart: unless-stopped
+
+  # Grafanaダッシュボード（メトリクス + ログ可視化）
   grafana:
     image: grafana/grafana:latest
     container_name: financial-planning-grafana
@@ -34,9 +62,12 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./monitoring/grafana-dashboard.json:/etc/grafana/provisioning/dashboards/financial-planning.json
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana-dashboard.json:/etc/grafana/provisioning/dashboards/json/financial-planning.json
     depends_on:
       - prometheus
+      - loki
     networks:
       - monitoring
     restart: unless-stopped
@@ -44,17 +75,23 @@ services:
 volumes:
   prometheus-data:
   grafana-data:
+  loki-data:
 
 networks:
   monitoring:
     driver: bridge
+  # アプリケーションの Docker ネットワークに接続（docker-compose.yml で作成済み）
+  financial_planning_network:
+    external: true
 
 # 使い方:
-# 1. アプリケーションを起動（バックエンドが http://localhost:8080 で起動していること）
-# 2. 監視スタックを起動: docker-compose -f docker-compose.monitoring.yml up -d
+# 1. アプリケーションを起動: docker compose up -d
+# 2. 監視スタックを起動: docker compose -f docker-compose.monitoring.yml up -d
 # 3. Prometheusにアクセス: http://localhost:9090
 # 4. Grafanaにアクセス: http://localhost:3001 (admin/admin)
-# 5. Grafanaで新しいデータソースを追加:
-#    - Type: Prometheus
-#    - URL: http://prometheus:9090
-# 6. ダッシュボードをインポート（または自動プロビジョニング）
+#    - データソース（Prometheus + Loki）は自動プロビジョニング済み
+#    - ダッシュボードも自動インポート済み
+# 5. ログ検索: Grafana → Explore → Loki を選択
+#    - クエリ例: {container="financial_planning_backend"}
+#    - request_id で検索: {container="financial_planning_backend"} | json | request_id="<ID>"
+#    - エラーのみ: {container="financial_planning_backend"} | json | level="ERROR"
