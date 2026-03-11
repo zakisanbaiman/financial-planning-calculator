@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
+	"strconv"
 	"time"
 
 	"github.com/financial-planning-calculator/backend/config"
@@ -20,11 +20,8 @@ func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) *CustomRateLimiterS
 	// パフォーマンス監視ミドルウェア（Prometheus）
 	e.Use(monitoring.PrometheusMiddleware())
 
-	// ログミドルウェア - 詳細なリクエスト/レスポンスログ
-	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Format: cfg.LogFormat,
-		Output: os.Stdout,
-	}))
+	// ログミドルウェア - slog による構造化リクエストログ
+	e.Use(SlogRequestLogger())
 
 	// リカバリーミドルウェア - パニック時の復旧とエラー追跡
 	e.Use(RecoveryMiddlewareWithErrorTracking())
@@ -301,6 +298,58 @@ func getErrorMessageFromStatus(status int) string {
 		return "入力データを処理できません"
 	default:
 		return "エラーが発生しました"
+	}
+}
+
+// SlogRequestLogger は slog を使った構造化リクエストロガーミドルウェアを返します。
+// Echo 標準の LoggerMiddleware の代わりに使用し、JSON 構造化ログで統一します。
+func SlogRequestLogger() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			start := time.Now()
+
+			err := next(c)
+			if err != nil {
+				c.Error(err)
+			}
+
+			req := c.Request()
+			res := c.Response()
+
+			// リクエストIDを取得（RequestID ミドルウェアが後段で付与）
+			requestID := res.Header().Get(echo.HeaderXRequestID)
+			ctx := log.WithRequestID(req.Context(), requestID)
+
+			latency := time.Since(start)
+			status := res.Status
+
+			attrs := []slog.Attr{
+				slog.String("method", req.Method),
+				slog.String("uri", req.RequestURI),
+				slog.Int("status", status),
+				slog.String("latency", latency.String()),
+				slog.Int64("latency_ms", latency.Milliseconds()),
+				slog.String("remote_ip", c.RealIP()),
+				slog.String("bytes_in", req.Header.Get(echo.HeaderContentLength)),
+				slog.String("bytes_out", strconv.FormatInt(res.Size, 10)),
+				slog.String("user_agent", req.UserAgent()),
+			}
+
+			if err != nil {
+				attrs = append(attrs, slog.String("error", err.Error()))
+			}
+
+			switch {
+			case status >= 500:
+				log.WithContext(ctx).LogAttrs(ctx, slog.LevelError, "request", attrs...)
+			case status >= 400:
+				log.WithContext(ctx).LogAttrs(ctx, slog.LevelWarn, "request", attrs...)
+			default:
+				log.WithContext(ctx).LogAttrs(ctx, slog.LevelInfo, "request", attrs...)
+			}
+
+			return nil
+		}
 	}
 }
 
