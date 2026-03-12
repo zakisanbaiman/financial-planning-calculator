@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -23,11 +24,12 @@ type TemporaryFileStorage struct {
 
 // FileMetadata はファイルのメタデータ
 type FileMetadata struct {
-	FilePath  string
-	FileName  string
-	FileSize  int64
-	CreatedAt time.Time
-	ExpiresAt time.Time
+	FilePath    string
+	FileName    string
+	FileSize    int64
+	CreatedAt   time.Time
+	ExpiresAt   time.Time
+	OwnerUserID string
 }
 
 // NewTemporaryFileStorage は新しいTemporaryFileStorageを作成する
@@ -51,8 +53,8 @@ func NewTemporaryFileStorage(baseDir string, secretKey string, expiryDuration ti
 	return storage, nil
 }
 
-// SaveFile はファイルを保存し、署名付きトークンを返す
-func (s *TemporaryFileStorage) SaveFile(fileName string, data []byte) (token string, metadata *FileMetadata, err error) {
+// SaveFile はファイルを保存し、署名付きトークンと有効期限を返す
+func (s *TemporaryFileStorage) SaveFile(fileName string, data []byte) (token string, expiresAt time.Time, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -62,18 +64,26 @@ func (s *TemporaryFileStorage) SaveFile(fileName string, data []byte) (token str
 	filePath := filepath.Join(s.baseDir, safeFileName)
 
 	// ファイルを保存
-	if err := os.WriteFile(filePath, data, 0644); err != nil {
-		return "", nil, fmt.Errorf("ファイルの保存に失敗: %w", err)
+	if writeErr := os.WriteFile(filePath, data, 0644); writeErr != nil {
+		return "", time.Time{}, fmt.Errorf("ファイルの保存に失敗: %w", writeErr)
 	}
 
 	// メタデータを作成
+	// ファイル名は "{userID}_{reportType}_{timestamp}.pdf" 形式を想定
+	// アンダースコアで分割して最初のセグメントをユーザーIDとして取得
+	ownerUserID := ""
+	if parts := strings.SplitN(fileName, "_", 2); len(parts) >= 1 {
+		ownerUserID = parts[0]
+	}
+
 	now := time.Now()
-	metadata = &FileMetadata{
-		FilePath:  filePath,
-		FileName:  fileName,
-		FileSize:  int64(len(data)),
-		CreatedAt: now,
-		ExpiresAt: now.Add(s.expiryTime),
+	metadata := &FileMetadata{
+		FilePath:    filePath,
+		FileName:    fileName,
+		FileSize:    int64(len(data)),
+		CreatedAt:   now,
+		ExpiresAt:   now.Add(s.expiryTime),
+		OwnerUserID: ownerUserID,
 	}
 
 	// 署名付きトークンを生成
@@ -82,37 +92,46 @@ func (s *TemporaryFileStorage) SaveFile(fileName string, data []byte) (token str
 	// メタデータを保存
 	s.files[token] = metadata
 
-	return token, metadata, nil
+	return token, metadata.ExpiresAt, nil
 }
 
 // GetFile はトークンからファイルを取得する
-func (s *TemporaryFileStorage) GetFile(token string) ([]byte, *FileMetadata, error) {
+func (s *TemporaryFileStorage) GetFile(token string) ([]byte, string, string, error) {
 	s.mu.RLock()
 	metadata, exists := s.files[token]
 	s.mu.RUnlock()
 
 	if !exists {
-		return nil, nil, fmt.Errorf("ファイルが見つかりません")
+		return nil, "", "", fmt.Errorf("ファイルが見つかりません")
 	}
 
 	// 期限切れチェック（現在時刻が有効期限より前でない = 期限切れ）
 	if !time.Now().Before(metadata.ExpiresAt) {
-		_ = s.deleteFile(token) // 削除エラーは無視（既に削除されている可能性がある）
-		return nil, nil, fmt.Errorf("ファイルの有効期限が切れています")
+		// RLockを解放してからLockを取得して削除する
+		s.mu.Lock()
+		// 再確認（他のgoroutineが既に削除している可能性）
+		if m, ok := s.files[token]; ok && !time.Now().Before(m.ExpiresAt) {
+			if err := os.Remove(m.FilePath); err != nil && !os.IsNotExist(err) {
+				fmt.Printf("期限切れファイルの削除に失敗: %v\n", err)
+			}
+			delete(s.files, token)
+		}
+		s.mu.Unlock()
+		return nil, "", "", fmt.Errorf("ファイルの有効期限が切れています")
 	}
 
 	// トークンの検証
 	if !s.verifyToken(token, filepath.Base(metadata.FilePath), metadata.ExpiresAt) {
-		return nil, nil, fmt.Errorf("無効なトークンです")
+		return nil, "", "", fmt.Errorf("無効なトークンです")
 	}
 
 	// ファイルを読み込み
 	data, err := os.ReadFile(metadata.FilePath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("ファイルの読み込みに失敗: %w", err)
+		return nil, "", "", fmt.Errorf("ファイルの読み込みに失敗: %w", err)
 	}
 
-	return data, metadata, nil
+	return data, metadata.FileName, metadata.OwnerUserID, nil
 }
 
 // generateToken は署名付きトークンを生成する

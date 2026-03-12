@@ -251,7 +251,7 @@ func setupTestServer() (*echo.Echo, *MockManageFinancialDataUseCase, *MockCalcul
 		FinancialData: controllers.NewFinancialDataController(mockFinancialUseCase),
 		Calculations:  controllers.NewCalculationsController(mockCalculationUseCase),
 		Goals:         controllers.NewGoalsController(mockGoalsUseCase),
-		Reports:       controllers.NewReportsController(mockReportsUseCase),
+		Reports:       controllers.NewReportsController(mockReportsUseCase, nil),
 	}
 
 	// Create minimal ServerDependencies for testing

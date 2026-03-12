@@ -20,21 +20,21 @@ func TestTemporaryFileStorage_SaveAndGetFile(t *testing.T) {
 
 	// ファイルを保存
 	testData := []byte("これはテストPDFです")
-	token, metadata, err := storage.SaveFile("test-report.pdf", testData)
+	token, expiresAt, err := storage.SaveFile("test-report.pdf", testData)
 	if err != nil {
 		t.Fatalf("ファイルの保存に失敗: %v", err)
 	}
 
-	// メタデータの検証
-	if metadata.FileName != "test-report.pdf" {
-		t.Errorf("ファイル名が一致しません: got %s, want test-report.pdf", metadata.FileName)
+	// 有効期限の検証
+	if expiresAt.IsZero() {
+		t.Error("有効期限が設定されていません")
 	}
-	if metadata.FileSize != int64(len(testData)) {
-		t.Errorf("ファイルサイズが一致しません: got %d, want %d", metadata.FileSize, len(testData))
+	if !time.Now().Before(expiresAt) {
+		t.Errorf("有効期限が過去の日時です: %v", expiresAt)
 	}
 
 	// ファイルを取得
-	data, retrievedMetadata, err := storage.GetFile(token)
+	data, fileName, ownerUserID, err := storage.GetFile(token)
 	if err != nil {
 		t.Fatalf("ファイルの取得に失敗: %v", err)
 	}
@@ -44,10 +44,13 @@ func TestTemporaryFileStorage_SaveAndGetFile(t *testing.T) {
 		t.Errorf("データが一致しません: got %s, want %s", string(data), string(testData))
 	}
 
-	// メタデータの検証
-	if retrievedMetadata.FileName != metadata.FileName {
-		t.Errorf("ファイル名が一致しません")
+	// ファイル名の検証
+	if fileName != "test-report.pdf" {
+		t.Errorf("ファイル名が一致しません: got %s, want test-report.pdf", fileName)
 	}
+
+	// ownerUserIDはファイル名のプレフィックスから取得（"test-report.pdf" の場合は "test"）
+	_ = ownerUserID
 }
 
 func TestTemporaryFileStorage_ExpiredFile(t *testing.T) {
@@ -69,7 +72,7 @@ func TestTemporaryFileStorage_ExpiredFile(t *testing.T) {
 	}
 
 	// すぐにアクセス - 成功するはず
-	_, _, err = storage.GetFile(token)
+	_, _, _, err = storage.GetFile(token)
 	if err != nil {
 		t.Errorf("有効期限内のアクセスが失敗: %v", err)
 	}
@@ -78,7 +81,7 @@ func TestTemporaryFileStorage_ExpiredFile(t *testing.T) {
 	time.Sleep(2 * time.Second)
 
 	// アクセス - 失敗するはず
-	_, _, err = storage.GetFile(token)
+	_, _, _, err = storage.GetFile(token)
 	if err == nil {
 		t.Error("期限切れファイルへのアクセスが成功してしまいました")
 	}
@@ -96,7 +99,7 @@ func TestTemporaryFileStorage_InvalidToken(t *testing.T) {
 	}
 
 	// 無効なトークンでアクセス
-	_, _, err = storage.GetFile("invalid-token")
+	_, _, _, err = storage.GetFile("invalid-token")
 	if err == nil {
 		t.Error("無効なトークンでのアクセスが成功してしまいました")
 	}

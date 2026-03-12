@@ -269,10 +269,22 @@ type ExportReportInput struct {
 
 // ExportReportOutput はレポートエクスポートの出力
 type ExportReportOutput struct {
-	FileName    string `json:"file_name"`
-	FileSize    int64  `json:"file_size"`
-	DownloadURL string `json:"download_url"`
-	ExpiresAt   string `json:"expires_at"`
+	FileName      string `json:"file_name"`
+	FileSize      int64  `json:"file_size"`
+	DownloadToken string `json:"download_token"`
+	DownloadURL   string `json:"download_url"`
+	ExpiresAt     string `json:"expires_at"`
+}
+
+// ReportPDFGenerator はPDF生成のインターフェース
+type ReportPDFGenerator interface {
+	Generate(reportType string, reportData interface{}) ([]byte, error)
+}
+
+// TemporaryFileStoragePort は一時ファイルストレージのインターフェース
+type TemporaryFileStoragePort interface {
+	SaveFile(fileName string, data []byte) (token string, expiresAt time.Time, err error)
+	GetFile(token string) (data []byte, fileName string, ownerUserID string, err error)
 }
 
 // generateReportsUseCaseImpl はGenerateReportsUseCaseの実装
@@ -281,6 +293,8 @@ type generateReportsUseCaseImpl struct {
 	goalRepo              repositories.GoalRepository
 	calculationService    *services.FinancialCalculationService
 	recommendationService *services.GoalRecommendationService
+	pdfGenerator          ReportPDFGenerator
+	fileStorage           TemporaryFileStoragePort
 }
 
 // NewGenerateReportsUseCase は新しいGenerateReportsUseCaseを作成する
@@ -295,6 +309,25 @@ func NewGenerateReportsUseCase(
 		goalRepo:              goalRepo,
 		calculationService:    calculationService,
 		recommendationService: recommendationService,
+	}
+}
+
+// NewGenerateReportsUseCaseWithPDF はPDF生成・ストレージ機能付きのGenerateReportsUseCaseを作成する
+func NewGenerateReportsUseCaseWithPDF(
+	financialPlanRepo repositories.FinancialPlanRepository,
+	goalRepo repositories.GoalRepository,
+	calculationService *services.FinancialCalculationService,
+	recommendationService *services.GoalRecommendationService,
+	pdfGenerator ReportPDFGenerator,
+	fileStorage TemporaryFileStoragePort,
+) GenerateReportsUseCase {
+	return &generateReportsUseCaseImpl{
+		financialPlanRepo:     financialPlanRepo,
+		goalRepo:              goalRepo,
+		calculationService:    calculationService,
+		recommendationService: recommendationService,
+		pdfGenerator:          pdfGenerator,
+		fileStorage:           fileStorage,
 	}
 }
 
@@ -1059,44 +1092,34 @@ func (uc *generateReportsUseCaseImpl) ExportReportToPDF(
 	ctx context.Context,
 	input ExportReportInput,
 ) (*ExportReportOutput, error) {
-	// ここでは簡易的なダミーPDFを生成
-	pdfContent := uc.generateDummyPDF(input)
+	if uc.pdfGenerator == nil {
+		return nil, fmt.Errorf("PDFジェネレーターが設定されていません")
+	}
+	if uc.fileStorage == nil {
+		return nil, fmt.Errorf("ファイルストレージが設定されていません")
+	}
 
-	// 一時ファイルストレージに保存（実際の実装では依存性注入で渡す）
-	// ここでは簡易的な実装として、ファイル名とサイズのみ返す
-	fileName := fmt.Sprintf("%s_report_%s.pdf", input.ReportType, time.Now().Format("20060102_150405"))
+	// PDFを生成
+	pdfContent, err := uc.pdfGenerator.Generate(input.ReportType, input.ReportData)
+	if err != nil {
+		return nil, fmt.Errorf("PDFの生成に失敗しました: %w", err)
+	}
+
+	// ファイル名を生成: {userID}_{reportType}_{timestamp}.pdf
+	fileName := fmt.Sprintf("%s_%s_%s.pdf", string(input.UserID), input.ReportType, time.Now().Format("20060102_150405"))
 	fileSize := int64(len(pdfContent))
 
-	// 有効期限を24時間後に設定
-	expiresAt := time.Now().Add(24 * time.Hour)
-
-	// ダウンロードURLを生成（実際の実装では署名付きURLを生成）
-	// トークンを生成（簡易版）
-	token := uc.generateDownloadToken(fileName, expiresAt)
-	downloadURL := fmt.Sprintf("/api/reports/download/%s", token)
+	// ファイルを保存してトークンと有効期限を取得
+	token, expiresAt, err := uc.fileStorage.SaveFile(fileName, pdfContent)
+	if err != nil {
+		return nil, fmt.Errorf("ファイルの保存に失敗しました: %w", err)
+	}
 
 	return &ExportReportOutput{
-		FileName:    fileName,
-		FileSize:    fileSize,
-		DownloadURL: downloadURL,
-		ExpiresAt:   expiresAt.Format(time.RFC3339),
+		FileName:      fileName,
+		FileSize:      fileSize,
+		DownloadToken: token,
+		ExpiresAt:     expiresAt.Format(time.RFC3339),
 	}, nil
 }
 
-// generateDummyPDF はダミーのPDFコンテンツを生成する
-func (uc *generateReportsUseCaseImpl) generateDummyPDF(input ExportReportInput) []byte {
-	// 実際の実装では、PDFライブラリ（例: gopdf, gofpdf）を使用
-	content := fmt.Sprintf("PDF Report\nType: %s\nFormat: %s\nGenerated: %s\n",
-		input.ReportType,
-		input.Format,
-		time.Now().Format(time.RFC3339),
-	)
-	return []byte(content)
-}
-
-// generateDownloadToken はダウンロード用のトークンを生成する
-func (uc *generateReportsUseCaseImpl) generateDownloadToken(fileName string, expiresAt time.Time) string {
-	// 実際の実装では、HMAC-SHA256などで署名付きトークンを生成
-	// ここでは簡易的な実装
-	return fmt.Sprintf("%s_%d", fileName, expiresAt.Unix())
-}

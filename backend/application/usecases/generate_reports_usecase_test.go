@@ -3,7 +3,9 @@ package usecases
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/financial-planning-calculator/backend/domain/aggregates"
 	"github.com/financial-planning-calculator/backend/domain/entities"
@@ -12,6 +14,48 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// ===========================
+// Mock: ReportPDFGenerator
+// ===========================
+
+// mockReportPDFGenerator は ReportPDFGenerator インターフェースのモック
+// 実装時に usecases パッケージ内で定義される ReportPDFGenerator インターフェースに対応する
+type mockReportPDFGenerator struct {
+	generateFunc func(reportType string, reportData interface{}) ([]byte, error)
+}
+
+func (m *mockReportPDFGenerator) Generate(reportType string, reportData interface{}) ([]byte, error) {
+	if m.generateFunc != nil {
+		return m.generateFunc(reportType, reportData)
+	}
+	return []byte("<html>dummy pdf content</html>"), nil
+}
+
+// ===========================
+// Mock: TemporaryFileStoragePort
+// ===========================
+
+// mockTemporaryFileStoragePort は TemporaryFileStoragePort インターフェースのモック
+// 実装時に usecases パッケージ内で定義される TemporaryFileStoragePort インターフェースに対応する
+type mockTemporaryFileStoragePort struct {
+	saveFileFunc func(fileName string, data []byte) (string, time.Time, error)
+	getFileFunc  func(token string) ([]byte, string, string, error)
+}
+
+func (m *mockTemporaryFileStoragePort) SaveFile(fileName string, data []byte) (string, time.Time, error) {
+	if m.saveFileFunc != nil {
+		return m.saveFileFunc(fileName, data)
+	}
+	return "test-token-abc123", time.Now().Add(24 * time.Hour), nil
+}
+
+func (m *mockTemporaryFileStoragePort) GetFile(token string) ([]byte, string, string, error) {
+	if m.getFileFunc != nil {
+		return m.getFileFunc(token)
+	}
+	return nil, "", "", errors.New("not implemented")
+}
 
 // newTestFinancialPlanWithRetirementData は退職データ付きテスト用財務計画を作成するヘルパー
 func newTestFinancialPlanWithRetirementData(userID entities.UserID) *aggregates.FinancialPlan {
@@ -248,5 +292,123 @@ func TestGenerateReportsUseCase_GenerateComprehensiveReport(t *testing.T) {
 
 		require.Error(t, err)
 		mockPlanRepo.AssertExpectations(t)
+	})
+}
+
+// ===========================
+// ExportReportToPDF Tests
+// ===========================
+
+func TestGenerateReportsUseCase_ExportReportToPDF(t *testing.T) {
+	ctx := context.Background()
+	calcService := services.NewFinancialCalculationService()
+	recService := services.NewGoalRecommendationService(calcService)
+
+	t.Run("正常系: PDF生成・保存が成功してトークンが返る", func(t *testing.T) {
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		mockGoalRepo := new(MockGoalRepository)
+
+		pdfContent := []byte("<html>financial summary pdf</html>")
+		expectedToken := "test-download-token-xyz"
+
+		pdfGen := &mockReportPDFGenerator{
+			generateFunc: func(reportType string, reportData interface{}) ([]byte, error) {
+				assert.Equal(t, "financial_summary", reportType)
+				return pdfContent, nil
+			},
+		}
+		fileStorage := &mockTemporaryFileStoragePort{
+			saveFileFunc: func(fileName string, data []byte) (string, time.Time, error) {
+				// ファイル名にユーザーIDプレフィックスが含まれることを検証
+				assert.True(t, strings.HasPrefix(fileName, "user-001_"))
+				assert.Equal(t, pdfContent, data)
+				return expectedToken, time.Now().Add(24 * time.Hour), nil
+			},
+		}
+
+		// 新シグネチャ: NewGenerateReportsUseCaseWithPDF(planRepo, goalRepo, calcService, recService, pdfGen, fileStorage)
+		uc := NewGenerateReportsUseCaseWithPDF(mockPlanRepo, mockGoalRepo, calcService, recService, pdfGen, fileStorage)
+		output, err := uc.ExportReportToPDF(ctx, ExportReportInput{
+			UserID:     "user-001",
+			ReportType: "financial_summary",
+			Format:     "pdf",
+			ReportData: map[string]interface{}{"key": "value"},
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, output)
+		// ユースケースはDownloadTokenのみを返す（DownloadURLはControllerが構築する）
+		assert.NotEmpty(t, output.DownloadToken)
+		assert.Equal(t, expectedToken, output.DownloadToken)
+		assert.Empty(t, output.DownloadURL)
+		assert.NotEmpty(t, output.ExpiresAt)
+		assert.Greater(t, output.FileSize, int64(0))
+	})
+
+	t.Run("異常系: PDF生成失敗時にエラーが返る", func(t *testing.T) {
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		mockGoalRepo := new(MockGoalRepository)
+
+		pdfGen := &mockReportPDFGenerator{
+			generateFunc: func(reportType string, reportData interface{}) ([]byte, error) {
+				return nil, errors.New("PDF生成エンジンエラー")
+			},
+		}
+		fileStorage := &mockTemporaryFileStoragePort{}
+
+		uc := NewGenerateReportsUseCaseWithPDF(mockPlanRepo, mockGoalRepo, calcService, recService, pdfGen, fileStorage)
+		_, err := uc.ExportReportToPDF(ctx, ExportReportInput{
+			UserID:     "user-001",
+			ReportType: "financial_summary",
+			Format:     "pdf",
+			ReportData: map[string]interface{}{"key": "value"},
+		})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "PDF")
+	})
+
+	t.Run("異常系: ストレージ保存失敗時にエラーが返る", func(t *testing.T) {
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		mockGoalRepo := new(MockGoalRepository)
+
+		pdfGen := &mockReportPDFGenerator{
+			generateFunc: func(reportType string, reportData interface{}) ([]byte, error) {
+				return []byte("<html>pdf</html>"), nil
+			},
+		}
+		fileStorage := &mockTemporaryFileStoragePort{
+			saveFileFunc: func(fileName string, data []byte) (string, time.Time, error) {
+				return "", time.Time{}, errors.New("ディスク容量不足")
+			},
+		}
+
+		uc := NewGenerateReportsUseCaseWithPDF(mockPlanRepo, mockGoalRepo, calcService, recService, pdfGen, fileStorage)
+		_, err := uc.ExportReportToPDF(ctx, ExportReportInput{
+			UserID:     "user-001",
+			ReportType: "financial_summary",
+			Format:     "pdf",
+			ReportData: map[string]interface{}{"key": "value"},
+		})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "保存")
+	})
+
+	t.Run("異常系: pdfGeneratorがnilの場合はエラーが返る", func(t *testing.T) {
+		mockPlanRepo := new(MockFinancialPlanRepository)
+		mockGoalRepo := new(MockGoalRepository)
+
+		// pdfGeneratorなしの場合
+		uc := NewGenerateReportsUseCase(mockPlanRepo, mockGoalRepo, calcService, recService)
+		_, err := uc.ExportReportToPDF(ctx, ExportReportInput{
+			UserID:     "user-001",
+			ReportType: "financial_summary",
+			Format:     "pdf",
+			ReportData: map[string]interface{}{"key": "value"},
+		})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "PDFジェネレーター")
 	})
 }
