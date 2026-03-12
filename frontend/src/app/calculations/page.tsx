@@ -9,6 +9,7 @@ import {
 import AssetProjectionChart from '@/components/AssetProjectionChart';
 import { generateAssetProjections } from '@/lib/utils/projections';
 import { formatCurrency } from '@/lib/utils/currency';
+import { useUser } from '@/lib/hooks/useUser';
 
 type CalculatorView = 'menu' | 'asset-projection' | 'retirement' | 'emergency';
 
@@ -21,7 +22,7 @@ const SAMPLE_PROJECTION_YEARS = 30;
 
 export default function CalculationsPage() {
   const [activeView, setActiveView] = useState<CalculatorView>('menu');
-  const userId = 'user-001'; // TODO: 実際のユーザーIDを取得
+  const { userId, loading } = useUser();
 
   // サンプル資産推移データを生成（30年間）
   const sampleProjections = generateAssetProjections(
@@ -31,6 +32,25 @@ export default function CalculationsPage() {
     SAMPLE_INVESTMENT_RETURN,
     SAMPLE_INFLATION_RATE
   );
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl flex justify-center items-center min-h-[200px]">
+        <p className="text-gray-500 dark:text-gray-400">読み込み中...</p>
+      </div>
+    );
+  }
+
+  if (!userId) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="card text-center py-12">
+          <p className="text-gray-700 dark:text-gray-300 text-lg mb-2">ログインが必要です</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">計算機能を使用するにはログインしてください。</p>
+        </div>
+      </div>
+    );
+  }
 
   if (activeView === 'asset-projection') {
     return (
