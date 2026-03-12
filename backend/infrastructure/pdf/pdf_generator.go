@@ -532,3 +532,54 @@ func (g *JSONGenerator) GenerateGoalsProgressPDF(report *usecases.GoalsProgressR
 func (g *JSONGenerator) GenerateRetirementPlanPDF(report *usecases.RetirementPlanReport) ([]byte, error) {
 	return json.MarshalIndent(report, "", "  ")
 }
+
+// HTMLGeneratorAdapter は HTMLGenerator を usecases.ReportPDFGenerator インターフェースに適合させるアダプター
+// usecases.ReportPDFGenerator は Generate(reportType string, reportData interface{}) ([]byte, error) を要求する
+type HTMLGeneratorAdapter struct {
+	generator *HTMLGenerator
+}
+
+// NewHTMLGeneratorAdapter は新しい HTMLGeneratorAdapter を作成する
+func NewHTMLGeneratorAdapter() *HTMLGeneratorAdapter {
+	return &HTMLGeneratorAdapter{
+		generator: NewHTMLGenerator(),
+	}
+}
+
+// Generate はレポートタイプに応じて HTMLGenerator の適切なメソッドを呼び出す
+func (a *HTMLGeneratorAdapter) Generate(reportType string, reportData interface{}) ([]byte, error) {
+	switch reportType {
+	case "financial_summary":
+		report, ok := reportData.(usecases.FinancialSummaryReport)
+		if !ok {
+			return nil, fmt.Errorf("無効なレポートデータ型です（financial_summary）")
+		}
+		return a.generator.GenerateFinancialSummaryPDF(&report)
+	case "comprehensive":
+		report, ok := reportData.(usecases.ComprehensiveReport)
+		if !ok {
+			return nil, fmt.Errorf("無効なレポートデータ型です（comprehensive）")
+		}
+		return a.generator.GenerateComprehensivePDF(&report)
+	case "asset_projection":
+		report, ok := reportData.(usecases.AssetProjectionReport)
+		if !ok {
+			return nil, fmt.Errorf("無効なレポートデータ型です（asset_projection）")
+		}
+		return a.generator.GenerateAssetProjectionPDF(&report)
+	case "goals_progress":
+		report, ok := reportData.(usecases.GoalsProgressReport)
+		if !ok {
+			return nil, fmt.Errorf("無効なレポートデータ型です（goals_progress）")
+		}
+		return a.generator.GenerateGoalsProgressPDF(&report)
+	case "retirement_plan":
+		report, ok := reportData.(usecases.RetirementPlanReport)
+		if !ok {
+			return nil, fmt.Errorf("無効なレポートデータ型です（retirement_plan）")
+		}
+		return a.generator.GenerateRetirementPlanPDF(&report)
+	default:
+		return nil, fmt.Errorf("サポートされていないレポートタイプです: %s", reportType)
+	}
+}

@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/financial-planning-calculator/backend/application/usecases"
@@ -8,6 +9,8 @@ import (
 	"github.com/financial-planning-calculator/backend/domain/repositories"
 	"github.com/financial-planning-calculator/backend/domain/services"
 	infraemail "github.com/financial-planning-calculator/backend/infrastructure/email"
+	infrapdf "github.com/financial-planning-calculator/backend/infrastructure/pdf"
+	"github.com/financial-planning-calculator/backend/infrastructure/storage"
 	"github.com/financial-planning-calculator/backend/infrastructure/web/controllers"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/labstack/echo/v4"
@@ -48,7 +51,7 @@ type ServerDependencies struct {
 }
 
 // NewControllers creates all controller instances with their dependencies
-func NewControllers(deps *ServerDependencies) *Controllers {
+func NewControllers(deps *ServerDependencies) (*Controllers, error) {
 	// Create use cases
 	authUseCase := usecases.NewAuthUseCase(
 		deps.UserRepo,
@@ -80,11 +83,27 @@ func NewControllers(deps *ServerDependencies) *Controllers {
 		deps.RecommendationService,
 	)
 
-	generateReportsUseCase := usecases.NewGenerateReportsUseCase(
+	// TemporaryFileStorage を生成
+	tempFileStorage, err := storage.NewTemporaryFileStorage(
+		deps.ServerConfig.TempFileDir,
+		deps.ServerConfig.TempFileSecret,
+		deps.ServerConfig.TempFileExpiry,
+		deps.ServerConfig.CleanupInterval,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("TemporaryFileStorageの初期化に失敗しました: %w", err)
+	}
+
+	// HTMLGenerator を初期化して ReportPDFGenerator アダプターでラップする
+	pdfGenerator := infrapdf.NewHTMLGeneratorAdapter()
+
+	generateReportsUseCase := usecases.NewGenerateReportsUseCaseWithPDF(
 		deps.FinancialPlanRepo,
 		deps.GoalRepo,
 		deps.CalculationService,
 		deps.RecommendationService,
+		pdfGenerator,
+		tempFileStorage,
 	)
 
 	// WebAuthn use case
@@ -110,8 +129,8 @@ func NewControllers(deps *ServerDependencies) *Controllers {
 		FinancialData: controllers.NewFinancialDataController(manageFinancialDataUseCase),
 		Calculations:  controllers.NewCalculationsController(calculateProjectionUseCase),
 		Goals:         controllers.NewGoalsController(manageGoalsUseCase),
-		Reports:       controllers.NewReportsController(generateReportsUseCase),
-	}
+		Reports:       controllers.NewReportsController(generateReportsUseCase, tempFileStorage),
+	}, nil
 }
 
 // JWTAuthMiddlewareFunc returns the JWT authentication middleware

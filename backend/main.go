@@ -53,7 +53,10 @@ func main() {
 	deps := initializeDependencies()
 
 	// コントローラーの作成
-	controllers := web.NewControllers(deps)
+	controllers, err := web.NewControllers(deps)
+	if err != nil {
+		log.Fatalf("コントローラーの初期化に失敗しました: %v", err)
+	}
 
 	// ルーティング設定
 	web.SetupRoutes(e, controllers, deps, rateLimitStore)

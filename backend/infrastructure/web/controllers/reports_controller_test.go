@@ -124,7 +124,7 @@ func TestGenerateFinancialSummaryReport(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockUseCase := new(MockGenerateReportsUseCase)
 			tt.mockSetup(mockUseCase)
-			controller := NewReportsController(mockUseCase)
+			controller := NewReportsController(mockUseCase, nil)
 
 			c, rec := newReportsTestContext(http.MethodPost, "/reports/financial-summary", tt.requestBody)
 
@@ -183,7 +183,7 @@ func TestGenerateAssetProjectionReport(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockUseCase := new(MockGenerateReportsUseCase)
 			tt.mockSetup(mockUseCase)
-			controller := NewReportsController(mockUseCase)
+			controller := NewReportsController(mockUseCase, nil)
 
 			c, rec := newReportsTestContext(http.MethodPost, "/reports/asset-projection", tt.requestBody)
 
@@ -233,7 +233,7 @@ func TestGenerateGoalsProgressReport(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockUseCase := new(MockGenerateReportsUseCase)
 			tt.mockSetup(mockUseCase)
-			controller := NewReportsController(mockUseCase)
+			controller := NewReportsController(mockUseCase, nil)
 
 			c, rec := newReportsTestContext(http.MethodPost, "/reports/goals-progress", tt.requestBody)
 
@@ -283,7 +283,7 @@ func TestGenerateRetirementPlanReport(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockUseCase := new(MockGenerateReportsUseCase)
 			tt.mockSetup(mockUseCase)
-			controller := NewReportsController(mockUseCase)
+			controller := NewReportsController(mockUseCase, nil)
 
 			c, rec := newReportsTestContext(http.MethodPost, "/reports/retirement-plan", tt.requestBody)
 
@@ -336,7 +336,7 @@ func TestGenerateComprehensiveReport(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockUseCase := new(MockGenerateReportsUseCase)
 			tt.mockSetup(mockUseCase)
-			controller := NewReportsController(mockUseCase)
+			controller := NewReportsController(mockUseCase, nil)
 
 			c, rec := newReportsTestContext(http.MethodPost, "/reports/comprehensive", tt.requestBody)
 
@@ -413,7 +413,7 @@ func TestExportReportToPDF(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockUseCase := new(MockGenerateReportsUseCase)
 			tt.mockSetup(mockUseCase)
-			controller := NewReportsController(mockUseCase)
+			controller := NewReportsController(mockUseCase, nil)
 
 			c, rec := newReportsTestContext(http.MethodPost, "/reports/export", tt.requestBody)
 
@@ -492,7 +492,7 @@ func TestGetReportPDF(t *testing.T) {
 			e.Validator = &CustomValidator{validator: validator.New()}
 			mockUseCase := new(MockGenerateReportsUseCase)
 			tt.mockSetup(mockUseCase)
-			controller := NewReportsController(mockUseCase)
+			controller := NewReportsController(mockUseCase, nil)
 
 			target := "/reports/pdf"
 			if len(tt.queryParams) > 0 {
@@ -513,17 +513,19 @@ func TestGetReportPDF(t *testing.T) {
 	}
 }
 
+// ReportFileStoragePort はコントローラーが使用するファイルストレージポート
+// 実装時に usecases パッケージ内のインターフェースに置き換わる
+type ReportFileStoragePort interface {
+	GetFile(token string) ([]byte, string, string, error)
+	SaveFile(fileName string, data []byte) (string, string, error)
+}
+
 func TestDownloadReport(t *testing.T) {
 	tests := []struct {
 		name           string
 		token          string
 		expectedStatus int
 	}{
-		{
-			name:           "Success: valid token",
-			token:          "valid-download-token",
-			expectedStatus: http.StatusOK,
-		},
 		{
 			name:           "Error: empty token",
 			token:          "",
@@ -535,7 +537,9 @@ func TestDownloadReport(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			e := echo.New()
 			mockUseCase := new(MockGenerateReportsUseCase)
-			controller := NewReportsController(mockUseCase)
+			// 新シグネチャ: NewReportsController(useCase, fileStorage)
+			// fileStorage が nil の場合は既存の動作を維持
+			controller := NewReportsController(mockUseCase, nil)
 
 			req := httptest.NewRequest(http.MethodGet, "/reports/download/"+tt.token, nil)
 			rec := httptest.NewRecorder()
@@ -551,4 +555,123 @@ func TestDownloadReport(t *testing.T) {
 			assert.Equal(t, tt.expectedStatus, rec.Code)
 		})
 	}
+}
+
+// TestDownloadReport_WithFileStorage は TemporaryFileStorage 統合後のDownloadReportテスト
+func TestDownloadReport_WithFileStorage(t *testing.T) {
+	pdfBytes := []byte("%PDF-1.4 test pdf content")
+
+	tests := []struct {
+		name           string
+		token          string
+		authUserID     string
+		setupStorage   func() *mockFileStorage
+		expectedStatus int
+		checkResponse  func(t *testing.T, rec *httptest.ResponseRecorder)
+	}{
+		{
+			name:       "正常系: 有効なトークンでPDFが返る",
+			token:      "valid-token-123",
+			authUserID: "user-123",
+			setupStorage: func() *mockFileStorage {
+				s := &mockFileStorage{}
+				s.getFileFunc = func(token string) ([]byte, string, string, error) {
+					// ownerUserIDにユーザーIDを設定
+					return pdfBytes, "user-123_report_financial_summary.pdf", "user-123", nil
+				}
+				return s
+			},
+			expectedStatus: http.StatusOK,
+			checkResponse: func(t *testing.T, rec *httptest.ResponseRecorder) {
+				assert.Equal(t, "application/pdf", rec.Header().Get("Content-Type"))
+				assert.Equal(t, pdfBytes, rec.Body.Bytes())
+			},
+		},
+		{
+			name:       "異常系: 存在しないトークンで404",
+			token:      "nonexistent-token",
+			authUserID: "user-123",
+			setupStorage: func() *mockFileStorage {
+				s := &mockFileStorage{}
+				s.getFileFunc = func(token string) ([]byte, string, string, error) {
+					return nil, "", "", errors.New("ファイルが見つかりません")
+				}
+				return s
+			},
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name:       "異常系: 期限切れトークンで410",
+			token:      "expired-token",
+			authUserID: "user-123",
+			setupStorage: func() *mockFileStorage {
+				s := &mockFileStorage{}
+				s.getFileFunc = func(token string) ([]byte, string, string, error) {
+					return nil, "", "", errors.New("ファイルの有効期限が切れています")
+				}
+				return s
+			},
+			expectedStatus: http.StatusGone,
+		},
+		{
+			name:       "認可エラー: 別ユーザーのトークンで403",
+			token:      "other-user-token",
+			authUserID: "user-123",
+			setupStorage: func() *mockFileStorage {
+				s := &mockFileStorage{}
+				s.getFileFunc = func(token string) ([]byte, string, string, error) {
+					// ownerUserIDに別ユーザーIDを設定
+					return pdfBytes, "user-456_report_financial_summary.pdf", "user-456", nil
+				}
+				return s
+			},
+			expectedStatus: http.StatusForbidden,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := echo.New()
+			mockUseCase := new(MockGenerateReportsUseCase)
+			storage := tt.setupStorage()
+			// 新シグネチャ: NewReportsController(useCase, fileStorage)
+			controller := NewReportsController(mockUseCase, storage)
+
+			req := httptest.NewRequest(http.MethodGet, "/reports/download/"+tt.token, nil)
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+			c.SetParamNames("token")
+			c.SetParamValues(tt.token)
+			// 認証済みユーザーIDをコンテキストにセット
+			c.Set("user_id", tt.authUserID)
+
+			err := controller.DownloadReport(c)
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedStatus, rec.Code)
+			if tt.checkResponse != nil {
+				tt.checkResponse(t, rec)
+			}
+		})
+	}
+}
+
+// mockFileStorage はテスト用のファイルストレージモック
+type mockFileStorage struct {
+	getFileFunc  func(token string) ([]byte, string, string, error)
+	saveFileFunc func(fileName string, data []byte) (string, string, error)
+}
+
+func (m *mockFileStorage) GetFile(token string) ([]byte, string, string, error) {
+	if m.getFileFunc != nil {
+		return m.getFileFunc(token)
+	}
+	return nil, "", "", errors.New("not implemented")
+}
+
+func (m *mockFileStorage) SaveFile(fileName string, data []byte) (string, string, error) {
+	if m.saveFileFunc != nil {
+		return m.saveFileFunc(fileName, data)
+	}
+	return "", "", errors.New("not implemented")
 }

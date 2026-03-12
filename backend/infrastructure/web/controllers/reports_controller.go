@@ -1,23 +1,32 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/financial-planning-calculator/backend/application/usecases"
 	"github.com/financial-planning-calculator/backend/domain/entities"
 	"github.com/labstack/echo/v4"
 )
 
+// reportFileStoragePort はコントローラーが使用するファイルストレージポート（内部用）
+type reportFileStoragePort interface {
+	GetFile(token string) ([]byte, string, string, error)
+}
+
 // ReportsController はレポート生成のコントローラー
 type ReportsController struct {
-	useCase usecases.GenerateReportsUseCase
+	useCase     usecases.GenerateReportsUseCase
+	fileStorage reportFileStoragePort
 }
 
 // NewReportsController は新しいReportsControllerを作成する
-func NewReportsController(useCase usecases.GenerateReportsUseCase) *ReportsController {
+func NewReportsController(useCase usecases.GenerateReportsUseCase, fileStorage reportFileStoragePort) *ReportsController {
 	return &ReportsController{
-		useCase: useCase,
+		useCase:     useCase,
+		fileStorage: fileStorage,
 	}
 }
 
@@ -310,6 +319,11 @@ func (c *ReportsController) ExportReportToPDF(ctx echo.Context) error {
 		})
 	}
 
+	// ControllerでDownloadURLを構築する
+	if output.DownloadToken != "" {
+		output.DownloadURL = fmt.Sprintf("/api/reports/download/%s", output.DownloadToken)
+	}
+
 	return ctx.JSON(http.StatusOK, output)
 }
 
@@ -400,13 +414,14 @@ func (c *ReportsController) GetReportPDF(ctx echo.Context) error {
 		})
 	}
 
+	// ControllerでDownloadURLを構築する
+	if output.DownloadToken != "" {
+		output.DownloadURL = fmt.Sprintf("/api/reports/download/%s", output.DownloadToken)
+	}
+
 	return ctx.JSON(http.StatusOK, output)
 }
 
-// DownloadReport はレポートファイルをダウンロードする
-// @Summary レポートダウンロード
-// @Description 生成されたレポートファイルをダウンロードします
-// @Tags reports
 // DownloadReport はトークンを使ってレポートをダウンロードする
 // @Summary レポートのダウンロード
 // @Description 署名付きトークンを使用してレポートファイルをダウンロードします
@@ -416,6 +431,7 @@ func (c *ReportsController) GetReportPDF(ctx echo.Context) error {
 // @Param token path string true "ダウンロードトークン"
 // @Success 200 {file} binary "PDFファイル"
 // @Failure 400 {object} map[string]interface{} "無効なリクエスト"
+// @Failure 403 {object} map[string]interface{} "アクセス拒否"
 // @Failure 404 {object} map[string]interface{} "ファイルが見つかりません"
 // @Failure 410 {object} map[string]interface{} "ファイルの有効期限が切れています"
 // @Router /reports/download/{token} [get]
@@ -428,11 +444,49 @@ func (ctrl *ReportsController) DownloadReport(c echo.Context) error {
 		})
 	}
 
-	// TODO: 実際の実装では、TemporaryFileStorageからファイルを取得
-	// ここでは簡易的なレスポンスを返す
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"message": "ダウンロード機能は実装中です",
-		"token":   token,
-		"note":    "実際の実装では、PDFファイルがダウンロードされます",
-	})
+	// fileStorageがnilの場合はエラー
+	if ctrl.fileStorage == nil {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"error":   "not_configured",
+			"message": "ファイルストレージが設定されていません",
+		})
+	}
+
+	// 認可チェック: user_idがセットされていなければ401を返す
+	currentUserID, _ := c.Get("user_id").(string)
+	if currentUserID == "" {
+		return c.JSON(http.StatusUnauthorized, map[string]interface{}{
+			"error":   "unauthorized",
+			"message": "認証が必要です",
+		})
+	}
+
+	// ファイルを取得
+	data, fileName, ownerUserID, err := ctrl.fileStorage.GetFile(token)
+	if err != nil {
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "有効期限が切れています") {
+			return c.JSON(http.StatusGone, map[string]interface{}{
+				"error":   "expired",
+				"message": errMsg,
+			})
+		}
+		return c.JSON(http.StatusNotFound, map[string]interface{}{
+			"error":   "not_found",
+			"message": errMsg,
+		})
+	}
+
+	// 認可チェック: ownerUserIDとcurrentUserIDを比較
+	if ownerUserID != currentUserID {
+		return c.JSON(http.StatusForbidden, map[string]interface{}{
+			"error":   "forbidden",
+			"message": "このファイルへのアクセス権限がありません",
+		})
+	}
+
+	// PDFファイルをストリーミングレスポンスとして返す
+	c.Response().Header().Set("Content-Type", "application/pdf")
+	c.Response().Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, fileName))
+	return c.Blob(http.StatusOK, "application/pdf", data)
 }

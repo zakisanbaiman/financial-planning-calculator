@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { LoadingSpinner } from '@/components';
 import AssetProjectionChart from '@/components/AssetProjectionChart';
 import { generateAssetProjections } from '@/lib/utils/projections';
+import { useAuth } from '@/lib/contexts/AuthContext';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
@@ -14,6 +15,7 @@ const SAMPLE_INVESTMENT_RETURN = 0.05; // 5% annual
 const SAMPLE_INFLATION_RATE = 0.02; // 2% annual
 
 export default function ReportsPage() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reportSettings, setReportSettings] = useState({
@@ -39,7 +41,7 @@ export default function ReportsPage() {
     setError(null);
 
     try {
-      const userId = 'user-001'; // 実際の実装ではログインユーザーIDを使用
+      const userId = user?.userId ?? '';
 
       let endpoint = '';
       let requestBody: any = { user_id: userId };
@@ -68,6 +70,7 @@ export default function ReportsPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(requestBody),
       });
 
@@ -85,6 +88,7 @@ export default function ReportsPage() {
           headers: {
             'Content-Type': 'application/json',
           },
+          credentials: 'include',
           body: JSON.stringify({
             user_id: userId,
             report_type: reportType,
@@ -99,8 +103,16 @@ export default function ReportsPage() {
 
         const exportData = await exportResponse.json();
         if (exportData && exportData.download_url) {
-          // ダウンロードURLを開く（実際の実装では実ファイルをダウンロード）
-          alert(`レポートが生成されました: ${exportData.file_name}\nダウンロードURL: ${exportData.download_url}`);
+          // download_url の検証: /api/reports/download/ で始まることを確認
+          if (!exportData.download_url.startsWith('/api/reports/download/')) {
+            throw new Error('無効なダウンロードURLです');
+          }
+          const a = document.createElement('a');
+          a.href = exportData.download_url;
+          a.download = exportData.file_name;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
         }
       }
     } catch (err: any) {
@@ -116,11 +128,13 @@ export default function ReportsPage() {
     setError(null);
 
     try {
-      const userId = 'user-001';
+      const userId = user?.userId ?? '';
       const url = `${API_BASE_URL}/reports/pdf?user_id=${userId}&report_type=${reportType}&years=${reportSettings.years}`;
-      
-      const response = await fetch(url);
-      
+
+      const response = await fetch(url, {
+        credentials: 'include',
+      });
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'レポートのダウンロードに失敗しました');
@@ -128,7 +142,16 @@ export default function ReportsPage() {
 
       const data = await response.json();
       if (data && data.download_url) {
-        alert(`レポートが生成されました: ${data.file_name}\nダウンロードURL: ${data.download_url}`);
+        // download_url の検証: /api/reports/download/ で始まることを確認
+        if (!data.download_url.startsWith('/api/reports/download/')) {
+          throw new Error('無効なダウンロードURLです');
+        }
+        const a = document.createElement('a');
+        a.href = data.download_url;
+        a.download = data.file_name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
       }
     } catch (err: any) {
       console.error('レポートダウンロードエラー:', err);
