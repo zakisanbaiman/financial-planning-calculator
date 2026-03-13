@@ -6,7 +6,7 @@ import AssetProjectionChart from '@/components/AssetProjectionChart';
 import { generateAssetProjections } from '@/lib/utils/projections';
 import { useAuth } from '@/lib/contexts/AuthContext';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+const API_BASE_URL = '/api';
 
 // Sample data constants for report preview
 const SAMPLE_INITIAL_ASSETS = 1500000; // ¥1,500,000
