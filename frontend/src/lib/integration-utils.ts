@@ -61,7 +61,7 @@ export async function checkAPIHealth(): Promise<{
   details?: any;
 }> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
+    const baseUrl = '/api';
     const healthUrl = `${baseUrl}/health/detailed`;
     
     const response = await fetch(healthUrl, {
@@ -96,7 +96,7 @@ export async function checkAPIHealth(): Promise<{
 // Check API readiness
 export async function checkAPIReadiness(): Promise<boolean> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
+    const baseUrl = '/api';
     const readyUrl = `${baseUrl}/ready`;
     
     const response = await fetch(readyUrl);
