@@ -38,8 +38,8 @@ const USER_KEY = 'auth_user';
 // 2FA用の一時トークンキー
 const TEMP_TOKEN_KEY = 'auth_token';
 
-// API ベースURL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+// API ベースURL（CSP connect-src 'self' に準拠するため相対パスに固定）
+const API_BASE_URL = '/api';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -93,6 +93,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsLoading(true);
     setError(null);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
@@ -101,6 +104,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         },
         body: JSON.stringify({ email, password }),
         credentials: 'include', // Cookieを送受信
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -112,7 +116,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       const data: AuthResponse = await response.json();
-      
+
       // リフレッシュトークンが空の場合は2FA検証が必要
       // 仮トークンはCookieで自動的に設定されるため、localStorageへの保存は不要
       if (!data.refresh_token) {
@@ -124,10 +128,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
         router.push('/dashboard');
       }
     } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        const message = 'ログインタイムアウト：ネットワーク接続を確認してください';
+        setError(message);
+        throw new Error(message);
+      }
       const message = e instanceof Error ? e.message : 'ログインに失敗しました';
       setError(message);
       throw e;
     } finally {
+      clearTimeout(timeoutId);
       setIsLoading(false);
     }
   }, [router, saveAuthData]);
@@ -137,6 +147,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsLoading(true);
     setError(null);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     try {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
@@ -145,6 +158,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         },
         body: JSON.stringify({ email, password }),
         credentials: 'include', // Cookieを送受信
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -159,10 +173,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
       saveAuthData(data);
       router.push('/dashboard');
     } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        const message = '登録タイムアウト：ネットワーク接続を確認してください';
+        setError(message);
+        throw new Error(message);
+      }
       const message = e instanceof Error ? e.message : '登録に失敗しました';
       setError(message);
       throw e;
     } finally {
+      clearTimeout(timeoutId);
       setIsLoading(false);
     }
   }, [router, saveAuthData]);

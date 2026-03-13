@@ -22,8 +22,8 @@ import type {
   RegenerateBackupCodesResponse,
 } from '@/types/api';
 
-// API ベースURL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+// API ベースURL（CSP connect-src 'self' に準拠するため相対パスに固定）
+const API_BASE_URL = '/api';
 
 // リフレッシュ中フラグ（複数のリクエストが同時にリフレッシュするのを防ぐ）
 let isRefreshing = false;
