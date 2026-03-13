@@ -1,18 +1,25 @@
 import { test, expect } from '@playwright/test';
-import { generateTestUserId, setupCompleteFinancialProfile, addYearsToDate, API_BASE_URL } from './test-utils';
+import { setupCompleteFinancialProfile, addYearsToDate, API_BASE_URL, TestAuthCredentials, registerAndLoginTestUser, authHeaders } from './test-utils';
 
 /**
  * E2E Test: Calculation Scenarios with Goals
- * 
+ *
  * Tests calculation endpoints in conjunction with goals and financial data
  */
 
 test.describe('Calculation Scenarios with Goals', () => {
-  test('Scenario: Calculate asset projection', async ({ request }) => {
-    const userId = generateTestUserId();
-    await setupCompleteFinancialProfile(request, userId);
+  let auth: TestAuthCredentials;
 
-    const response = await request.post('${API_BASE_URL}/api/calculations/asset-projection', {
+  test.beforeEach(async ({ request }) => {
+    auth = await registerAndLoginTestUser(request);
+  });
+
+  test('Scenario: Calculate asset projection', async ({ request }) => {
+    const userId = auth.userId;
+    await setupCompleteFinancialProfile(request, userId, auth.token);
+
+    const response = await request.post(`${API_BASE_URL}/api/calculations/asset-projection`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
         years: 10,
@@ -26,10 +33,11 @@ test.describe('Calculation Scenarios with Goals', () => {
   });
 
   test('Scenario: Calculate retirement projection', async ({ request }) => {
-    const userId = generateTestUserId();
-    await setupCompleteFinancialProfile(request, userId);
+    const userId = auth.userId;
+    await setupCompleteFinancialProfile(request, userId, auth.token);
 
-    const response = await request.post('${API_BASE_URL}/api/calculations/retirement', {
+    const response = await request.post(`${API_BASE_URL}/api/calculations/retirement`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
       },
@@ -42,10 +50,11 @@ test.describe('Calculation Scenarios with Goals', () => {
   });
 
   test('Scenario: Calculate emergency fund projection', async ({ request }) => {
-    const userId = generateTestUserId();
-    await setupCompleteFinancialProfile(request, userId);
+    const userId = auth.userId;
+    await setupCompleteFinancialProfile(request, userId, auth.token);
 
-    const response = await request.post('${API_BASE_URL}/api/calculations/emergency-fund', {
+    const response = await request.post(`${API_BASE_URL}/api/calculations/emergency-fund`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
       },
@@ -58,10 +67,11 @@ test.describe('Calculation Scenarios with Goals', () => {
   });
 
   test('Scenario: Calculate comprehensive projection', async ({ request }) => {
-    const userId = generateTestUserId();
-    await setupCompleteFinancialProfile(request, userId);
+    const userId = auth.userId;
+    await setupCompleteFinancialProfile(request, userId, auth.token);
 
-    const response = await request.post('${API_BASE_URL}/api/calculations/comprehensive', {
+    const response = await request.post(`${API_BASE_URL}/api/calculations/comprehensive`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
         years: 15,
@@ -70,17 +80,17 @@ test.describe('Calculation Scenarios with Goals', () => {
 
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
-    expect(data.asset_projection).toBeDefined();
-    expect(data.retirement_analysis).toBeDefined();
-    expect(data.emergency_fund_status).toBeDefined();
+    expect(data.plan_projection).toBeDefined();
+    expect(data.insights).toBeDefined();
   });
 
   test('Scenario: Calculate goal projection', async ({ request }) => {
-    const userId = generateTestUserId();
-    await setupCompleteFinancialProfile(request, userId);
+    const userId = auth.userId;
+    await setupCompleteFinancialProfile(request, userId, auth.token);
 
     // Create a goal
-    const goalResponse = await request.post('${API_BASE_URL}/api/goals', {
+    const goalResponse = await request.post(`${API_BASE_URL}/api/goals`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
         goal_type: 'savings',
@@ -94,7 +104,8 @@ test.describe('Calculation Scenarios with Goals', () => {
     const goalData = await goalResponse.json();
 
     // Calculate goal projection
-    const projectionResponse = await request.post('${API_BASE_URL}/api/calculations/goal-projection', {
+    const projectionResponse = await request.post(`${API_BASE_URL}/api/calculations/goal-projection`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
         goal_id: goalData.goal_id,
@@ -107,11 +118,12 @@ test.describe('Calculation Scenarios with Goals', () => {
   });
 
   test('Scenario: Multiple goals with comprehensive calculation', async ({ request }) => {
-    const userId = generateTestUserId();
-    await setupCompleteFinancialProfile(request, userId);
+    const userId = auth.userId;
+    await setupCompleteFinancialProfile(request, userId, auth.token);
 
     // Create multiple goals
-    await request.post('${API_BASE_URL}/api/goals', {
+    await request.post(`${API_BASE_URL}/api/goals`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
         goal_type: 'savings',
@@ -123,7 +135,8 @@ test.describe('Calculation Scenarios with Goals', () => {
       },
     });
 
-    await request.post('${API_BASE_URL}/api/goals', {
+    await request.post(`${API_BASE_URL}/api/goals`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
         goal_type: 'retirement',
@@ -135,7 +148,8 @@ test.describe('Calculation Scenarios with Goals', () => {
       },
     });
 
-    await request.post('${API_BASE_URL}/api/goals', {
+    await request.post(`${API_BASE_URL}/api/goals`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
         goal_type: 'emergency',
@@ -148,7 +162,8 @@ test.describe('Calculation Scenarios with Goals', () => {
     });
 
     // Calculate comprehensive projection with multiple goals
-    const comprehensiveResponse = await request.post('${API_BASE_URL}/api/calculations/comprehensive', {
+    const comprehensiveResponse = await request.post(`${API_BASE_URL}/api/calculations/comprehensive`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
         years: 20,
@@ -157,18 +172,19 @@ test.describe('Calculation Scenarios with Goals', () => {
 
     expect(comprehensiveResponse.ok()).toBeTruthy();
     const data = await comprehensiveResponse.json();
-    expect(data.asset_projection).toBeDefined();
-    expect(data.retirement_analysis).toBeDefined();
+    expect(data.plan_projection).toBeDefined();
+    expect(data.insights).toBeDefined();
   });
 
   test('Scenario: Validate calculation with different timeframes', async ({ request }) => {
-    const userId = generateTestUserId();
-    await setupCompleteFinancialProfile(request, userId);
+    const userId = auth.userId;
+    await setupCompleteFinancialProfile(request, userId, auth.token);
 
     // Test multiple timeframes
     const timeframes = [5, 10, 20, 30];
     for (const years of timeframes) {
-      const response = await request.post('${API_BASE_URL}/api/calculations/asset-projection', {
+      const response = await request.post(`${API_BASE_URL}/api/calculations/asset-projection`, {
+        headers: authHeaders(auth.token),
         data: {
           user_id: userId,
           years: years,
@@ -184,7 +200,8 @@ test.describe('Calculation Scenarios with Goals', () => {
   test('Scenario: Error - Calculate without financial data', async ({ request }) => {
     const userId = 'non-existent-user-12345';
 
-    const response = await request.post('${API_BASE_URL}/api/calculations/asset-projection', {
+    const response = await request.post(`${API_BASE_URL}/api/calculations/asset-projection`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
         years: 10,
@@ -196,11 +213,12 @@ test.describe('Calculation Scenarios with Goals', () => {
   });
 
   test('Scenario: Error - Invalid calculation parameters', async ({ request }) => {
-    const userId = generateTestUserId();
-    await setupCompleteFinancialProfile(request, userId);
+    const userId = auth.userId;
+    await setupCompleteFinancialProfile(request, userId, auth.token);
 
     // Try with negative years
-    const response = await request.post('${API_BASE_URL}/api/calculations/asset-projection', {
+    const response = await request.post(`${API_BASE_URL}/api/calculations/asset-projection`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
         years: -5,
@@ -211,11 +229,12 @@ test.describe('Calculation Scenarios with Goals', () => {
   });
 
   test('Scenario: Complete planning with calculations and reports', async ({ request }) => {
-    const userId = generateTestUserId();
-    await setupCompleteFinancialProfile(request, userId);
+    const userId = auth.userId;
+    await setupCompleteFinancialProfile(request, userId, auth.token);
 
     // Create goals
-    await request.post('${API_BASE_URL}/api/goals', {
+    await request.post(`${API_BASE_URL}/api/goals`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
         goal_type: 'savings',
@@ -228,7 +247,8 @@ test.describe('Calculation Scenarios with Goals', () => {
     });
 
     // Calculate asset projection
-    const assetProjection = await request.post('${API_BASE_URL}/api/calculations/asset-projection', {
+    const assetProjection = await request.post(`${API_BASE_URL}/api/calculations/asset-projection`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
         years: 10,
@@ -237,7 +257,8 @@ test.describe('Calculation Scenarios with Goals', () => {
     expect(assetProjection.ok()).toBeTruthy();
 
     // Calculate retirement projection
-    const retirementProjection = await request.post('${API_BASE_URL}/api/calculations/retirement', {
+    const retirementProjection = await request.post(`${API_BASE_URL}/api/calculations/retirement`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
       },
@@ -245,7 +266,8 @@ test.describe('Calculation Scenarios with Goals', () => {
     expect(retirementProjection.ok()).toBeTruthy();
 
     // Calculate emergency fund
-    const emergencyFund = await request.post('${API_BASE_URL}/api/calculations/emergency-fund', {
+    const emergencyFund = await request.post(`${API_BASE_URL}/api/calculations/emergency-fund`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
       },
@@ -253,7 +275,8 @@ test.describe('Calculation Scenarios with Goals', () => {
     expect(emergencyFund.ok()).toBeTruthy();
 
     // Generate financial summary report
-    const summaryReport = await request.post('${API_BASE_URL}/api/reports/financial-summary', {
+    const summaryReport = await request.post(`${API_BASE_URL}/api/reports/financial-summary`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
       },
@@ -261,7 +284,8 @@ test.describe('Calculation Scenarios with Goals', () => {
     expect(summaryReport.ok()).toBeTruthy();
 
     // Generate asset projection report
-    const assetReport = await request.post('${API_BASE_URL}/api/reports/asset-projection', {
+    const assetReport = await request.post(`${API_BASE_URL}/api/reports/asset-projection`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
         years: 10,
