@@ -51,19 +51,48 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // 初期化時にローカルストレージからユーザー情報を復元
+  // 初期化時にローカルストレージからユーザー情報を復元し、/api/auth/me でセッションを検証する
   // トークンはCookieで管理されるため、ここでは復元しない
   useEffect(() => {
-    const initAuth = () => {
+    const initAuth = async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       try {
         const storedUser = localStorage.getItem(USER_KEY);
 
         if (storedUser) {
           setUser(JSON.parse(storedUser));
         }
+
+        const response = await fetch(`${API_BASE_URL}/auth/me`, {
+          method: 'GET',
+          credentials: 'include',
+          signal: controller.signal,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const authUser: AuthUser = {
+            userId: data.user_id,
+            email: data.email,
+          };
+          localStorage.setItem(USER_KEY, JSON.stringify(authUser));
+          setUser(authUser);
+        } else {
+          // セッションが無効な場合はローカルの認証情報をクリア
+          localStorage.removeItem(USER_KEY);
+          setUser(null);
+        }
       } catch (e) {
-        console.error('Failed to restore auth state:', e);
+        if (e instanceof DOMException && e.name === 'AbortError') {
+          // タイムアウト時は静かに失敗（エラーとして表示しない）
+          console.warn('Auth initialization timed out');
+        } else {
+          console.error('Failed to restore auth state:', e);
+        }
       } finally {
+        clearTimeout(timeoutId);
         setIsLoading(false);
       }
     };

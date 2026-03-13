@@ -24,6 +24,15 @@ const mockLoginSuccessResponse = {
   expires_at: '2026-12-31T00:00:00Z',
 };
 
+// initAuth の /api/auth/me fetch に対してデフォルトで 401 を返すモックを設定する
+const mockInitAuthFailure = () => {
+  (global.fetch as jest.Mock).mockResolvedValueOnce({
+    ok: false,
+    status: 401,
+    json: async () => ({ error: 'Unauthorized' }),
+  });
+};
+
 describe('AuthContext - login 関数', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -34,6 +43,9 @@ describe('AuthContext - login 関数', () => {
 
   describe('正常系', () => {
     it('ログイン成功時に isLoading が最終的に false になる', async () => {
+      // initAuth の /api/auth/me fetch 用モック（1回目）
+      mockInitAuthFailure();
+      // login の /api/auth/login fetch 用モック（2回目）
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => mockLoginSuccessResponse,
@@ -55,6 +67,9 @@ describe('AuthContext - login 関数', () => {
     });
 
     it('ログイン成功時に router.push が呼ばれる', async () => {
+      // initAuth の /api/auth/me fetch 用モック（1回目）
+      mockInitAuthFailure();
+      // login の /api/auth/login fetch 用モック（2回目）
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => mockLoginSuccessResponse,
@@ -76,6 +91,9 @@ describe('AuthContext - login 関数', () => {
 
   describe('エラー系', () => {
     it('fetch が失敗した場合に isLoading が false になる', async () => {
+      // initAuth の /api/auth/me fetch 用モック（1回目）
+      mockInitAuthFailure();
+      // login の /api/auth/login fetch 用モック（2回目）
       (global.fetch as jest.Mock).mockRejectedValueOnce(
         new Error('Network error')
       );
@@ -98,6 +116,9 @@ describe('AuthContext - login 関数', () => {
     });
 
     it('fetch が失敗した場合にエラーメッセージが設定される', async () => {
+      // initAuth の /api/auth/me fetch 用モック（1回目）
+      mockInitAuthFailure();
+      // login の /api/auth/login fetch 用モック（2回目）
       (global.fetch as jest.Mock).mockRejectedValueOnce(
         new Error('Network error')
       );
@@ -120,6 +141,9 @@ describe('AuthContext - login 関数', () => {
     });
 
     it('401レスポンス時に isLoading が false になり、適切なエラーメッセージが設定される', async () => {
+      // initAuth の /api/auth/me fetch 用モック（1回目）
+      mockInitAuthFailure();
+      // login の /api/auth/login fetch 用モック（2回目）
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
         status: 401,
@@ -150,6 +174,9 @@ describe('AuthContext - login 関数', () => {
   describe('タイムアウト系', () => {
     it('fetch がタイムアウト（AbortError）した場合に isLoading が false になる', async () => {
       const abortError = new DOMException('The operation was aborted.', 'AbortError');
+      // initAuth の /api/auth/me fetch 用モック（1回目）
+      mockInitAuthFailure();
+      // login の /api/auth/login fetch 用モック（2回目）
       (global.fetch as jest.Mock).mockRejectedValueOnce(abortError);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
@@ -171,6 +198,9 @@ describe('AuthContext - login 関数', () => {
 
     it('fetch がタイムアウト（AbortError）した場合にタイムアウトエラーメッセージが設定される', async () => {
       const abortError = new DOMException('The operation was aborted.', 'AbortError');
+      // initAuth の /api/auth/me fetch 用モック（1回目）
+      mockInitAuthFailure();
+      // login の /api/auth/login fetch 用モック（2回目）
       (global.fetch as jest.Mock).mockRejectedValueOnce(abortError);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
@@ -195,6 +225,9 @@ describe('AuthContext - login 関数', () => {
 
   describe('API_BASE_URL 確認', () => {
     it('login 時の fetch が相対パス /api/auth/login を使っている（絶対 URL を使っていない）', async () => {
+      // initAuth の /api/auth/me fetch 用モック（1回目）
+      mockInitAuthFailure();
+      // login の /api/auth/login fetch 用モック（2回目）
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => mockLoginSuccessResponse,
@@ -210,13 +243,14 @@ describe('AuthContext - login 関数', () => {
         await result.current.login('test@example.com', 'password123');
       });
 
-      // fetch が呼ばれた URL を確認
+      // fetch が呼ばれた URL を確認（2回目の呼び出しが /api/auth/login）
       expect(global.fetch).toHaveBeenCalled();
-      const fetchCallUrl = (global.fetch as jest.Mock).mock.calls[0][0] as string;
+      const fetchCalls = (global.fetch as jest.Mock).mock.calls;
+      const loginFetchUrl = fetchCalls[fetchCalls.length - 1][0] as string;
 
       // 相対パスであること（絶対 URL ではないこと）
-      expect(fetchCallUrl).toBe('/api/auth/login');
-      expect(fetchCallUrl).not.toMatch(/^https?:\/\//);
+      expect(loginFetchUrl).toBe('/api/auth/login');
+      expect(loginFetchUrl).not.toMatch(/^https?:\/\//);
     });
   });
 });
