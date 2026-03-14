@@ -1,8 +1,3 @@
-databases:
-  - name: financial-planning-db
-    plan: free
-    region: oregon
-
 services:
   # Backend API Service
   - type: web
@@ -14,27 +9,18 @@ services:
     plan: free
     region: oregon
     healthCheckPath: /health
+    preDeployCommand: ./migrate
     envVars:
       - key: DB_HOST
-        fromDatabase:
-          name: financial-planning-db
-          property: host
+        sync: false
       - key: DB_PORT
-        fromDatabase:
-          name: financial-planning-db
-          property: port
+        sync: false
       - key: DB_USER
-        fromDatabase:
-          name: financial-planning-db
-          property: user
+        sync: false
       - key: DB_PASSWORD
-        fromDatabase:
-          name: financial-planning-db
-          property: password
+        sync: false
       - key: DB_NAME
-        fromDatabase:
-          name: financial-planning-db
-          property: database
+        sync: false
       - key: DB_SSLMODE
         value: require
       - key: GIN_MODE
