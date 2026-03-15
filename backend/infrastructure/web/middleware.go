@@ -73,6 +73,11 @@ func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) *CustomRateLimiterS
 	e.Use(middleware.RateLimiterWithConfig(middleware.RateLimiterConfig{
 		Store: rateLimitStore,
 		IdentifierExtractor: extractIdentifier,
+		Skipper: func(c echo.Context) bool {
+			// ヘルスチェック・メトリクスはレートリミット対象外
+			path := c.Path()
+			return path == "/health" || path == "/health/detailed" || path == "/ready" || path == "/metrics"
+		},
 		ErrorHandler: func(c echo.Context, err error) error {
 			return c.JSON(http.StatusTooManyRequests, map[string]any{
 				"error":   "Too Many Requests",
