@@ -23,6 +23,20 @@ services:
       timeout: 5s
       retries: 5
 
+  # Redis キャッシュ
+  redis:
+    image: redis:7-alpine
+    container_name: financial_planning_redis
+    ports:
+      - '6379:6379'
+    networks:
+      - financial_planning_network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # バックエンドAPI
   backend:
     build:
@@ -52,8 +66,12 @@ services:
       GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL:-http://localhost:8080/api/auth/github/callback}
       OAUTH_SUCCESS_REDIRECT: ${OAUTH_SUCCESS_REDIRECT:-http://localhost:3000/auth/callback}
       OAUTH_FAILURE_REDIRECT: ${OAUTH_FAILURE_REDIRECT:-http://localhost:3000/login?error=oauth_failed}
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - financial_planning_network
