@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -33,8 +34,10 @@ func TestSetupMiddleware_RateLimiter(t *testing.T) {
 
 	// 同一IPからの連続リクエストでレート制限をテスト
 	t.Run("レート制限内のリクエストは成功する", func(t *testing.T) {
+		// テストごとにユニークな IP を使用（Redis カウンター干渉防止）
+		ip := fmt.Sprintf("192.168.1.%d", time.Now().UnixNano()%200+1)
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
-		req.Header.Set("X-Forwarded-For", "192.168.1.100")
+		req.Header.Set("X-Forwarded-For", ip)
 		rec := httptest.NewRecorder()
 
 		e.ServeHTTP(rec, req)
@@ -51,16 +54,20 @@ func TestSetupMiddleware_RateLimiter(t *testing.T) {
 			return c.String(http.StatusOK, "OK")
 		})
 
+		now := time.Now().UnixNano()
+		ip1 := fmt.Sprintf("test-mw-sep-%d-1", now)
+		ip2 := fmt.Sprintf("test-mw-sep-%d-2", now)
+
 		// IP1からのリクエスト
 		req1 := httptest.NewRequest(http.MethodGet, "/test", nil)
-		req1.Header.Set("X-Forwarded-For", "10.0.0.1")
+		req1.Header.Set("X-Forwarded-For", ip1)
 		rec1 := httptest.NewRecorder()
 		e2.ServeHTTP(rec1, req1)
 		assert.Equal(t, http.StatusOK, rec1.Code)
 
 		// IP2からのリクエスト（別のIPなので制限されない）
 		req2 := httptest.NewRequest(http.MethodGet, "/test", nil)
-		req2.Header.Set("X-Forwarded-For", "10.0.0.2")
+		req2.Header.Set("X-Forwarded-For", ip2)
 		rec2 := httptest.NewRecorder()
 		e2.ServeHTTP(rec2, req2)
 		assert.Equal(t, http.StatusOK, rec2.Code)
@@ -73,8 +80,9 @@ func TestSetupMiddleware_RateLimiter(t *testing.T) {
 			return c.String(http.StatusOK, "OK")
 		})
 
+		ip := fmt.Sprintf("test-real-ip-%d", time.Now().UnixNano())
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
-		req.Header.Set("X-Real-IP", "172.16.0.1")
+		req.Header.Set("X-Real-IP", ip)
 		rec := httptest.NewRecorder()
 		e3.ServeHTTP(rec, req)
 
@@ -87,8 +95,8 @@ func TestSetupMiddleware_RateLimitExceeded(t *testing.T) {
 	cfg := &config.ServerConfig{
 		AllowedOrigins: []string{"http://localhost:3000"},
 		CORSMaxAge:     86400,
-		RateLimitRPS:   1,  // 非常に低いレート制限
-		RateLimitBurst: 1,  // バーストも1に制限
+		RateLimitRPS:   1, // 非常に低いレート制限
+		RateLimitBurst: 1, // バーストも1に制限
 		RequestTimeout: 30 * time.Second,
 		MaxRequestSize: "10M",
 		EnableGzip:     false,
@@ -101,8 +109,8 @@ func TestSetupMiddleware_RateLimitExceeded(t *testing.T) {
 		return c.String(http.StatusOK, "OK")
 	})
 
-	// 同一IPからの連続リクエストでレート制限超過をテスト
-	clientIP := "192.168.100.200"
+	// テストごとにユニークな IP を使用（Redis カウンター干渉防止）
+	clientIP := fmt.Sprintf("test-exceeded-%d", time.Now().UnixNano())
 	var rateLimited bool
 
 	// バースト+レートを超えるリクエストを送信
