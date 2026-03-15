@@ -1,82 +1,127 @@
 package web
 
 import (
-	"math"
-	"sync"
+	"context"
+	"fmt"
+	"log/slog"
 	"time"
 
-	"golang.org/x/time/rate"
+	redisclient "github.com/financial-planning-calculator/backend/infrastructure/redis"
 )
 
-// RateLimitInfo holds the current rate limit status for a given identifier.
+// RateLimitInfo は特定の識別子に対するレートリミットの現在状態を保持します。
 type RateLimitInfo struct {
 	Limit     int       `json:"limit"`
 	Remaining int       `json:"remaining"`
-	Reset     int64     `json:"reset"`     // Unix timestamp (seconds)
-	ResetAt   time.Time `json:"reset_at"`  // Human-readable reset time
+	Reset     int64     `json:"reset"`    // Unix タイムスタンプ（秒）
+	ResetAt   time.Time `json:"reset_at"` // 人間が読める形式のリセット時刻
 }
 
-// rateLimiterEntry holds a per-IP limiter and the last access time (for expiry).
-type rateLimiterEntry struct {
-	limiter  *rate.Limiter
-	lastSeen time.Time
-}
-
-// CustomRateLimiterStore is a thread-safe in-memory rate limiter store that
-// implements echo middleware.RateLimiterStore and exposes per-IP limit info.
+// CustomRateLimiterStore は Redis を使ったレートリミットストアです。
+// echo middleware.RateLimiterStore を実装し、per-IP のリミット情報も公開します。
+//
+// アルゴリズム: INCR + EXPIRE による固定ウィンドウカウンター
+//   - 各識別子ごとに "ratelimit:<window>:<identifier>" というキーを使用
+//   - Redisが利用不可の場合は fail-open（リクエストを通す）
 type CustomRateLimiterStore struct {
-	rateLimit rate.Limit
 	burst     int
-	expiresIn time.Duration
-
-	mu       sync.Mutex
-	limiters map[string]*rateLimiterEntry
+	window    time.Duration
+	redis     *redisclient.Client
 }
 
-// NewCustomRateLimiterStore creates a new CustomRateLimiterStore.
-func NewCustomRateLimiterStore(rps float64, burst int, expiresIn time.Duration) *CustomRateLimiterStore {
-	store := &CustomRateLimiterStore{
-		rateLimit: rate.Limit(rps),
-		burst:     burst,
-		expiresIn: expiresIn,
-		limiters:  make(map[string]*rateLimiterEntry),
+// NewCustomRateLimiterStore は新しい CustomRateLimiterStore を生成します。
+// rps パラメータは後方互換性のために受け取りますが、Redis 実装では burst と window を使用します。
+func NewCustomRateLimiterStore(rps float64, burst int, window time.Duration) *CustomRateLimiterStore {
+	return &CustomRateLimiterStore{
+		burst:  burst,
+		window: window,
+		redis:  redisclient.NewClient(),
 	}
-	// Start background cleanup goroutine
-	go store.cleanup()
-	return store
 }
 
-// Allow implements echo middleware.RateLimiterStore.
-// Returns true if the request is allowed, false if rate-limited.
+// redisKey は識別子に対応する Redis キーを返します。
+// 固定ウィンドウのため、window 単位で切り捨てた Unix 時刻をキーに含めます。
+func (s *CustomRateLimiterStore) redisKey(identifier string) string {
+	windowStart := time.Now().Truncate(s.window).Unix()
+	return fmt.Sprintf("ratelimit:%d:%s", windowStart, identifier)
+}
+
+// Allow は echo middleware.RateLimiterStore を実装します。
+// リクエストが許可される場合は true、レートリミット超過の場合は false を返します。
+// Redis 障害時は fail-open でリクエストを通します。
 func (s *CustomRateLimiterStore) Allow(identifier string) (bool, error) {
-	entry := s.getOrCreate(identifier)
-	return entry.limiter.Allow(), nil
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	key := s.redisKey(identifier)
+
+	// INCR でカウンターをインクリメント
+	count, err := s.redis.Incr(ctx, key)
+	if err != nil {
+		// Redis 障害時: fail-open（リクエストを通す）してエラーログを記録
+		slog.Error("レートリミット: Redis INCR に失敗しました（fail-open で通過）",
+			slog.String("identifier", identifier),
+			slog.String("error", err.Error()),
+		)
+		return true, nil
+	}
+
+	// 最初のリクエスト時のみ EXPIRE を設定
+	if count == 1 {
+		_, expireErr := s.redis.Expire(ctx, key, s.window)
+		if expireErr != nil {
+			slog.Error("レートリミット: Redis EXPIRE に失敗しました",
+				slog.String("identifier", identifier),
+				slog.String("error", expireErr.Error()),
+			)
+		}
+	}
+
+	return count <= int64(s.burst), nil
 }
 
-// GetInfo returns the current rate limit status for the given identifier.
-// This does NOT consume a token.
+// GetInfo は識別子の現在のレートリミット状態を返します。
+// トークンを消費しません。Redis 障害時はデフォルト値（フル）を返します。
 func (s *CustomRateLimiterStore) GetInfo(identifier string) RateLimitInfo {
-	entry := s.getOrCreate(identifier)
-	limiter := entry.limiter
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
 
-	// Current available tokens (float64, may be fractional)
-	tokens := limiter.Tokens()
-	if tokens < 0 {
-		tokens = 0
+	key := s.redisKey(identifier)
+
+	// 現在のカウンターを取得
+	val, err := s.redis.Get(ctx, key)
+	if err != nil {
+		if !redisclient.IsNil(err) {
+			slog.Error("レートリミット: Redis GET に失敗しました",
+				slog.String("identifier", identifier),
+				slog.String("error", err.Error()),
+			)
+		}
+		// キーが存在しない、または Redis 障害時はフル状態を返す
+		return RateLimitInfo{
+			Limit:     s.burst,
+			Remaining: s.burst,
+			Reset:     time.Now().Add(s.window).Unix(),
+			ResetAt:   time.Now().Add(s.window).UTC(),
+		}
 	}
-	remaining := int(math.Floor(tokens))
 
-	// Calculate reset time: time until the bucket is full (burst capacity)
+	// 現在のカウント値をパース
+	var count int
+	fmt.Sscanf(val, "%d", &count)
+
+	remaining := s.burst - count
+	if remaining < 0 {
+		remaining = 0
+	}
+
+	// TTL からリセット時刻を計算
+	ttl, ttlErr := s.redis.TTL(ctx, key)
 	var resetAt time.Time
-	if remaining < s.burst {
-		// Tokens missing to reach burst
-		missing := float64(s.burst) - tokens
-		// Time in seconds to refill 'missing' tokens at rate rps
-		secondsToFull := missing / float64(s.rateLimit)
-		resetAt = time.Now().Add(time.Duration(secondsToFull * float64(time.Second)))
+	if ttlErr != nil || ttl <= 0 {
+		resetAt = time.Now().Add(s.window)
 	} else {
-		// Already full
-		resetAt = time.Now()
+		resetAt = time.Now().Add(ttl)
 	}
 
 	return RateLimitInfo{
@@ -84,39 +129,5 @@ func (s *CustomRateLimiterStore) GetInfo(identifier string) RateLimitInfo {
 		Remaining: remaining,
 		Reset:     resetAt.Unix(),
 		ResetAt:   resetAt.UTC(),
-	}
-}
-
-// getOrCreate retrieves an existing limiter or creates a new one for the identifier.
-func (s *CustomRateLimiterStore) getOrCreate(identifier string) *rateLimiterEntry {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	entry, ok := s.limiters[identifier]
-	if !ok {
-		entry = &rateLimiterEntry{
-			limiter: rate.NewLimiter(s.rateLimit, s.burst),
-		}
-		s.limiters[identifier] = entry
-	}
-	entry.lastSeen = time.Now()
-	return entry
-}
-
-// cleanup removes expired entries periodically to prevent memory leaks.
-func (s *CustomRateLimiterStore) cleanup() {
-	// Run cleanup at half the expiry interval
-	ticker := time.NewTicker(s.expiresIn / 2)
-	defer ticker.Stop()
-
-	for range ticker.C {
-		s.mu.Lock()
-		now := time.Now()
-		for id, entry := range s.limiters {
-			if now.Sub(entry.lastSeen) > s.expiresIn {
-				delete(s.limiters, id)
-			}
-		}
-		s.mu.Unlock()
 	}
 }

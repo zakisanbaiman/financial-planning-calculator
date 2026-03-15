@@ -2,15 +2,23 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/financial-planning-calculator/backend/config"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// テストごとにユニークな IP を生成するヘルパー。
+// Redis は固定ウィンドウ方式のため、テスト間でカウンターが干渉しないようにする。
+func uniqueIP(suffix string) string {
+	return fmt.Sprintf("test-%d-%s", time.Now().UnixNano(), suffix)
+}
 
 func TestAuthRateLimiterMiddleware_AllowsWithinLimit(t *testing.T) {
 	cfg := &config.ServerConfig{
@@ -25,10 +33,13 @@ func TestAuthRateLimiterMiddleware_AllowsWithinLimit(t *testing.T) {
 		return c.String(http.StatusOK, "OK")
 	}, authLimiter)
 
+	// テストごとにユニークな IP を使用（Redis カウンター干渉防止）
+	clientIP := uniqueIP("allow-within-limit")
+
 	// バースト内のリクエストは全て成功するはず
 	for i := 0; i < 5; i++ {
 		req := httptest.NewRequest(http.MethodPost, "/api/auth/login", nil)
-		req.Header.Set("X-Forwarded-For", "10.0.0.1")
+		req.Header.Set("X-Forwarded-For", clientIP)
 		rec := httptest.NewRecorder()
 		e.ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusOK, rec.Code, "リクエスト %d は成功するはず", i+1)
@@ -48,7 +59,7 @@ func TestAuthRateLimiterMiddleware_BlocksExcessiveRequests(t *testing.T) {
 		return c.String(http.StatusOK, "OK")
 	}, authLimiter)
 
-	clientIP := "192.168.1.50"
+	clientIP := uniqueIP("blocks-excessive")
 	var rateLimited bool
 
 	// バースト + レートを超えるリクエストを送信
@@ -90,23 +101,27 @@ func TestAuthRateLimiterMiddleware_DifferentIPsAreSeparate(t *testing.T) {
 		return c.String(http.StatusOK, "OK")
 	}, authLimiter)
 
+	// テストごとにユニークな IP を使用
+	ip1 := uniqueIP("sep-ip1")
+	ip2 := uniqueIP("sep-ip2")
+
 	// IP1: 最初のリクエストは成功
 	req1 := httptest.NewRequest(http.MethodPost, "/api/auth/login", nil)
-	req1.Header.Set("X-Forwarded-For", "10.1.1.1")
+	req1.Header.Set("X-Forwarded-For", ip1)
 	rec1 := httptest.NewRecorder()
 	e.ServeHTTP(rec1, req1)
 	assert.Equal(t, http.StatusOK, rec1.Code)
 
 	// IP2: 別のIPも成功（別カウント）
 	req2 := httptest.NewRequest(http.MethodPost, "/api/auth/login", nil)
-	req2.Header.Set("X-Forwarded-For", "10.1.1.2")
+	req2.Header.Set("X-Forwarded-For", ip2)
 	rec2 := httptest.NewRecorder()
 	e.ServeHTTP(rec2, req2)
 	assert.Equal(t, http.StatusOK, rec2.Code)
 
 	// IP1: 2回目は制限される
 	req3 := httptest.NewRequest(http.MethodPost, "/api/auth/login", nil)
-	req3.Header.Set("X-Forwarded-For", "10.1.1.1")
+	req3.Header.Set("X-Forwarded-For", ip1)
 	rec3 := httptest.NewRecorder()
 	e.ServeHTTP(rec3, req3)
 	assert.Equal(t, http.StatusTooManyRequests, rec3.Code)
@@ -126,7 +141,7 @@ func TestAuthRateLimiterMiddleware_ReturnsAuthRateLimitHeaders(t *testing.T) {
 	}, authLimiter)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", nil)
-	req.Header.Set("X-Forwarded-For", "10.2.2.1")
+	req.Header.Set("X-Forwarded-For", uniqueIP("headers"))
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
 
@@ -161,7 +176,7 @@ func TestAuthRateLimiterMiddleware_NonAuthEndpointsUnaffected(t *testing.T) {
 		return c.String(http.StatusOK, "Financial Data")
 	})
 
-	clientIP := "10.3.3.1"
+	clientIP := uniqueIP("non-auth")
 
 	// 認証エンドポイントのバーストを使い切る
 	req1 := httptest.NewRequest(http.MethodPost, "/api/auth/login", nil)
