@@ -44,6 +44,8 @@ services:
     envVars:
       - key: NEXT_PUBLIC_API_URL
         sync: false
+      - key: BACKEND_URL
+        sync: false
       - key: NODE_ENV
         value: production
     buildFilter:
