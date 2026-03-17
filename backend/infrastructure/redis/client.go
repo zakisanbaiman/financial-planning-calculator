@@ -15,8 +15,9 @@ type Client struct {
 	rdb *redis.Client
 }
 
-// NewClient は環境変数 REDIS_HOST / REDIS_PORT を読み取り、Redis クライアントを生成します。
+// NewClient は環境変数 REDIS_HOST / REDIS_PORT / REDIS_PASSWORD を読み取り、Redis クライアントを生成します。
 // REDIS_HOST のデフォルトは "localhost"、REDIS_PORT のデフォルトは "6379" です。
+// REDIS_PASSWORD が空文字列の場合は認証なしで接続します。
 func NewClient() *Client {
 	host := os.Getenv("REDIS_HOST")
 	if host == "" {
@@ -26,9 +27,11 @@ func NewClient() *Client {
 	if port == "" {
 		port = "6379"
 	}
+	password := os.Getenv("REDIS_PASSWORD")
 
 	rdb := redis.NewClient(&redis.Options{
 		Addr:         fmt.Sprintf("%s:%s", host, port),
+		Password:     password,
 		DialTimeout:  2 * time.Second,
 		ReadTimeout:  1 * time.Second,
 		WriteTimeout: 1 * time.Second,
