@@ -31,30 +31,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o migrate ./cmd/mig
 # シードツールをビルド
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o seed ./cmd/seed/main.go
 
-# 本番用の軽量イメージ
-FROM alpine:latest AS production
-
-# 必要なパッケージをインストール
-RUN apk --no-cache add ca-certificates tzdata
-
-# 作業ディレクトリを設定
-WORKDIR /root/
-
-# ビルドしたバイナリをコピー
-COPY --from=builder /app/main .
-COPY --from=builder /app/migrate .
-COPY --from=builder /app/seed .
-
-# スタートアップスクリプトをコピー
-COPY start.sh .
-RUN chmod +x start.sh
-
-# ポートを公開
-EXPOSE 8080
-
-# アプリケーションを実行
-CMD ["./start.sh"]
-
 # 開発用イメージ
 FROM golang:1.24-alpine AS development
 
@@ -88,3 +64,27 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # デフォルトコマンド（docker-compose.ymlでオーバーライド）
 CMD ["go", "run", "main.go"]
+
+# 本番用の軽量イメージ（最終ステージ = Railway/Docker デフォルトターゲット）
+FROM alpine:latest AS production
+
+# 必要なパッケージをインストール
+RUN apk --no-cache add ca-certificates tzdata
+
+# 作業ディレクトリを設定
+WORKDIR /root/
+
+# ビルドしたバイナリをコピー
+COPY --from=builder /app/main .
+COPY --from=builder /app/migrate .
+COPY --from=builder /app/seed .
+
+# スタートアップスクリプトをコピー
+COPY start.sh .
+RUN chmod +x start.sh
+
+# ポートを公開
+EXPOSE 8080
+
+# アプリケーションを実行
+CMD ["./start.sh"]
