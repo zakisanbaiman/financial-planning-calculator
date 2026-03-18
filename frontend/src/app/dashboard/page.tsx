@@ -108,13 +108,13 @@ export default function DashboardPage() {
     const monthlyContribution = financialStats.monthlySavings > 0 ? financialStats.monthlySavings : 120000;
     const investmentReturn = financialStats.investmentReturn || 0.05;
     const inflationRate = financialStats.inflationRate || 0.02;
-    
+
     for (let year = 0; year <= years; year++) {
       const contributedAmount = initialAssets + (monthlyContribution * 12 * year);
       const totalAssets = contributedAmount * Math.pow(1 + investmentReturn, year);
       const realValue = totalAssets / Math.pow(1 + inflationRate, year);
       const investmentGains = totalAssets - contributedAmount;
-      
+
       projections.push({
         year,
         total_assets: Math.round(totalAssets),
@@ -123,7 +123,7 @@ export default function DashboardPage() {
         investment_gains: Math.round(investmentGains),
       });
     }
-    
+
     return projections;
   };
 
@@ -131,113 +131,101 @@ export default function DashboardPage() {
 
   const loading = goalsLoading || financialLoading;
 
+  const formatCurrency = (value: number) => `¥${value.toLocaleString()}`;
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-10">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">ダッシュボード</h1>
-        <p className="text-gray-600 dark:text-gray-300">財務状況の概要と主要な指標を確認できます</p>
+      <div className="mb-12">
+        <p className="font-body text-sm font-semibold tracking-editorial uppercase text-accent-600 dark:text-accent-400 mb-2">
+          Overview
+        </p>
+        <h1 className="font-display text-4xl md:text-5xl font-semibold text-ink-900 dark:text-ink-100">
+          ダッシュボード
+        </h1>
+        <p className="font-body text-ink-500 dark:text-ink-400 mt-2">財務状況の概要と主要な指標を確認できます</p>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">月間純貯蓄</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {financialStats.hasData ? `¥${financialStats.monthlySavings.toLocaleString()}` : '---'}
-              </p>
-            </div>
-            <div className="text-2xl">💰</div>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            {financialStats.hasData ? `収入 ¥${financialStats.monthlyIncome.toLocaleString()} - 支出 ¥${financialStats.monthlyExpenses.toLocaleString()}` : '財務データを入力してください'}
-          </p>
-        </div>
-
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">総資産</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {financialStats.hasData ? `¥${financialStats.totalAssets.toLocaleString()}` : '---'}
-              </p>
-            </div>
-            <div className="text-2xl">📈</div>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            {financialStats.hasData ? '現在の貯蓄合計' : '財務データを入力してください'}
-          </p>
-        </div>
-
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">老後資金充足率</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {financialStats.hasData && financialStats.retirementSufficiency > 0 
-                  ? `${financialStats.retirementSufficiency.toFixed(0)}%` 
-                  : '---'}
-              </p>
-            </div>
-            <div className="text-2xl">🏖️</div>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            {financialStats.hasData && financialStats.retirementSufficiency > 0
+      {/* Quick Stats — editorial table style */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 border border-ink-200 dark:border-ink-800 mb-12">
+        {[
+          {
+            label: '月間純貯蓄',
+            value: financialStats.hasData ? formatCurrency(financialStats.monthlySavings) : '---',
+            sub: financialStats.hasData
+              ? `収入 ${formatCurrency(financialStats.monthlyIncome)} - 支出 ${formatCurrency(financialStats.monthlyExpenses)}`
+              : '財務データを入力してください',
+          },
+          {
+            label: '総資産',
+            value: financialStats.hasData ? formatCurrency(financialStats.totalAssets) : '---',
+            sub: financialStats.hasData ? '現在の貯蓄合計' : '財務データを入力してください',
+          },
+          {
+            label: '老後資金充足率',
+            value: financialStats.hasData && financialStats.retirementSufficiency > 0
+              ? `${financialStats.retirementSufficiency.toFixed(0)}%`
+              : '---',
+            sub: financialStats.hasData && financialStats.retirementSufficiency > 0
               ? `目標まで${(100 - financialStats.retirementSufficiency).toFixed(0)}%`
-              : '退職データを入力してください'}
-          </p>
-        </div>
-
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">緊急資金</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {financialStats.hasData && financialStats.emergencyMonths > 0
-                  ? `${financialStats.emergencyMonths.toFixed(1)}ヶ月分`
-                  : '---'}
-              </p>
-            </div>
-            <div className="text-2xl">🚨</div>
-          </div>
-          <p className={`text-xs mt-2 ${
-            financialStats.emergencyMonths >= 6 
-              ? 'text-success-600' 
-              : financialStats.emergencyMonths >= 3 
-                ? 'text-warning-600' 
-                : 'text-gray-500 dark:text-gray-400'
-          }`}>
-            {financialStats.hasData && financialStats.emergencyMonths > 0
-              ? financialStats.emergencyMonths >= 6 
-                ? '十分確保済み' 
+              : '退職データを入力してください',
+          },
+          {
+            label: '緊急資金',
+            value: financialStats.hasData && financialStats.emergencyMonths > 0
+              ? `${financialStats.emergencyMonths.toFixed(1)}ヶ月分`
+              : '---',
+            sub: financialStats.hasData && financialStats.emergencyMonths > 0
+              ? financialStats.emergencyMonths >= 6
+                ? '十分確保済み'
                 : financialStats.emergencyMonths >= 3
                   ? '最低限確保'
                   : '積み増しを推奨'
-              : '財務データを入力してください'}
-          </p>
-        </div>
+              : '財務データを入力してください',
+            subColor: financialStats.emergencyMonths >= 6
+              ? 'text-sage-600'
+              : financialStats.emergencyMonths >= 3
+                ? 'text-accent-600'
+                : undefined,
+          },
+        ].map((stat, i) => (
+          <div
+            key={i}
+            className={`p-6 bg-white dark:bg-ink-900 ${
+              i < 3 ? 'border-r border-ink-200 dark:border-ink-800' : ''
+            } ${i < 2 ? 'max-lg:border-b max-lg:border-ink-200 max-lg:dark:border-ink-800' : ''}`}
+          >
+            <p className="font-body text-xs font-semibold tracking-editorial uppercase text-ink-400 dark:text-ink-500 mb-2">
+              {stat.label}
+            </p>
+            <p className="font-mono text-2xl md:text-3xl font-medium text-ink-900 dark:text-ink-100 mb-1">
+              {stat.value}
+            </p>
+            <p className={`font-body text-xs ${stat.subColor || 'text-ink-400 dark:text-ink-500'}`}>
+              {stat.sub}
+            </p>
+          </div>
+        ))}
       </div>
 
       {/* Main Content Grid */}
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Left Column - Charts and Projections */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-8">
           {/* Asset Projection Chart */}
           <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">資産推移予測</h2>
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-display text-2xl font-semibold text-ink-900 dark:text-ink-100">資産推移予測</h2>
+              <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <label htmlFor="projection-years" className="text-sm text-gray-600 dark:text-gray-300">
-                    期間:
+                  <label htmlFor="projection-years" className="text-xs font-body text-ink-400 dark:text-ink-500 uppercase tracking-editorial">
+                    期間
                   </label>
                   <select
                     id="projection-years"
                     value={projectionYears}
                     onChange={(e) => setProjectionYears(Number(e.target.value))}
-                    className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    className="px-2 py-1 border border-ink-300 dark:border-ink-700 text-sm bg-transparent font-body text-ink-800 dark:text-ink-200 focus:outline-none focus:border-ink-900 dark:focus:border-ink-200"
                   >
                     <option value={5}>5年</option>
                     <option value={10}>10年</option>
@@ -248,8 +236,8 @@ export default function DashboardPage() {
                     <option value={100}>100年</option>
                   </select>
                 </div>
-                <Link href="/calculations" className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-                  詳細計算 →
+                <Link href="/calculations" className="text-sm font-body font-semibold text-ink-900 dark:text-ink-100 hover:text-accent-600 dark:hover:text-accent-400 transition-colors">
+                  詳細計算 &rarr;
                 </Link>
               </div>
             </div>
@@ -259,23 +247,23 @@ export default function DashboardPage() {
               showContributions={true}
               height={256}
             />
-            <div className="mt-3 grid grid-cols-3 gap-4 text-center text-sm">
+            <div className="mt-4 grid grid-cols-3 gap-4 border-t border-ink-200 dark:border-ink-800 pt-4">
               <div>
-                <p className="text-gray-600 dark:text-gray-400">最終資産額</p>
-                <p className="font-bold text-primary-600 dark:text-primary-400">
-                  ¥{sampleProjections[sampleProjections.length - 1]?.total_assets.toLocaleString() || 0}
+                <p className="font-body text-xs font-semibold tracking-editorial uppercase text-ink-400 dark:text-ink-500 mb-1">最終資産額</p>
+                <p className="font-mono text-lg font-medium text-ink-900 dark:text-ink-100">
+                  {formatCurrency(sampleProjections[sampleProjections.length - 1]?.total_assets || 0)}
                 </p>
               </div>
               <div>
-                <p className="text-gray-600 dark:text-gray-400">積立元本</p>
-                <p className="font-bold text-orange-600 dark:text-orange-400">
-                  ¥{sampleProjections[sampleProjections.length - 1]?.contributed_amount.toLocaleString() || 0}
+                <p className="font-body text-xs font-semibold tracking-editorial uppercase text-ink-400 dark:text-ink-500 mb-1">積立元本</p>
+                <p className="font-mono text-lg font-medium text-ink-900 dark:text-ink-100">
+                  {formatCurrency(sampleProjections[sampleProjections.length - 1]?.contributed_amount || 0)}
                 </p>
               </div>
               <div>
-                <p className="text-gray-600 dark:text-gray-400">投資収益</p>
-                <p className="font-bold text-success-600 dark:text-success-400">
-                  ¥{sampleProjections[sampleProjections.length - 1]?.investment_gains.toLocaleString() || 0}
+                <p className="font-body text-xs font-semibold tracking-editorial uppercase text-ink-400 dark:text-ink-500 mb-1">投資収益</p>
+                <p className="font-mono text-lg font-medium text-sage-700 dark:text-sage-400">
+                  {formatCurrency(sampleProjections[sampleProjections.length - 1]?.investment_gains || 0)}
                 </p>
               </div>
             </div>
@@ -283,34 +271,40 @@ export default function DashboardPage() {
 
           {/* Monthly Breakdown */}
           <div className="card">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">月間収支内訳</h2>
+            <h2 className="font-display text-2xl font-semibold text-ink-900 dark:text-ink-100 mb-6">月間収支内訳</h2>
             {financialStats.hasData ? (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
-                  <span className="text-gray-600 dark:text-gray-300">月収</span>
-                  <span className="font-medium text-gray-900 dark:text-white">¥{financialStats.monthlyIncome.toLocaleString()}</span>
+              <div>
+                <div className="flex items-center justify-between py-3 border-b border-ink-200 dark:border-ink-800">
+                  <span className="font-body text-sm text-ink-500 dark:text-ink-400">月収</span>
+                  <span className="font-mono text-sm font-medium text-ink-900 dark:text-ink-100">
+                    {formatCurrency(financialStats.monthlyIncome)}
+                  </span>
                 </div>
                 {expenseBreakdown.map((expense, index) => (
-                  <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
-                    <span className="text-gray-600 dark:text-gray-300">{expense.category}</span>
-                    <span className="font-medium text-gray-900 dark:text-white">¥{expense.amount.toLocaleString()}</span>
+                  <div key={index} className="flex items-center justify-between py-3 border-b border-ink-100 dark:border-ink-800/50">
+                    <span className="font-body text-sm text-ink-500 dark:text-ink-400">{expense.category}</span>
+                    <span className="font-mono text-sm text-ink-700 dark:text-ink-300">
+                      {formatCurrency(expense.amount)}
+                    </span>
                   </div>
                 ))}
-                <div className="flex items-center justify-between py-2 font-semibold">
-                  <span className="text-gray-900 dark:text-white">純貯蓄</span>
-                  <span className={financialStats.monthlySavings >= 0 ? 'text-success-600' : 'text-red-600'}>
-                    ¥{financialStats.monthlySavings.toLocaleString()}
+                <div className="flex items-center justify-between py-3 mt-1">
+                  <span className="font-body text-sm font-semibold text-ink-900 dark:text-ink-100">純貯蓄</span>
+                  <span className={`font-mono text-sm font-semibold ${
+                    financialStats.monthlySavings >= 0 ? 'text-sage-700 dark:text-sage-400' : 'text-error-600 dark:text-error-400'
+                  }`}>
+                    {formatCurrency(financialStats.monthlySavings)}
                   </span>
                 </div>
               </div>
             ) : (
-              <div className="text-center py-6">
-                <p className="text-gray-500 dark:text-gray-400 text-sm mb-3">財務データが入力されていません</p>
+              <div className="text-center py-8">
+                <p className="font-body text-sm text-ink-400 dark:text-ink-500 mb-3">財務データが入力されていません</p>
                 <Link
                   href="/financial-data"
-                  className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                  className="font-body text-sm font-semibold text-ink-900 dark:text-ink-100 hover:text-accent-600 dark:hover:text-accent-400 transition-colors"
                 >
-                  財務データを入力 →
+                  財務データを入力 &rarr;
                 </Link>
               </div>
             )}
@@ -318,13 +312,13 @@ export default function DashboardPage() {
         </div>
 
         {/* Right Column - Goals and Actions */}
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Active Goals */}
           <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">進行中の目標</h2>
-              <Link href="/goals" className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-                管理 →
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-display text-2xl font-semibold text-ink-900 dark:text-ink-100">進行中の目標</h2>
+              <Link href="/goals" className="font-body text-sm font-semibold text-ink-900 dark:text-ink-100 hover:text-accent-600 dark:hover:text-accent-400 transition-colors">
+                管理 &rarr;
               </Link>
             </div>
             {loading ? (
@@ -332,31 +326,29 @@ export default function DashboardPage() {
                 <LoadingSpinner />
               </div>
             ) : activeGoals.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {activeGoals.slice(0, 3).map((goal) => {
                   const progress = (goal.current_amount / goal.target_amount) * 100;
                   return (
                     <div key={goal.id}>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">{goal.title}</span>
-                        <span className="text-sm text-gray-600 dark:text-gray-300">{progress.toFixed(0)}%</span>
+                        <span className="font-body text-sm font-medium text-ink-800 dark:text-ink-200">{goal.title}</span>
+                        <span className="font-mono text-xs text-ink-400 dark:text-ink-500">{progress.toFixed(0)}%</span>
                       </div>
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div className="w-full bg-ink-100 dark:bg-ink-800 h-1">
                         <div
-                          className={`h-2 rounded-full ${
+                          className={`h-1 transition-all duration-500 ${
                             progress >= 100
-                              ? 'bg-success-500'
-                              : progress >= 75
-                              ? 'bg-primary-500'
+                              ? 'bg-sage-500'
                               : progress >= 50
-                              ? 'bg-warning-500'
-                              : 'bg-orange-500'
+                              ? 'bg-ink-700 dark:bg-ink-300'
+                              : 'bg-accent-500'
                           }`}
                           style={{ width: `${Math.min(progress, 100)}%` }}
-                        ></div>
+                        />
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        ¥{goal.current_amount.toLocaleString()} / ¥{goal.target_amount.toLocaleString()}
+                      <p className="font-mono text-xs text-ink-400 dark:text-ink-500 mt-1">
+                        {formatCurrency(goal.current_amount)} / {formatCurrency(goal.target_amount)}
                       </p>
                     </div>
                   );
@@ -364,20 +356,20 @@ export default function DashboardPage() {
                 {activeGoals.length > 3 && (
                   <Link
                     href="/goals"
-                    className="block text-center text-sm text-primary-600 hover:text-primary-700 font-medium mt-3"
+                    className="block text-center font-body text-sm font-semibold text-ink-900 dark:text-ink-100 hover:text-accent-600 dark:hover:text-accent-400 transition-colors pt-2"
                   >
-                    他{activeGoals.length - 3}件の目標を表示 →
+                    他{activeGoals.length - 3}件の目標を表示 &rarr;
                   </Link>
                 )}
               </div>
             ) : (
-              <div className="text-center py-6">
-                <p className="text-gray-500 dark:text-gray-400 text-sm mb-3">目標が設定されていません</p>
+              <div className="text-center py-8">
+                <p className="font-body text-sm text-ink-400 dark:text-ink-500 mb-3">目標が設定されていません</p>
                 <Link
                   href="/goals"
-                  className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                  className="font-body text-sm font-semibold text-ink-900 dark:text-ink-100 hover:text-accent-600 dark:hover:text-accent-400 transition-colors"
                 >
-                  最初の目標を作成 →
+                  最初の目標を作成 &rarr;
                 </Link>
               </div>
             )}
@@ -385,101 +377,69 @@ export default function DashboardPage() {
 
           {/* Quick Actions */}
           <div className="card">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">クイックアクション</h2>
-            <div className="space-y-3">
-              <Link
-                href="/financial-data"
-                className="block w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors"
-              >
-                <div className="flex items-center space-x-3">
-                  <span className="text-xl">💰</span>
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white">財務データ更新</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">収入・支出を更新</p>
-                  </div>
-                </div>
-              </Link>
-
-              <Link
-                href="/goals"
-                className="block w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors"
-              >
-                <div className="flex items-center space-x-3">
-                  <span className="text-xl">🎯</span>
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white">新しい目標設定</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">財務目標を追加</p>
-                  </div>
-                </div>
-              </Link>
-
-              <Link
-                href="/reports"
-                className="block w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors"
-              >
-                <div className="flex items-center space-x-3">
-                  <span className="text-xl">📋</span>
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white">レポート生成</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">PDF形式で出力</p>
-                  </div>
-                </div>
-              </Link>
-
-              <Link
-                href="/settings/security"
-                className="block w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors"
-              >
-                <div className="flex items-center space-x-3">
-                  <span className="text-xl">🔒</span>
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white">セキュリティ設定</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">2段階認証の管理</p>
-                  </div>
-                </div>
-              </Link>
+            <h2 className="font-display text-2xl font-semibold text-ink-900 dark:text-ink-100 mb-6">クイックアクション</h2>
+            <div className="space-y-1">
+              {[
+                { href: '/financial-data', title: '財務データ更新', sub: '収入・支出を更新' },
+                { href: '/goals', title: '新しい目標設定', sub: '財務目標を追加' },
+                { href: '/reports', title: 'レポート生成', sub: 'PDF形式で出力' },
+                { href: '/settings/security', title: 'セキュリティ設定', sub: '2段階認証の管理' },
+              ].map((action) => (
+                <Link
+                  key={action.href}
+                  href={action.href}
+                  className="block p-3 -mx-1 hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors group"
+                >
+                  <p className="font-body text-sm font-medium text-ink-800 dark:text-ink-200 group-hover:text-ink-900 dark:group-hover:text-ink-100">
+                    {action.title}
+                  </p>
+                  <p className="font-body text-xs text-ink-400 dark:text-ink-500">
+                    {action.sub}
+                  </p>
+                </Link>
+              ))}
             </div>
           </div>
 
           {/* Recommendations */}
           <div className="card">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">推奨事項</h2>
+            <h2 className="font-display text-2xl font-semibold text-ink-900 dark:text-ink-100 mb-6">推奨事項</h2>
             <div className="space-y-3">
               {!financialStats.hasData ? (
-                <div className="p-3 bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-700 rounded-lg">
-                  <p className="text-sm font-medium text-primary-800 dark:text-primary-200">💡 財務データを入力すると、パーソナライズされた推奨事項が表示されます</p>
+                <div className="p-4 border-l-2 border-accent-500 bg-accent-50 dark:bg-accent-900/20">
+                  <p className="font-body text-sm text-ink-700 dark:text-ink-300">💡 財務データを入力すると、パーソナライズされた推奨事項が表示されます</p>
                 </div>
               ) : (
                 <>
                   {financialStats.emergencyMonths >= 6 ? (
-                    <div className="p-3 bg-success-50 dark:bg-success-900/30 border border-success-200 dark:border-success-700 rounded-lg">
-                      <p className="text-sm font-medium text-success-800 dark:text-success-200">✅ 緊急資金は十分確保されています（{financialStats.emergencyMonths.toFixed(1)}ケ月分）</p>
+                    <div className="p-4 border-l-2 border-sage-500 bg-sage-50 dark:bg-sage-900/20">
+                      <p className="font-body text-sm text-ink-700 dark:text-ink-300">✅ 緊急資金は十分確保されています（{financialStats.emergencyMonths.toFixed(1)}ケ月分）</p>
                     </div>
                   ) : financialStats.emergencyMonths >= 3 ? (
-                    <div className="p-3 bg-warning-50 dark:bg-warning-900/30 border border-warning-200 dark:border-warning-700 rounded-lg">
-                      <p className="text-sm font-medium text-warning-800 dark:text-warning-200">⚠️ 緊急資金を6ケ月分まで増やすことを推奨（現在{financialStats.emergencyMonths.toFixed(1)}ケ月分）</p>
+                    <div className="p-4 border-l-2 border-accent-500 bg-accent-50 dark:bg-accent-900/20">
+                      <p className="font-body text-sm text-ink-700 dark:text-ink-300">⚠️ 緊急資金を6ケ月分まで増やすことを推奨（現在{financialStats.emergencyMonths.toFixed(1)}ケ月分）</p>
                     </div>
                   ) : (
-                    <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg">
-                      <p className="text-sm font-medium text-red-800 dark:text-red-200">🚨 緊急資金が不足しています。最低3ケ月分の確保を優先してください</p>
+                    <div className="p-4 border-l-2 border-error-500 bg-error-50 dark:bg-error-900/20">
+                      <p className="font-body text-sm text-ink-700 dark:text-ink-300">🚨 緊急資金が不足しています。最低3ケ月分の確保を優先してください</p>
                     </div>
                   )}
 
                   {financialStats.retirementSufficiency > 0 && financialStats.retirementSufficiency < 100 && (
-                    <div className="p-3 bg-warning-50 dark:bg-warning-900/30 border border-warning-200 dark:border-warning-700 rounded-lg">
-                      <p className="text-sm font-medium text-warning-800 dark:text-warning-200">
+                    <div className="p-4 border-l-2 border-accent-500 bg-accent-50 dark:bg-accent-900/20">
+                      <p className="font-body text-sm text-ink-700 dark:text-ink-300">
                         ⚠️ 老後資金の充足率は{financialStats.retirementSufficiency.toFixed(0)}%です。積立額の増額を検討してください
                       </p>
                     </div>
                   )}
 
                   {financialStats.monthlySavings <= 0 ? (
-                    <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg">
-                      <p className="text-sm font-medium text-red-800 dark:text-red-200">🚨 支出が収入を上回っています。支出の見直しを検討してください</p>
+                    <div className="p-4 border-l-2 border-error-500 bg-error-50 dark:bg-error-900/20">
+                      <p className="font-body text-sm text-ink-700 dark:text-ink-300">🚨 支出が収入を上回っています。支出の見直しを検討してください</p>
                     </div>
                   ) : financialStats.monthlySavings < financialStats.monthlyIncome * 0.2 && (
-                    <div className="p-3 bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-700 rounded-lg">
-                      <p className="text-sm font-medium text-primary-800 dark:text-primary-200">💡 収入の20%以上を貯蓄に回すことで、目標達成が早まります</p>
+                    <div className="p-4 border-l-2 border-accent-500 bg-accent-50 dark:bg-accent-900/20">
+                      <p className="font-body text-sm text-ink-700 dark:text-ink-300">💡 収入の20%以上を貯蓄に回すことで、目標達成が早まります</p>
                     </div>
                   )}
                 </>
@@ -491,26 +451,31 @@ export default function DashboardPage() {
 
       {/* Goals Dashboard Section */}
       {activeGoals.length > 0 && (
-        <div className="mt-8">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">目標進捗ダッシュボード</h2>
-            <div className="flex gap-2">
+        <div className="mt-16">
+          <div className="flex justify-between items-end mb-8">
+            <div>
+              <p className="font-body text-sm font-semibold tracking-editorial uppercase text-accent-600 dark:text-accent-400 mb-2">
+                Progress
+              </p>
+              <h2 className="font-display text-3xl font-semibold text-ink-900 dark:text-ink-100">目標進捗ダッシュボード</h2>
+            </div>
+            <div className="flex gap-1">
               <button
                 onClick={() => setChartType('bar')}
-                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                className={`px-3 py-1.5 text-xs font-body font-semibold tracking-editorial uppercase transition-colors ${
                   chartType === 'bar'
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    ? 'bg-ink-900 text-ink-50 dark:bg-ink-100 dark:text-ink-900'
+                    : 'bg-transparent text-ink-500 hover:text-ink-800 dark:text-ink-400 dark:hover:text-ink-200 border border-ink-300 dark:border-ink-700'
                 }`}
               >
                 棒グラフ
               </button>
               <button
                 onClick={() => setChartType('doughnut')}
-                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                className={`px-3 py-1.5 text-xs font-body font-semibold tracking-editorial uppercase transition-colors ${
                   chartType === 'doughnut'
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-ink-900 text-ink-50 dark:bg-ink-100 dark:text-ink-900'
+                    : 'bg-transparent text-ink-500 hover:text-ink-800 dark:text-ink-400 dark:hover:text-ink-200 border border-ink-300 dark:border-ink-700'
                 }`}
               >
                 円グラフ
@@ -521,7 +486,7 @@ export default function DashboardPage() {
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Progress Tracker */}
             <div className="lg:col-span-1">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">目標一覧</h3>
+              <h3 className="font-display text-xl font-semibold text-ink-900 dark:text-ink-100 mb-4">目標一覧</h3>
               <GoalProgressTracker goals={goals} onGoalClick={handleGoalClick} />
             </div>
 
