@@ -2,6 +2,39 @@
 
 A modern web application to visualize your financial future and plan for retirement with confidence
 
+## 🌐 デモ
+
+**[https://financial-planning-frontend-production.up.railway.app/](https://financial-planning-frontend-production.up.railway.app/)**
+
+## CI ステータス
+
+[![Lint](https://github.com/zakisanbaiman/financial-planning-calculator/actions/workflows/lint.yml/badge.svg)](https://github.com/zakisanbaiman/financial-planning-calculator/actions/workflows/lint.yml)
+[![Test](https://github.com/zakisanbaiman/financial-planning-calculator/actions/workflows/test.yml/badge.svg)](https://github.com/zakisanbaiman/financial-planning-calculator/actions/workflows/test.yml)
+[![E2E Tests](https://github.com/zakisanbaiman/financial-planning-calculator/actions/workflows/e2e-tests.yml/badge.svg)](https://github.com/zakisanbaiman/financial-planning-calculator/actions/workflows/e2e-tests.yml)
+[![PR Check](https://github.com/zakisanbaiman/financial-planning-calculator/actions/workflows/pr-check.yml/badge.svg)](https://github.com/zakisanbaiman/financial-planning-calculator/actions/workflows/pr-check.yml)
+
+## 🎯 主要機能
+
+| 機能 | 説明 |
+|------|------|
+| 資産シミュレーション | 収入・支出・貯蓄率を入力して将来の資産推移をチャートで可視化 |
+| 老後資金計算 | 退職年齢・生活費・運用利回りから必要老後資金を算出 |
+| 緊急資金計算 | 月間支出から推奨緊急資金額を算出 |
+| 目標管理 | 財務目標の作成・進捗トラッキング・達成状況の可視化 |
+| ダークモード | システム設定に連動したライト/ダーク切り替え |
+| ゲストモード | ログイン不要でシミュレーション機能を試用可能 |
+
+## 📊 非機能要件
+
+| 項目 | 内容 |
+|------|------|
+| フロントエンド | Next.js 14（App Router）、TypeScript、Railway にデプロイ |
+| バックエンド | Go / Echo Framework、Railway にデプロイ |
+| DB | PostgreSQL（Railway マネージド） |
+| テストカバレッジ | フロントエンド コンポーネント 80%超（Jest） |
+| CI | Lint・Unit Test・E2E（Playwright）を GitHub Actions で自動実行 |
+| 認証 | JWT ベース、ゲストモードあり |
+
 ## Overview
 
 This application helps users visualize their financial future and plan for retirement. By inputting current income, expenses, and savings, users can calculate future asset projections, retirement funds, and emergency preparedness to create a secure financial plan.
