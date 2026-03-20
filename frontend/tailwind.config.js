@@ -9,9 +9,9 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Cormorant Garamond"', 'Georgia', 'serif'],
-        body: ['"Source Sans 3"', '"Helvetica Neue"', 'Arial', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'Consolas', 'monospace'],
+        display: ['var(--font-display)', '"Cormorant Garamond"', 'Georgia', 'serif'],
+        body: ['var(--font-body)', '"Source Sans 3"', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+        mono: ['var(--font-mono)', '"JetBrains Mono"', 'Consolas', 'monospace'],
       },
       colors: {
         ink: {
