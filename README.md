@@ -11,7 +11,6 @@ A modern web application to visualize your financial future and plan for retirem
 [![Lint](https://github.com/zakisanbaiman/financial-planning-calculator/actions/workflows/lint.yml/badge.svg)](https://github.com/zakisanbaiman/financial-planning-calculator/actions/workflows/lint.yml)
 [![Test](https://github.com/zakisanbaiman/financial-planning-calculator/actions/workflows/test.yml/badge.svg)](https://github.com/zakisanbaiman/financial-planning-calculator/actions/workflows/test.yml)
 [![E2E Tests](https://github.com/zakisanbaiman/financial-planning-calculator/actions/workflows/e2e-tests.yml/badge.svg)](https://github.com/zakisanbaiman/financial-planning-calculator/actions/workflows/e2e-tests.yml)
-[![PR Check](https://github.com/zakisanbaiman/financial-planning-calculator/actions/workflows/pr-check.yml/badge.svg)](https://github.com/zakisanbaiman/financial-planning-calculator/actions/workflows/pr-check.yml)
 
 ## 🎯 主要機能
 
