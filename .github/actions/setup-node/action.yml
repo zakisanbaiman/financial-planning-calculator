@@ -20,7 +20,8 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
-        cache: 'npm' # npmキャッシュを有効化
+        cache: 'npm'
+        cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
 
     - name: Install dependencies
       shell: bash
