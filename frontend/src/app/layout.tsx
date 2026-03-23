@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Source_Sans_3, JetBrains_Mono } from 'next/font/google';
+import { GoogleAnalytics } from '@next/third-parties/google';
 import './globals.css';
 import Navigation from '@/components/Navigation';
 import Tutorial from '@/components/Tutorial';
@@ -78,6 +79,9 @@ export default function RootLayout({
           <Tutorial />
         </AppProviders>
       </body>
+      {process.env.NEXT_PUBLIC_GA_ID && (
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
+      )}
     </html>
   );
 }
