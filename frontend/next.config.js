@@ -38,6 +38,14 @@ const nextConfig = {
   // Production source maps (disabled for better performance)
   productionBrowserSourceMaps: false,
 
+  // Redirects for renamed routes
+  async redirects() {
+    return [
+      { source: '/profile', destination: '/financial-data', permanent: true },
+      { source: '/calculator', destination: '/calculations', permanent: true },
+    ];
+  },
+
   // API rewrites for development
   async rewrites() {
     return [
