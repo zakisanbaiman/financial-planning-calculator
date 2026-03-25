@@ -16,9 +16,27 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
     networks:
       - monitoring
       - financial_planning_network
+    restart: unless-stopped
+
+  # Alertmanager（アラート通知管理）
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: financial-planning-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+    networks:
+      - monitoring
     restart: unless-stopped
 
   # Loki（ログ集約）
@@ -60,14 +78,18 @@ services:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_UNIFIED_ALERTING_ENABLED=true
+      - GF_ALERTING_ENABLED=false
     volumes:
       - grafana-data:/var/lib/grafana
       - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
       - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting
       - ./monitoring/grafana-dashboard.json:/etc/grafana/provisioning/dashboards/json/financial-planning.json
     depends_on:
       - prometheus
       - loki
+      - alertmanager
     networks:
       - monitoring
     restart: unless-stopped
@@ -76,6 +98,7 @@ volumes:
   prometheus-data:
   grafana-data:
   loki-data:
+  alertmanager-data:
 
 networks:
   monitoring:
