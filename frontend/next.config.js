@@ -84,14 +84,15 @@ const nextConfig = {
             // CSP: Next.js のハイドレーション用インラインスクリプトと
             // Tailwind CSS のインラインスタイルに対応するため 'unsafe-inline' を許可
             // connect-src: /api/* リライト経由でバックエンドAPIに接続するため 'self' のみで十分
+            // GA4: Issue #198 - Google Analytics のビーコン送信・スクリプトロードを許可
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline'",
+              "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self'",
-              "connect-src 'self'",
+              "connect-src 'self' https://www.google-analytics.com https://analytics.google.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
