@@ -367,6 +367,25 @@ export const twoFactorAPI = {
   },
 };
 
+// パスワードリセットAPI
+export const passwordResetAPI = {
+  // パスワードリセットメール送信
+  forgotPassword: async (email: string): Promise<{ message: string }> => {
+    return request<{ message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  // トークンを使ったパスワードリセット
+  resetPassword: async (token: string, newPassword: string): Promise<{ message: string }> => {
+    return request<{ message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, new_password: newPassword }),
+    });
+  },
+};
+
 // ヘルスチェック
 export const healthCheck = async (): Promise<{ status: string; message: string }> => {
   const url = `${API_BASE_URL}/health`;
