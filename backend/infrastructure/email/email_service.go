@@ -1,10 +1,12 @@
 package email
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
-	"net/smtp"
+	"net/http"
 )
 
 // EmailService はメール送信サービスのインターフェース
@@ -29,29 +31,22 @@ func (s *LogEmailService) SendPasswordResetEmail(_ context.Context, toEmail, res
 	return nil
 }
 
-// SMTPEmailService はSMTPを使ったメールサービス
-type SMTPEmailService struct {
-	host     string
-	port     int
-	user     string
-	password string
-	from     string
+// ResendEmailService はResend HTTP APIを使ったメールサービス
+type ResendEmailService struct {
+	apiKey string
+	from   string
 }
 
-// NewSMTPEmailService はSMTPメールサービスを作成する
-func NewSMTPEmailService(host string, port int, user, password, from string) EmailService {
-	return &SMTPEmailService{
-		host:     host,
-		port:     port,
-		user:     user,
-		password: password,
-		from:     from,
+// NewResendEmailService はResendメールサービスを作成する
+func NewResendEmailService(apiKey, from string) EmailService {
+	return &ResendEmailService{
+		apiKey: apiKey,
+		from:   from,
 	}
 }
 
-// SendPasswordResetEmail はパスワードリセットメールをSMTPで送信する
-func (s *SMTPEmailService) SendPasswordResetEmail(_ context.Context, toEmail, resetURL string) error {
-	subject := "パスワードリセットのご案内"
+// SendPasswordResetEmail はResend APIでパスワードリセットメールを送信する
+func (s *ResendEmailService) SendPasswordResetEmail(ctx context.Context, toEmail, resetURL string) error {
 	body := fmt.Sprintf(`パスワードリセットのリクエストを受け付けました。
 
 以下のURLをクリックしてパスワードをリセットしてください（有効期限: 30分）:
@@ -61,26 +56,44 @@ func (s *SMTPEmailService) SendPasswordResetEmail(_ context.Context, toEmail, re
 このメールに心当たりがない場合は無視してください。
 `, resetURL)
 
-	msg := []byte(fmt.Sprintf(
-		"From: %s\r\nTo: %s\r\nSubject: %s\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s",
-		s.from, toEmail, subject, body,
-	))
+	payload := map[string]any{
+		"from":    s.from,
+		"to":      []string{toEmail},
+		"subject": "パスワードリセットのご案内",
+		"text":    body,
+	}
 
-	addr := fmt.Sprintf("%s:%d", s.host, s.port)
-	auth := smtp.PlainAuth("", s.user, s.password, s.host)
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("リクエストの生成に失敗しました: %w", err)
+	}
 
-	if err := smtp.SendMail(addr, auth, s.from, []string{toEmail}, msg); err != nil {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.resend.com/emails", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("リクエストの作成に失敗しました: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+s.apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
 		return fmt.Errorf("メール送信に失敗しました: %w", err)
 	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("Resend APIエラー: status=%d", resp.StatusCode)
+	}
+
 	return nil
 }
 
-// NewEmailService はSMTP設定に基づいてメールサービスを作成する
-// SMTP設定がない場合はログ出力のフォールバックを使用する
+// NewEmailService はAPI Key設定に基づいてメールサービスを作成する
+// SMTP_PASSWORDをResend APIキーとして使用する
 func NewEmailService(host string, port int, user, password, from string) EmailService {
 	if password == "" {
 		slog.Warn("SMTP_PASSWORDが未設定のため開発用メールサービス（ログ出力）を使用します")
 		return NewLogEmailService()
 	}
-	return NewSMTPEmailService(host, port, user, password, from)
+	return NewResendEmailService(password, from)
 }
