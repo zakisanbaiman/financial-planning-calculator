@@ -78,8 +78,8 @@ func (s *SMTPEmailService) SendPasswordResetEmail(_ context.Context, toEmail, re
 // NewEmailService はSMTP設定に基づいてメールサービスを作成する
 // SMTP設定がない場合はログ出力のフォールバックを使用する
 func NewEmailService(host string, port int, user, password, from string) EmailService {
-	if host == "" {
-		slog.Warn("SMTP設定がないため開発用メールサービス（ログ出力）を使用します")
+	if password == "" {
+		slog.Warn("SMTP_PASSWORDが未設定のため開発用メールサービス（ログ出力）を使用します")
 		return NewLogEmailService()
 	}
 	return NewSMTPEmailService(host, port, user, password, from)

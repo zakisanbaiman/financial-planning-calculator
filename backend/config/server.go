@@ -108,10 +108,10 @@ func LoadServerConfig() *ServerConfig {
 		// 本番環境では CONTENT_SECURITY_POLICY 環境変数で上書き可能
 		// 開発環境では ENABLE_SECURE_HEADERS=false でヘッダー自体を無効化する
 		ContentSecurityPolicy: getEnv("CONTENT_SECURITY_POLICY", "default-src 'none'; frame-ancestors 'none'; form-action 'none'"),
-		// SMTP メール設定
-		SMTPHost:     getEnv("SMTP_HOST", ""),
+		// SMTP メール設定（デフォルトはResend）
+		SMTPHost:     getEnv("SMTP_HOST", "smtp.resend.com"),
 		SMTPPort:     getEnvInt("SMTP_PORT", 587),
-		SMTPUser:     getEnv("SMTP_USER", ""),
+		SMTPUser:     getEnv("SMTP_USER", "resend"),
 		SMTPPassword: getEnv("SMTP_PASSWORD", ""),
 		SMTPFrom:     getEnv("SMTP_FROM", "noreply@example.com"),
 		// フロントエンドURL
