@@ -48,6 +48,11 @@ func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencie
 	// API情報エンドポイント
 	api.GET("/", APIInfoHandler)
 
+	// ヘルスチェックエンドポイント（認証不要 - 監視ツール用）
+	api.GET("/health", HealthCheckHandler)
+	api.GET("/health/detailed", IntegrationHealthCheckHandler(deps))
+	api.GET("/ready", APIReadinessHandler(deps))
+
 	// レートリミットステータスエンドポイント（認証不要）
 	api.GET("/rate-limit/status", RateLimitStatusHandler(rateLimitStore))
 
