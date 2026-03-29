@@ -84,6 +84,7 @@ func TestSetupRoutes(t *testing.T) {
 	}
 
 	assert.Contains(t, routePaths, "/health")
+	assert.Contains(t, routePaths, "/api/health")
 	assert.Contains(t, routePaths, "/api/")
 	assert.Contains(t, routePaths, "/swagger/*")
 	assert.Contains(t, routePaths, "/api/rate-limit/status")
