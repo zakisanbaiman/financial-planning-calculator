@@ -163,6 +163,7 @@ func TestLocalLLMClient_StreamAnswer(t *testing.T) {
 		_, client := setupLocalLLMServer(t, handler)
 
 		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 
 		// When
 		ch, err := client.StreamAnswer(ctx, "長い質問")
