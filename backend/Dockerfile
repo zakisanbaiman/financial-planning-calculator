@@ -79,6 +79,9 @@ COPY --from=builder /app/main .
 COPY --from=builder /app/migrate .
 COPY --from=builder /app/seed .
 
+# FAQドキュメントをコピー
+COPY --from=builder /app/docs/faq ./docs/faq
+
 # スタートアップスクリプトをコピー
 COPY start.sh .
 RUN chmod +x start.sh
