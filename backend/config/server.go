@@ -60,9 +60,9 @@ type ServerConfig struct {
 	// フロントエンドURL（パスワードリセットURLの生成に使用）
 	FrontendURL  string // FRONTEND_URL
 	// Bot LLM設定
-	LocalLLMBaseURL string // LOCAL_LLM_BASE_URL (例: "http://localhost:11434")
-	LocalLLMModel   string // LOCAL_LLM_MODEL (例: "llama3")
-	FAQDir          string // FAQ_DIR (例: "docs/faq")
+	GroqAPIKey string // GROQ_API_KEY
+	GroqModel  string // GROQ_MODEL (例: "llama3-8b-8192")
+	FAQDir     string // FAQ_DIR (例: "docs/faq")
 }
 
 // LoadServerConfig loads server configuration from environment variables
@@ -121,9 +121,9 @@ func LoadServerConfig() *ServerConfig {
 		// フロントエンドURL
 		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
 		// Bot LLM設定
-		LocalLLMBaseURL: getEnv("LOCAL_LLM_BASE_URL", "http://localhost:11434"),
-		LocalLLMModel:   getEnv("LOCAL_LLM_MODEL", "llama3"),
-		FAQDir:          getEnv("FAQ_DIR", "docs/faq"),
+		GroqAPIKey: getEnv("GROQ_API_KEY", ""),
+		GroqModel:  getEnv("GROQ_MODEL", "llama3-8b-8192"),
+		FAQDir:     getEnv("FAQ_DIR", "docs/faq"),
 	}
 
 	return config
