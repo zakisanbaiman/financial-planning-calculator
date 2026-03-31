@@ -27,9 +27,12 @@ description: 財務計画計算機プロジェクトの開発支援。Next.js/Ty
 - **API仕様**: OpenAPI/Swagger (`docs/`)
 
 ### インフラ
-- **デプロイ**: Render.com
+- **デプロイ**: Railway（バックエンド）+ Railway（フロントエンド）
+- **データベース**: Neon (PostgreSQL, サーバーレス)
+- **キャッシュ**: Redis on Railway
+- **メール送信**: Resend HTTP API（SMTPはRailwayにブロックされるため不使用）
 - **CI/CD**: GitHub Actions
-- **コンテナ**: Docker + Docker Compose
+- **コンテナ**: Docker + Docker Compose（ローカル開発のみ）
 
 ## アーキテクチャ
 
@@ -120,3 +123,23 @@ make lint         # Lint
 - 金額は整数（円）で扱う
 - 本番: `DB_SSLMODE=require`, `GIN_MODE=release`
 - UI/コメントは日本語OK
+
+## Railway運用
+
+```bash
+# ログ確認
+railway service logs --service financial-planning-backend
+
+# 環境変数設定
+railway variable set KEY=VALUE --service financial-planning-backend
+
+# 強制リビルド（redeploy はコードを更新しない）
+railway up --service financial-planning-backend --detach
+```
+
+## メール送信（Resend）
+
+- `SMTP_PASSWORD` にResendのAPIキーを設定（Railwayの環境変数）
+- `SMTP_FROM` = `onboarding@resend.dev`（独自ドメインなし。自分のメールにしか送れない）
+- `FRONTEND_URL` = 本番フロントエンドURL（パスワードリセットリンクに使用）
+- 実装: `backend/infrastructure/email/email_service.go`（ResendEmailService）
