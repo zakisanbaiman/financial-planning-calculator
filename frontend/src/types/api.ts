@@ -171,6 +171,19 @@ export interface GoalProjectionResponse {
   progress_rate: number;
 }
 
+// Bot型
+export interface BotMessageRequest {
+  question: string;
+}
+
+export interface BotSSEMessageEvent {
+  token: string;
+}
+
+export interface BotSSEErrorEvent {
+  message: string;
+}
+
 // レポート型
 export interface ReportRequest {
   user_id: string;

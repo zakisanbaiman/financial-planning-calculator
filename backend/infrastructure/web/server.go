@@ -1,14 +1,19 @@
 package web
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
+	"github.com/financial-planning-calculator/backend/application"
 	"github.com/financial-planning-calculator/backend/application/usecases"
 	"github.com/financial-planning-calculator/backend/config"
 	"github.com/financial-planning-calculator/backend/domain/repositories"
 	"github.com/financial-planning-calculator/backend/domain/services"
 	infraemail "github.com/financial-planning-calculator/backend/infrastructure/email"
+	"github.com/financial-planning-calculator/backend/infrastructure/faq"
+	"github.com/financial-planning-calculator/backend/infrastructure/llm"
 	infrapdf "github.com/financial-planning-calculator/backend/infrastructure/pdf"
 	"github.com/financial-planning-calculator/backend/infrastructure/storage"
 	"github.com/financial-planning-calculator/backend/infrastructure/web/controllers"
@@ -121,6 +126,19 @@ func NewControllers(deps *ServerDependencies) (*Controllers, error) {
 		)
 	}
 
+	// BotController初期化
+	faqLoader := faq.NewFAQLoader(deps.ServerConfig.FAQDir)
+	if _, loadErr := faqLoader.Load(context.Background()); loadErr != nil {
+		slog.Error("FAQの読み込みに失敗しました。BotはFAQなしで動作します。", slog.Any("error", loadErr))
+	}
+	var llmClient llm.LLMClient
+	if deps.ServerConfig.LocalLLMModel != "" {
+		llmClient = llm.NewLocalLLMClientWithModel(deps.ServerConfig.LocalLLMBaseURL, deps.ServerConfig.LocalLLMModel)
+	} else {
+		llmClient = llm.NewLocalLLMClient(deps.ServerConfig.LocalLLMBaseURL)
+	}
+	botUseCase := application.NewBotUseCase(faqLoader, llmClient)
+
 	// Create controllers
 	return &Controllers{
 		Auth:          controllers.NewAuthController(authUseCase, deps.ServerConfig),
@@ -130,6 +148,7 @@ func NewControllers(deps *ServerDependencies) (*Controllers, error) {
 		Calculations:  controllers.NewCalculationsController(calculateProjectionUseCase),
 		Goals:         controllers.NewGoalsController(manageGoalsUseCase),
 		Reports:       controllers.NewReportsController(generateReportsUseCase, tempFileStorage),
+		Bot:           controllers.NewBotController(botUseCase),
 	}, nil
 }
 
