@@ -14,6 +14,9 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
+// botMessagesPath はBot SSEエンドポイントのパス
+const botMessagesPath = "/api/bot/messages"
+
 // SetupMiddleware configures all middleware for the Echo server.
 // Returns the CustomRateLimiterStore so it can be reused for the status endpoint.
 func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) *CustomRateLimiterStore {
@@ -98,18 +101,24 @@ func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) *CustomRateLimiterS
 	// X-RateLimit-* response headers
 	e.Use(RateLimitHeaderMiddleware(rateLimitStore))
 
-	// タイムアウト設定
+	// タイムアウト設定（SSEエンドポイントは除外）
 	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
 		Timeout: cfg.RequestTimeout,
+		Skipper: func(c echo.Context) bool {
+			return c.Request().URL.Path == botMessagesPath
+		},
 	}))
 
 	// リクエストID生成
 	e.Use(middleware.RequestID())
 
-	// Gzip圧縮
+	// Gzip圧縮（SSEエンドポイントは除外）
 	if cfg.EnableGzip {
 		e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
 			Level: cfg.GzipLevel,
+			Skipper: func(c echo.Context) bool {
+				return c.Request().URL.Path == botMessagesPath
+			},
 		}))
 	}
 

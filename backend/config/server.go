@@ -59,6 +59,10 @@ type ServerConfig struct {
 	SMTPFrom     string // SMTP_FROM
 	// フロントエンドURL（パスワードリセットURLの生成に使用）
 	FrontendURL  string // FRONTEND_URL
+	// Bot LLM設定
+	LocalLLMBaseURL string // LOCAL_LLM_BASE_URL (例: "http://localhost:11434")
+	LocalLLMModel   string // LOCAL_LLM_MODEL (例: "llama3")
+	FAQDir          string // FAQ_DIR (例: "docs/faq")
 }
 
 // LoadServerConfig loads server configuration from environment variables
@@ -116,6 +120,10 @@ func LoadServerConfig() *ServerConfig {
 		SMTPFrom:     getEnv("SMTP_FROM", "noreply@example.com"),
 		// フロントエンドURL
 		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
+		// Bot LLM設定
+		LocalLLMBaseURL: getEnv("LOCAL_LLM_BASE_URL", "http://localhost:11434"),
+		LocalLLMModel:   getEnv("LOCAL_LLM_MODEL", "llama3"),
+		FAQDir:          getEnv("FAQ_DIR", "docs/faq"),
 	}
 
 	return config

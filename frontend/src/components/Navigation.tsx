@@ -20,6 +20,7 @@ const Navigation = () => {
     { href: '/goals', label: 'Goals' },
     { href: '/calculations', label: 'Calculator' },
     { href: '/reports', label: 'Reports' },
+    ...(isAuthenticated ? [{ href: '/bot', label: 'Bot' }] : []),
   ];
 
   return (
