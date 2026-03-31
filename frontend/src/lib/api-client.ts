@@ -386,6 +386,82 @@ export const passwordResetAPI = {
   },
 };
 
+// Bot SSE API
+// fetchストリームを使ってSSEイベントを受信する（EventSourceは使わない）
+export const streamBotAnswer = async (
+  question: string,
+  onToken: (token: string) => void,
+  onDone: () => void,
+  onError: (message: string) => void,
+): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/bot/messages`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({ question }),
+  });
+
+  if (response.status === 401) {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
+    return;
+  }
+
+  if (!response.ok) {
+    throw new Error(`HTTP error: ${response.status}`);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error('レスポンスボディが読み取れません');
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+
+      let eventType = '';
+      for (const line of lines) {
+        if (line === '') {
+          // 空行はSSEイベントの終端: eventTypeをリセット
+          eventType = '';
+        } else if (line.startsWith('event:')) {
+          eventType = line.slice('event:'.length).trim();
+        } else if (line.startsWith('data:')) {
+          const dataStr = line.slice('data:'.length).trim();
+          try {
+            const data = JSON.parse(dataStr);
+            if (eventType === 'message' && typeof data.token === 'string') {
+              onToken(data.token);
+            } else if (eventType === 'done') {
+              onDone();
+              return;
+            } else if (eventType === 'error') {
+              onError(data.message ?? 'エラーが発生しました');
+              return;
+            }
+          } catch {
+            // JSON解析エラーは無視
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+};
+
 // ヘルスチェック
 export const healthCheck = async (): Promise<{ status: string; message: string }> => {
   const url = `${API_BASE_URL}/health`;

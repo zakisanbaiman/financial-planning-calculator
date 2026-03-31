@@ -19,6 +19,7 @@ type Controllers struct {
 	Calculations  *controllers.CalculationsController
 	Goals         *controllers.GoalsController
 	Reports       *controllers.ReportsController
+	Bot           *controllers.BotController
 }
 
 // SetupRoutes configures all routes based on OpenAPI specification
@@ -85,6 +86,11 @@ func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencie
 
 	// レポート生成エンドポイント
 	setupReportRoutes(protected, controllers.Reports)
+
+	// Botエンドポイント（JWT認証必須）
+	if controllers.Bot != nil {
+		setupBotRoutes(protected, controllers.Bot)
+	}
 }
 
 // setupAuthRoutes sets up authentication routes
@@ -177,6 +183,12 @@ func setupGoalRoutes(api *echo.Group, controller *controllers.GoalsController) {
 	goals.DELETE("/:id", controller.DeleteGoal)                          // DELETE /api/goals/:id
 	goals.GET("/:id/recommendations", controller.GetGoalRecommendations) // GET /api/goals/:id/recommendations
 	goals.GET("/:id/feasibility", controller.AnalyzeGoalFeasibility)     // GET /api/goals/:id/feasibility
+}
+
+// setupBotRoutes sets up Bot SSE routes
+func setupBotRoutes(api *echo.Group, controller *controllers.BotController) {
+	bot := api.Group("/bot")
+	bot.POST("/messages", controller.PostMessage) // POST /api/bot/messages
 }
 
 // setupReportRoutes sets up report generation routes
