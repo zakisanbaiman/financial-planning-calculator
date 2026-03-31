@@ -8,7 +8,7 @@ RUN apk add --no-cache git ca-certificates tzdata
 WORKDIR /app
 
 # Go modulesファイルをコピー
-COPY go.mod go.sum ./
+COPY backend/go.mod backend/go.sum ./
 
 # 依存関係をダウンロード
 RUN go mod download
@@ -16,8 +16,9 @@ RUN go mod download
 # swagツールをインストール（Swagger docsの生成に必要）
 RUN go install github.com/swaggo/swag/cmd/swag@latest
 
-# ソースコードをコピー
-COPY . .
+# ソースコードをコピー（リポジトリルートからビルドコンテキスト全体をコピー）
+COPY backend/ .
+COPY docs/faq ./docs/faq
 
 # Swagger docsを生成
 RUN swag init -g main.go -o ./docs
@@ -46,7 +47,7 @@ RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.0
 # 作業ディレクトリを設定
 WORKDIR /app
 
-# Go modulesファイルをコピー
+# Go modulesファイルをコピー（ローカルdocker-composeはcontext: ./backendのため go.mod がルートにある）
 COPY go.mod go.sum ./
 
 # 依存関係をダウンロード
@@ -83,7 +84,7 @@ COPY --from=builder /app/seed .
 COPY --from=builder /app/docs/faq ./docs/faq
 
 # スタートアップスクリプトをコピー
-COPY start.sh .
+COPY --from=builder /app/start.sh .
 RUN chmod +x start.sh
 
 # ポートを公開
