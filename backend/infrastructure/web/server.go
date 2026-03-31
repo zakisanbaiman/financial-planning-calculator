@@ -131,12 +131,7 @@ func NewControllers(deps *ServerDependencies) (*Controllers, error) {
 	if _, loadErr := faqLoader.Load(context.Background()); loadErr != nil {
 		slog.Error("FAQの読み込みに失敗しました。BotはFAQなしで動作します。", slog.Any("error", loadErr))
 	}
-	var llmClient llm.LLMClient
-	if deps.ServerConfig.LocalLLMModel != "" {
-		llmClient = llm.NewLocalLLMClientWithModel(deps.ServerConfig.LocalLLMBaseURL, deps.ServerConfig.LocalLLMModel)
-	} else {
-		llmClient = llm.NewLocalLLMClient(deps.ServerConfig.LocalLLMBaseURL)
-	}
+	llmClient := llm.NewGroqClient(deps.ServerConfig.GroqAPIKey, deps.ServerConfig.GroqModel)
 	botUseCase := application.NewBotUseCase(faqLoader, llmClient)
 
 	// Create controllers
