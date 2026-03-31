@@ -136,3 +136,11 @@ scripts/deployment-check.log
 scripts/*.log
 frontend/tsconfig.tsbuildinfo
 .claude/settings.local.json
+.claude/settings.json
+.claude/projects/-Users-naoto-dev-financial-planning-calculator/memory/MEMORY.md
+.claude/projects/-Users-naoto-dev-financial-planning-calculator/memory/project_email.md
+.claude/projects/-Users-naoto-dev-financial-planning-calculator/memory/project_infra.md
+.claude/projects/-Users-naoto-dev-financial-planning-calculator/memory/project_railway_ops.md
+.claude/skills/financial-planning/SKILL.md
+.claude/skills/financial-planning/SKILL.md
+.claude/skills/financial-planning/SKILL.md
