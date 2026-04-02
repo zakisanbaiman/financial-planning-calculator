@@ -93,6 +93,24 @@ var (
 		[]string{"error_type", "severity"},
 	)
 
+	// CacheHitsTotal カウンター: キャッシュヒット数
+	CacheHitsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "cache_hits_total",
+			Help: "Total number of cache hits",
+		},
+		[]string{"cache_type"},
+	)
+
+	// CacheMissesTotal カウンター: キャッシュミス数
+	CacheMissesTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "cache_misses_total",
+			Help: "Total number of cache misses",
+		},
+		[]string{"cache_type"},
+	)
+
 	// メトリクスが初期化済みかどうかを示すフラグ
 	metricsInitialized = false
 )
@@ -114,6 +132,8 @@ func InitPrometheus() {
 	prometheus.MustRegister(DatabaseConnectionsActive)
 	prometheus.MustRegister(CacheHitRatio)
 	prometheus.MustRegister(ErrorsTotal)
+	prometheus.MustRegister(CacheHitsTotal)
+	prometheus.MustRegister(CacheMissesTotal)
 
 	metricsInitialized = true
 }
@@ -216,4 +236,14 @@ func UpdateCacheHitRatio(cacheType string, ratio float64) {
 // RecordError はエラーを記録します
 func RecordError(errorType, severity string) {
 	ErrorsTotal.WithLabelValues(errorType, severity).Inc()
+}
+
+// RecordCacheHit はキャッシュヒットを記録します
+func RecordCacheHit(cacheType string) {
+	CacheHitsTotal.WithLabelValues(cacheType).Inc()
+}
+
+// RecordCacheMiss はキャッシュミスを記録します
+func RecordCacheMiss(cacheType string) {
+	CacheMissesTotal.WithLabelValues(cacheType).Inc()
 }

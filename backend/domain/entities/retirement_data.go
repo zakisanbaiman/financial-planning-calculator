@@ -96,6 +96,36 @@ func NewRetirementData(
 	}, nil
 }
 
+// NewRetirementDataWithID は指定されたIDで退職データを作成する（リポジトリでの復元用）
+func NewRetirementDataWithID(
+	id RetirementDataID,
+	userID UserID,
+	currentAge int,
+	retirementAge int,
+	lifeExpectancy int,
+	monthlyRetirementExpenses valueobjects.Money,
+	pensionAmount valueobjects.Money,
+	createdAt, updatedAt time.Time,
+) (*RetirementData, error) {
+	if id == "" {
+		return nil, errors.New("退職データIDは必須です")
+	}
+	if userID == "" {
+		return nil, errors.New("ユーザーIDは必須です")
+	}
+	return &RetirementData{
+		id:                        id,
+		userID:                    userID,
+		currentAge:                currentAge,
+		retirementAge:             retirementAge,
+		lifeExpectancy:            lifeExpectancy,
+		monthlyRetirementExpenses: monthlyRetirementExpenses,
+		pensionAmount:             pensionAmount,
+		createdAt:                 createdAt,
+		updatedAt:                 updatedAt,
+	}, nil
+}
+
 // ID は退職データIDを返す
 func (rd *RetirementData) ID() RetirementDataID {
 	return rd.id
