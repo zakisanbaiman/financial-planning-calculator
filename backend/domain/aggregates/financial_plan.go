@@ -120,6 +120,38 @@ func NewFinancialPlan(profile *entities.FinancialProfile) (*FinancialPlan, error
 	}, nil
 }
 
+// NewFinancialPlanWithID は指定されたIDで財務計画を作成する（リポジトリでの復元用）
+func NewFinancialPlanWithID(
+	id FinancialPlanID,
+	profile *entities.FinancialProfile,
+	createdAt, updatedAt time.Time,
+) (*FinancialPlan, error) {
+	if id == "" {
+		return nil, errors.New("財務計画IDは必須です")
+	}
+	if profile == nil {
+		return nil, errors.New("財務プロファイルは必須です")
+	}
+
+	defaultEmergencyFund, err := valueobjects.NewMoneyJPY(0)
+	if err != nil {
+		return nil, fmt.Errorf("デフォルト緊急資金の作成に失敗しました: %w", err)
+	}
+	emergencyConfig, err := NewEmergencyFundConfig(3, defaultEmergencyFund)
+	if err != nil {
+		return nil, fmt.Errorf("緊急資金設定の作成に失敗しました: %w", err)
+	}
+
+	return &FinancialPlan{
+		id:            id,
+		profile:       profile,
+		goals:         make([]*entities.Goal, 0),
+		emergencyFund: emergencyConfig,
+		createdAt:     createdAt,
+		updatedAt:     updatedAt,
+	}, nil
+}
+
 // ID は財務計画IDを返す
 func (fp *FinancialPlan) ID() FinancialPlanID {
 	return fp.id

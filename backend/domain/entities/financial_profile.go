@@ -176,6 +176,39 @@ func NewFinancialProfile(
 	}, nil
 }
 
+// NewFinancialProfileWithID は指定されたIDで財務プロファイルを作成する（リポジトリでの復元用）
+func NewFinancialProfileWithID(
+	id FinancialProfileID,
+	userID UserID,
+	monthlyIncome valueobjects.Money,
+	monthlyExpenses ExpenseCollection,
+	currentSavings SavingsCollection,
+	investmentReturn valueobjects.Rate,
+	inflationRate valueobjects.Rate,
+	createdAt, updatedAt time.Time,
+) (*FinancialProfile, error) {
+	if id == "" {
+		return nil, errors.New("財務プロファイルIDは必須です")
+	}
+	if userID == "" {
+		return nil, errors.New("ユーザーIDは必須です")
+	}
+	if !monthlyIncome.IsPositive() {
+		return nil, errors.New("月収は正の値である必要があります")
+	}
+	return &FinancialProfile{
+		id:               id,
+		userID:           userID,
+		monthlyIncome:    monthlyIncome,
+		monthlyExpenses:  monthlyExpenses,
+		currentSavings:   currentSavings,
+		investmentReturn: investmentReturn,
+		inflationRate:    inflationRate,
+		createdAt:        createdAt,
+		updatedAt:        updatedAt,
+	}, nil
+}
+
 // ID は財務プロファイルIDを返す
 func (fp *FinancialProfile) ID() FinancialProfileID {
 	return fp.id
