@@ -3,6 +3,7 @@ package web
 import (
 	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
@@ -30,13 +31,24 @@ type ValidationErrorResponse struct {
 
 // NewCustomValidator creates a new custom validator
 func NewCustomValidator() *CustomValidator {
-	validator := validator.New()
+	v := validator.New()
+
+	// Use json tag names as field names so that validation errors report
+	// camelCase field names (e.g. "email") instead of struct field names
+	// (e.g. "Email").
+	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
+		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
+		if name == "-" || name == "" {
+			return fld.Name
+		}
+		return name
+	})
 
 	// Register custom validation messages
-	registerCustomMessages(validator)
+	registerCustomMessages(v)
 
 	return &CustomValidator{
-		validator: validator,
+		validator: v,
 	}
 }
 
@@ -119,81 +131,88 @@ func getCustomErrorMessage(fe validator.FieldError) string {
 	}
 }
 
-// getFieldDisplayName returns a user-friendly field name in Japanese
+// getFieldDisplayName returns a user-friendly field name in Japanese.
+// Keys are json tag names (snake_case / camelCase) as reported by the validator
+// after RegisterTagNameFunc is applied.
 func getFieldDisplayName(field string) string {
 	fieldNames := map[string]string{
 		// User and identification fields
-		"UserID":   "ユーザーID",
-		"GoalID":   "目標ID",
-		"PlanID":   "計画ID",
-		"ReportID": "レポートID",
+		"user_id":   "ユーザーID",
+		"goal_id":   "目標ID",
+		"plan_id":   "計画ID",
+		"report_id": "レポートID",
 
 		// Financial profile fields
-		"MonthlyIncome":    "月収",
-		"MonthlyExpenses":  "月間支出",
-		"CurrentSavings":   "現在の貯蓄",
-		"InvestmentReturn": "投資利回り",
-		"InflationRate":    "インフレ率",
+		"monthly_income":    "月収",
+		"monthly_expenses":  "月間支出",
+		"current_savings":   "現在の貯蓄",
+		"investment_return": "投資利回り",
+		"inflation_rate":    "インフレ率",
 
 		// Retirement fields
-		"RetirementAge":             "退職年齢",
-		"MonthlyRetirementExpenses": "老後月間生活費",
-		"PensionAmount":             "年金受給額",
-		"CurrentAge":                "現在の年齢",
-		"LifeExpectancy":            "平均寿命",
+		"retirement_age":              "退職年齢",
+		"monthly_retirement_expenses": "老後月間生活費",
+		"pension_amount":              "年金受給額",
+		"current_age":                 "現在の年齢",
+		"life_expectancy":             "平均寿命",
 
 		// Emergency fund fields
-		"EmergencyFundTargetMonths":  "緊急資金目標月数",
-		"EmergencyFundCurrentAmount": "現在の緊急資金",
-		"TargetMonths":               "目標月数",
+		"emergency_fund_target_months":  "緊急資金目標月数",
+		"emergency_fund_current_amount": "現在の緊急資金",
+		"target_months":                 "目標月数",
 
 		// Expense and savings fields
-		"Category":    "カテゴリ",
-		"Amount":      "金額",
-		"Type":        "種類",
-		"Description": "説明",
+		"category":    "カテゴリ",
+		"amount":      "金額",
+		"type":        "種類",
+		"description": "説明",
 
 		// Goal fields
-		"GoalType":            "目標タイプ",
-		"Title":               "タイトル",
-		"TargetAmount":        "目標金額",
-		"TargetDate":          "目標日",
-		"CurrentAmount":       "現在の金額",
-		"MonthlyContribution": "月間積立額",
-		"IsActive":            "アクティブ状態",
-		"Note":                "メモ",
+		"goal_type":            "目標タイプ",
+		"title":                "タイトル",
+		"target_amount":        "目標金額",
+		"target_date":          "目標日",
+		"current_amount":       "現在の金額",
+		"monthly_contribution": "月間積立額",
+		"is_active":            "アクティブ状態",
+		"note":                 "メモ",
 
 		// Calculation fields
-		"Years":      "年数",
-		"Months":     "月数",
-		"Percentage": "パーセンテージ",
-		"Rate":       "利率",
-		"Period":     "期間",
-		"StartDate":  "開始日",
-		"EndDate":    "終了日",
-		"CreatedAt":  "作成日時",
-		"UpdatedAt":  "更新日時",
+		"years":      "年数",
+		"months":     "月数",
+		"percentage": "パーセンテージ",
+		"rate":       "利率",
+		"period":     "期間",
+		"start_date": "開始日",
+		"end_date":   "終了日",
+		"created_at": "作成日時",
+		"updated_at": "更新日時",
 
 		// Report fields
-		"ReportType": "レポートタイプ",
-		"Format":     "フォーマット",
-		"Language":   "言語",
-		"Template":   "テンプレート",
+		"report_type": "レポートタイプ",
+		"format":      "フォーマット",
+		"language":    "言語",
+		"template":    "テンプレート",
+
+		// Auth fields
+		"password":     "パスワード",
+		"new_password": "新しいパスワード",
+		"token":        "トークン",
 
 		// Common fields
-		"Name":    "名前",
-		"Value":   "値",
-		"Status":  "ステータス",
-		"Message": "メッセージ",
-		"Email":   "メールアドレス",
-		"Phone":   "電話番号",
-		"Address": "住所",
+		"name":    "名前",
+		"value":   "値",
+		"status":  "ステータス",
+		"message": "メッセージ",
+		"email":   "メールアドレス",
+		"phone":   "電話番号",
+		"address": "住所",
 	}
 
 	if displayName, exists := fieldNames[field]; exists {
 		return displayName
 	}
 
-	// Convert camelCase to readable format if not found in map
-	return strings.ToLower(field)
+	// Return field as-is if not found in map
+	return field
 }
