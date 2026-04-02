@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -9,6 +10,7 @@ import (
 	"github.com/financial-planning-calculator/backend/domain/services"
 	"github.com/financial-planning-calculator/backend/infrastructure/monitoring"
 	"github.com/financial-planning-calculator/backend/infrastructure/email"
+	redisinfra "github.com/financial-planning-calculator/backend/infrastructure/redis"
 	"github.com/financial-planning-calculator/backend/infrastructure/repositories"
 	"github.com/financial-planning-calculator/backend/infrastructure/web"
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -117,6 +119,16 @@ func initializeDependencies() *web.ServerDependencies {
 	webAuthnCredentialRepo := repoFactory.NewWebAuthnCredentialRepository()
 	financialPlanRepo := repoFactory.NewFinancialPlanRepository()
 	goalRepo := repoFactory.NewGoalRepository()
+
+	// Redisキャッシュの初期化（利用可能な場合はデコレータでラップ）
+	redisClient := redisinfra.NewClient()
+	if err := redisClient.Ping(context.Background()); err != nil {
+		log.Printf("⚠️  Redis接続に失敗しました（キャッシュ無効で起動）: %v", err)
+	} else {
+		log.Println("✅ Redisキャッシュを有効化しました")
+		financialPlanRepo = repositories.NewCachedFinancialPlanRepository(financialPlanRepo, redisClient)
+		goalRepo = repositories.NewCachedGoalRepository(goalRepo, redisClient)
+	}
 
 	// Initialize domain services
 	calculationService := services.NewFinancialCalculationService()
