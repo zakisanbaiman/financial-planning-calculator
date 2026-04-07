@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Source_Sans_3, JetBrains_Mono } from 'next/font/goo
 import { GoogleAnalytics } from '@next/third-parties/google';
 import './globals.css';
 import Navigation from '@/components/Navigation';
+import Footer from '@/components/Footer';
 import Tutorial from '@/components/Tutorial';
 import { AppProviders } from '@/lib/contexts/AppProviders';
 
@@ -75,6 +76,7 @@ export default function RootLayout({
             <main className="flex-1">
               {children}
             </main>
+            <Footer />
           </div>
           <Tutorial />
         </AppProviders>
