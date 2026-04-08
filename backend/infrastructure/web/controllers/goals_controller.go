@@ -153,6 +153,14 @@ func (c *GoalsController) CreateGoal(ctx echo.Context) error {
 		if strings.Contains(err.Error(), "財務データが見つかりません") || strings.Contains(err.Error(), "財務プロファイルの取得に失敗しました") {
 			return ctx.JSON(http.StatusBadRequest, NewInsufficientDataErrorResponse(ctx, "financial_data"))
 		}
+		// Goal feasibility check failure is a business logic error, not an internal server error
+		if strings.Contains(err.Error(), "現在の財務状況では目標の達成が困難です") {
+			return ctx.JSON(http.StatusUnprocessableEntity, NewErrorResponse(ctx, ErrorCodeBusinessLogic, err.Error(), nil))
+		}
+		// Duplicate goal type (retirement/emergency) is a conflict
+		if strings.Contains(err.Error(), "の目標は既に存在します") {
+			return ctx.JSON(http.StatusConflict, NewConflictErrorResponse(ctx, "同じタイプの目標"))
+		}
 		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
 	}
 
