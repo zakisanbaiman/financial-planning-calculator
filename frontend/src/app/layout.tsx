@@ -50,11 +50,24 @@ export const metadata: Metadata = {
   },
 };
 
+function getGoogleAnalyticsId() {
+  const gaIdCandidates = [
+    process.env.NEXT_PUBLIC_GA_ID,
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID,
+    process.env.GA_MEASUREMENT_ID,
+    process.env.GA_ID,
+  ];
+
+  return gaIdCandidates.find((value) => typeof value === 'string' && value.trim().length > 0);
+}
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const googleAnalyticsId = getGoogleAnalyticsId();
+
   return (
     <html
       lang="ja"
@@ -97,9 +110,7 @@ export default function RootLayout({
           <Tutorial />
         </AppProviders>
       </body>
-      {process.env.NEXT_PUBLIC_GA_ID && (
-        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
-      )}
+      {googleAnalyticsId && <GoogleAnalytics gaId={googleAnalyticsId} />}
     </html>
   );
 }
