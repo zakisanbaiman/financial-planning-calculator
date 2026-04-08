@@ -90,6 +90,11 @@ func (u *botUseCase) StreamAnswer(ctx context.Context, question string) (<-chan 
 func buildPrompt(question string, faqs []ports.FAQContent) string {
 	var sb strings.Builder
 
+	// サービス識別のシステム指示（常に含める）
+	sb.WriteString("あなたはFinPlan（財務計画計算機）のAIアシスタントです。")
+	sb.WriteString("資産推移シミュレーション、老後資金計算、緊急資金計算、目標管理、PDFレポートの機能を提供する日本向け財務計画サービスです。")
+	sb.WriteString("ユーザーの質問に対して、このサービスの情報と財務知識を活用して日本語で丁寧に回答してください。\n\n")
+
 	if len(faqs) > 0 {
 		sb.WriteString("以下は関連するFAQ情報です:\n\n")
 		for _, f := range faqs {
