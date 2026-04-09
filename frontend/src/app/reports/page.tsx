@@ -240,6 +240,11 @@ export default function ReportsPage() {
         {/* Report Content Preview */}
         <div className="lg:col-span-2">
           <div className="card">
+            <div className="mb-4 px-3 py-2 border-l-2 border-accent-500 bg-accent-50 dark:bg-accent-900/20">
+              <p className="font-body text-xs text-ink-600 dark:text-ink-400">
+                プレビューはサンプルデータで表示されています。PDF生成時はあなたの実際のデータが使用されます。
+              </p>
+            </div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">レポートプレビュー</h2>
               <div className="flex space-x-2">
