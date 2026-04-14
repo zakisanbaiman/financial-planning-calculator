@@ -1,9 +1,12 @@
 package web
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -129,4 +132,73 @@ func TestSetupMiddleware_RateLimitExceeded(t *testing.T) {
 	}
 
 	assert.True(t, rateLimited, "レート制限が機能していません")
+}
+
+func TestExtractIdentifier_MultipleXForwardedFor(t *testing.T) {
+	// X-Forwarded-For に複数IPが含まれる場合、最初のIPのみが返されることを検証する。
+	tests := []struct {
+		name     string
+		header   string
+		expected string
+	}{
+		{"単一IP", "192.168.1.1", "192.168.1.1"},
+		{"複数IP（スペースあり）", "192.168.1.1, 10.0.0.1, 172.16.0.1", "192.168.1.1"},
+		{"複数IP（スペースなし）", "192.168.1.1,10.0.0.1", "192.168.1.1"},
+		{"前後スペース", "  192.168.1.100  , 10.0.0.1", "192.168.1.100"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := echo.New()
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req.Header.Set("X-Forwarded-For", tt.header)
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+
+			identifier, err := extractIdentifier(c)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expected, identifier)
+		})
+	}
+}
+
+func TestSetupMiddleware_DenyHandler_RetryAfterIsDynamic(t *testing.T) {
+	// DenyHandler が "60s" のハードコードではなく動的な値を返すことを検証する。
+	e := echo.New()
+	cfg := &config.ServerConfig{
+		AllowedOrigins: []string{"http://localhost:3000"},
+		CORSMaxAge:     86400,
+		RateLimitRPS:   1,
+		RateLimitBurst: 1,
+		RequestTimeout: 30 * time.Second,
+		MaxRequestSize: "10M",
+	}
+	SetupMiddleware(e, cfg)
+	e.GET("/test", func(c echo.Context) error {
+		return c.String(http.StatusOK, "OK")
+	})
+
+	clientIP := fmt.Sprintf("test-retry-dynamic-%d", time.Now().UnixNano())
+	var retryAfter string
+	for i := 0; i < 10; i++ {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set("X-Forwarded-For", clientIP)
+		rec := httptest.NewRecorder()
+		e.ServeHTTP(rec, req)
+		if rec.Code == http.StatusTooManyRequests {
+			var body map[string]any
+			json.Unmarshal(rec.Body.Bytes(), &body) //nolint:errcheck
+			retryAfter, _ = body["retry_after"].(string)
+			break
+		}
+	}
+
+	assert.NotEmpty(t, retryAfter, "retry_after フィールドが存在しない")
+	// ハードコード "60s" ではないことを確認
+	assert.NotEqual(t, "60s", retryAfter, "retry_after がハードコードされた '60s' のままです")
+	// "<数値>s" 形式で、0以上180秒以下であること（ウィンドウ=3分）
+	secStr := strings.TrimSuffix(retryAfter, "s")
+	secs, err := strconv.Atoi(secStr)
+	assert.NoError(t, err, "retry_after の秒数をパースできない: %s", retryAfter)
+	assert.GreaterOrEqual(t, secs, 0)
+	assert.LessOrEqual(t, secs, 180)
 }

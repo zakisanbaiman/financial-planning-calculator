@@ -75,7 +75,7 @@ func LoadServerConfig() *ServerConfig {
 		RateLimitRPS:        getEnvInt("RATE_LIMIT_RPS", 100),
 		RateLimitBurst:      getEnvInt("RATE_LIMIT_BURST", 50),
 		AuthRateLimitRPS:    getEnvInt("AUTH_RATE_LIMIT_RPS", 10),
-		AuthRateLimitBurst:  getEnvInt("AUTH_RATE_LIMIT_BURST", 5),
+		AuthRateLimitBurst:  getEnvInt("AUTH_RATE_LIMIT_BURST", 10),
 		RequestTimeout:      getEnvDuration("REQUEST_TIMEOUT", 30*time.Second),
 		MaxRequestSize:      getEnv("MAX_REQUEST_SIZE", "10M"),
 		EnableGzip:          getEnvBool("ENABLE_GZIP", true),
