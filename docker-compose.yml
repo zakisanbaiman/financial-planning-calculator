@@ -68,6 +68,9 @@ services:
       OAUTH_FAILURE_REDIRECT: ${OAUTH_FAILURE_REDIRECT:-http://localhost:3000/login?error=oauth_failed}
       REDIS_HOST: redis
       REDIS_PORT: '6379'
+      # New Relic APM (Issue: #146)
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-financial-planning-calculator}
     depends_on:
       postgres:
         condition: service_healthy

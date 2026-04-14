@@ -20,8 +20,8 @@ const botMessagesPath = "/api/bot/messages"
 // SetupMiddleware configures all middleware for the Echo server.
 // Returns the CustomRateLimiterStore so it can be reused for the status endpoint.
 func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) *CustomRateLimiterStore {
-	// パフォーマンス監視ミドルウェア（Prometheus）
-	e.Use(monitoring.PrometheusMiddleware())
+	// パフォーマンス監視ミドルウェア（New Relic APM）
+	e.Use(monitoring.NewRelicMiddleware())
 
 	// ログミドルウェア - slog による構造化リクエストログ
 	e.Use(SlogRequestLogger())

@@ -63,6 +63,9 @@ type ServerConfig struct {
 	GroqAPIKey string // GROQ_API_KEY
 	GroqModel  string // GROQ_MODEL (例: "llama3-8b-8192")
 	FAQDir     string // FAQ_DIR (例: "docs/faq")
+	// New Relic APM
+	NewRelicLicenseKey string // NEW_RELIC_LICENSE_KEY
+	NewRelicAppName    string // NEW_RELIC_APP_NAME
 }
 
 // LoadServerConfig loads server configuration from environment variables
@@ -124,6 +127,9 @@ func LoadServerConfig() *ServerConfig {
 		GroqAPIKey: getEnv("GROQ_API_KEY", ""),
 		GroqModel:  getEnv("GROQ_MODEL", "llama3-8b-8192"),
 		FAQDir:     getEnv("FAQ_DIR", "docs/faq"),
+		// New Relic APM
+		NewRelicLicenseKey: getEnv("NEW_RELIC_LICENSE_KEY", ""),
+		NewRelicAppName:    getEnv("NEW_RELIC_APP_NAME", "financial-planning-calculator"),
 	}
 
 	return config
