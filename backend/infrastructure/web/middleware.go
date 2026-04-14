@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/financial-planning-calculator/backend/config"
@@ -89,11 +90,16 @@ func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) *CustomRateLimiterS
 			})
 		},
 		DenyHandler: func(c echo.Context, identifier string, err error) error {
+			info := rateLimitStore.GetInfo(identifier)
+			retryAfterSec := info.Reset - time.Now().Unix()
+			if retryAfterSec < 0 {
+				retryAfterSec = 0
+			}
 			return c.JSON(http.StatusTooManyRequests, map[string]any{
 				"error":       "Too Many Requests",
 				"message":     "Rate limit exceeded. Please wait before retrying.",
 				"code":        "RATE_LIMIT_EXCEEDED",
-				"retry_after": "60s",
+				"retry_after": fmt.Sprintf("%ds", retryAfterSec),
 			})
 		},
 	}))
@@ -127,7 +133,15 @@ func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) *CustomRateLimiterS
 
 // extractIdentifier returns the client IP from common proxy headers or the real IP.
 func extractIdentifier(c echo.Context) (string, error) {
+	// X-Forwarded-For は "client, proxy1, proxy2" 形式で複数IPを含む場合がある。
+	// 最左がオリジナルクライアントIPのため、最初のIPのみを使用する。
+	// Note: このヘッダーはクライアントが偽装可能。信頼できるリバースプロキシがある
+	// 環境では、プロキシが付与する最右IPを使う設計への移行を将来的に検討すること。
 	ip := c.Request().Header.Get("X-Forwarded-For")
+	if ip != "" {
+		parts := strings.Split(ip, ",")
+		ip = strings.TrimSpace(parts[0])
+	}
 	if ip == "" {
 		ip = c.Request().Header.Get("X-Real-IP")
 	}
