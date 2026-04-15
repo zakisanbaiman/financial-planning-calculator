@@ -88,9 +88,17 @@ func main() {
 
 // initMonitoring は監視システムを初期化します
 func initMonitoring(cfg *config.ServerConfig) {
-	// Prometheusメトリクスの初期化
-	monitoring.InitPrometheus()
-	log.Println("✅ Prometheusメトリクスを初期化しました")
+	// New Relic APM エージェントの初期化
+	licenseKey := cfg.NewRelicLicenseKey
+	appName := cfg.NewRelicAppName
+	if appName == "" {
+		appName = "financial-planning-calculator"
+	}
+	if err := monitoring.InitNewRelic(licenseKey, appName); err != nil {
+		log.Printf("⚠️  New Relic 初期化失敗（監視なしで続行）: %v", err)
+	} else {
+		log.Println("✅ New Relic エージェントを初期化しました")
+	}
 
 	// エラートラッキングの初期化
 	environment := "development"
