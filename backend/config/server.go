@@ -17,6 +17,7 @@ type ServerConfig struct {
 	RateLimitBurst      int
 	AuthRateLimitRPS    int
 	AuthRateLimitBurst  int
+	TrustedProxyCount   int // 信頼済みプロキシ段数（右からN個のIPを除外して識別子を取得）
 	RequestTimeout      time.Duration
 	MaxRequestSize      string
 	EnableGzip          bool
@@ -79,6 +80,7 @@ func LoadServerConfig() *ServerConfig {
 		RateLimitBurst:      getEnvInt("RATE_LIMIT_BURST", 50),
 		AuthRateLimitRPS:    getEnvInt("AUTH_RATE_LIMIT_RPS", 10),
 		AuthRateLimitBurst:  getEnvInt("AUTH_RATE_LIMIT_BURST", 10),
+		TrustedProxyCount:   getEnvInt("TRUSTED_PROXY_COUNT", 1),
 		RequestTimeout:      getEnvDuration("REQUEST_TIMEOUT", 30*time.Second),
 		MaxRequestSize:      getEnv("MAX_REQUEST_SIZE", "10M"),
 		EnableGzip:          getEnvBool("ENABLE_GZIP", true),

@@ -69,6 +69,7 @@ func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) *CustomRateLimiterS
 	e.Use(middleware.BodyLimit(cfg.MaxRequestSize))
 
 	// Rate limiting - per-IP API request throttling (custom store for /api/rate-limit/status)
+	extractIdentifier := newIdentifierExtractor(cfg.TrustedProxyCount)
 	rateLimitStore := NewCustomRateLimiterStore(
 		float64(cfg.RateLimitRPS),
 		cfg.RateLimitBurst,
@@ -105,7 +106,7 @@ func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) *CustomRateLimiterS
 	}))
 
 	// X-RateLimit-* response headers
-	e.Use(RateLimitHeaderMiddleware(rateLimitStore))
+	e.Use(RateLimitHeaderMiddleware(rateLimitStore, extractIdentifier))
 
 	// タイムアウト設定（SSEエンドポイントは除外）
 	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
@@ -131,31 +132,47 @@ func SetupMiddleware(e *echo.Echo, cfg *config.ServerConfig) *CustomRateLimiterS
 	return rateLimitStore
 }
 
-// extractIdentifier returns the client IP from common proxy headers or the real IP.
-func extractIdentifier(c echo.Context) (string, error) {
-	// X-Forwarded-For は "client, proxy1, proxy2" 形式で複数IPを含む場合がある。
-	// 最左がオリジナルクライアントIPのため、最初のIPのみを使用する。
-	// Note: このヘッダーはクライアントが偽装可能。信頼できるリバースプロキシがある
-	// 環境では、プロキシが付与する最右IPを使う設計への移行を将来的に検討すること。
-	ip := c.Request().Header.Get("X-Forwarded-For")
-	if ip != "" {
-		parts := strings.Split(ip, ",")
-		ip = strings.TrimSpace(parts[0])
+// newIdentifierExtractor returns an IdentifierExtractor that resolves the client IP
+// by trusting trustedProxyCount proxies on the right side of X-Forwarded-For.
+//
+// X-Forwarded-For の構造:
+//
+//	203.0.113.5, 10.0.0.1, 54.0.0.1
+//	^^^^^^^^^^^  ^^^^^^^^^  ^^^^^^^^^
+//	クライアント   内部proxy   Railway LB（信頼済み）
+//
+// trustedProxyCount=1 の場合、右から1つ（Railway LB）を除いた最右の値を使用。
+// trustedProxyCount=0 の場合、最左のIPを使用（ローカル開発互換だが偽装可能）。
+func newIdentifierExtractor(trustedProxyCount int) func(echo.Context) (string, error) {
+	return func(c echo.Context) (string, error) {
+		xff := c.Request().Header.Get("X-Forwarded-For")
+		if xff != "" {
+			parts := strings.Split(xff, ",")
+			if trustedProxyCount == 0 {
+				// プロキシを信頼しない場合は最左IP（ローカル開発互換。偽装可能なため本番では非推奨）
+				return strings.TrimSpace(parts[0]), nil
+			}
+			// 右からtrustedProxyCount個を除外し、残りの最右を使用
+			targetIdx := len(parts) - 1 - trustedProxyCount
+			if targetIdx < 0 {
+				targetIdx = 0
+			}
+			return strings.TrimSpace(parts[targetIdx]), nil
+		}
+
+		if ip := c.Request().Header.Get("X-Real-IP"); ip != "" {
+			return ip, nil
+		}
+
+		return c.RealIP(), nil
 	}
-	if ip == "" {
-		ip = c.Request().Header.Get("X-Real-IP")
-	}
-	if ip == "" {
-		ip = c.RealIP()
-	}
-	return ip, nil
 }
 
 // RateLimitHeaderMiddleware attaches X-RateLimit-{Limit,Remaining,Reset} headers to every response.
-func RateLimitHeaderMiddleware(store *CustomRateLimiterStore) echo.MiddlewareFunc {
+func RateLimitHeaderMiddleware(store *CustomRateLimiterStore, extractor func(echo.Context) (string, error)) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			identifier, _ := extractIdentifier(c)
+			identifier, _ := extractor(c)
 			info := store.GetInfo(identifier)
 
 			h := c.Response().Header()
@@ -176,10 +193,11 @@ func AuthRateLimiterMiddleware(cfg *config.ServerConfig) echo.MiddlewareFunc {
 		cfg.AuthRateLimitBurst,
 		5*time.Minute,
 	)
+	extractor := newIdentifierExtractor(cfg.TrustedProxyCount)
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			identifier, err := extractIdentifier(c)
+			identifier, err := extractor(c)
 			if err != nil {
 				return c.JSON(http.StatusInternalServerError, map[string]any{
 					"error":   "Internal Server Error",

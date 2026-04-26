@@ -53,7 +53,7 @@ func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencie
 	api.GET("/ready", APIReadinessHandler(deps))
 
 	// レートリミットステータスエンドポイント（認証不要）
-	api.GET("/rate-limit/status", RateLimitStatusHandler(rateLimitStore))
+	api.GET("/rate-limit/status", RateLimitStatusHandler(rateLimitStore, newIdentifierExtractor(deps.ServerConfig.TrustedProxyCount)))
 
 	// 認証レートリミッターミドルウェア（ブルートフォース対策）
 	authRateLimiter := AuthRateLimiterMiddleware(deps.ServerConfig)
@@ -278,9 +278,9 @@ func APIInfoHandler(c echo.Context) error {
 //	  "reset":     1739865600,
 //	  "reset_at":  "2026-02-18T15:00:00Z"
 //	}
-func RateLimitStatusHandler(store *CustomRateLimiterStore) echo.HandlerFunc {
+func RateLimitStatusHandler(store *CustomRateLimiterStore, extractor func(echo.Context) (string, error)) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		identifier, _ := extractIdentifier(c)
+		identifier, _ := extractor(c)
 		info := store.GetInfo(identifier)
 		return c.JSON(http.StatusOK, info)
 	}
