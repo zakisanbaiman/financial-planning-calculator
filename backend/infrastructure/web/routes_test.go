@@ -99,7 +99,7 @@ func TestRateLimitStatusHandler(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	handler := RateLimitStatusHandler(store)
+	handler := RateLimitStatusHandler(store, newIdentifierExtractor(0))
 	err := handler(c)
 
 	assert.NoError(t, err)
@@ -123,7 +123,7 @@ func TestRateLimitStatusHandler_RemainingDecreases(t *testing.T) {
 		req.RemoteAddr = ip + ":1234"
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
-		handler := RateLimitStatusHandler(store)
+		handler := RateLimitStatusHandler(store, newIdentifierExtractor(0))
 		handler(c) //nolint:errcheck
 
 		var info RateLimitInfo

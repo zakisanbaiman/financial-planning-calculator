@@ -93,6 +93,92 @@ func TestSetupMiddleware_RateLimiter(t *testing.T) {
 	})
 }
 
+func TestNewIdentifierExtractor(t *testing.T) {
+	tests := []struct {
+		name              string
+		trustedProxyCount int
+		xForwardedFor     string
+		xRealIP           string
+		remoteAddr        string
+		want              string
+	}{
+		{
+			name:              "TRUSTED_PROXY_COUNT=1: 右から1つ除外して最右を使用",
+			trustedProxyCount: 1,
+			xForwardedFor:     "203.0.113.5, 10.0.0.1, 54.0.0.1",
+			want:              "10.0.0.1",
+		},
+		{
+			name:              "TRUSTED_PROXY_COUNT=1: XFFが2エントリ（クライアント+LB）",
+			trustedProxyCount: 1,
+			xForwardedFor:     "203.0.113.5, 54.0.0.1",
+			want:              "203.0.113.5",
+		},
+		{
+			name:              "TRUSTED_PROXY_COUNT=0: 最左IPを使用（ローカル開発互換）",
+			trustedProxyCount: 0,
+			xForwardedFor:     "203.0.113.5, 10.0.0.1, 54.0.0.1",
+			want:              "203.0.113.5",
+		},
+		{
+			name:              "TRUSTED_PROXY_COUNT=1: XFFが単一エントリ（プロキシ数超過）",
+			trustedProxyCount: 1,
+			xForwardedFor:     "203.0.113.5",
+			want:              "203.0.113.5", // targetIdx<0 → 0に補正
+		},
+		{
+			name:              "TRUSTED_PROXY_COUNT=2: 右から2つ除外",
+			trustedProxyCount: 2,
+			xForwardedFor:     "203.0.113.5, 10.0.0.1, 54.0.0.1",
+			want:              "203.0.113.5",
+		},
+		{
+			name:              "XFFなし: X-Real-IPにフォールバック",
+			trustedProxyCount: 1,
+			xRealIP:           "203.0.113.5",
+			remoteAddr:        "127.0.0.1:12345",
+			want:              "203.0.113.5",
+		},
+		{
+			name:              "XFF・X-Real-IPなし: RemoteAddrにフォールバック",
+			trustedProxyCount: 1,
+			remoteAddr:        "203.0.113.5:12345",
+			want:              "203.0.113.5",
+		},
+		{
+			name:              "攻撃シナリオ: 攻撃者が先頭にIPを偽装してもTRUSTED_PROXY_COUNT=1で無効化",
+			trustedProxyCount: 1,
+			// 攻撃者が1.2.3.4を偽装、Railway LBが54.0.0.1を追記
+			xForwardedFor: "1.2.3.4, 203.0.113.5, 54.0.0.1",
+			want:          "203.0.113.5", // 本物のクライアントIP
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := echo.New()
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			if tt.xForwardedFor != "" {
+				req.Header.Set("X-Forwarded-For", tt.xForwardedFor)
+			}
+			if tt.xRealIP != "" {
+				req.Header.Set("X-Real-IP", tt.xRealIP)
+			}
+			if tt.remoteAddr != "" {
+				req.RemoteAddr = tt.remoteAddr
+			}
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+
+			extractor := newIdentifierExtractor(tt.trustedProxyCount)
+			got, err := extractor(c)
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestSetupMiddleware_RateLimitExceeded(t *testing.T) {
 	e := echo.New()
 	cfg := &config.ServerConfig{
@@ -132,33 +218,6 @@ func TestSetupMiddleware_RateLimitExceeded(t *testing.T) {
 	}
 
 	assert.True(t, rateLimited, "レート制限が機能していません")
-}
-
-func TestExtractIdentifier_MultipleXForwardedFor(t *testing.T) {
-	// X-Forwarded-For に複数IPが含まれる場合、最初のIPのみが返されることを検証する。
-	tests := []struct {
-		name     string
-		header   string
-		expected string
-	}{
-		{"単一IP", "192.168.1.1", "192.168.1.1"},
-		{"複数IP（スペースあり）", "192.168.1.1, 10.0.0.1, 172.16.0.1", "192.168.1.1"},
-		{"複数IP（スペースなし）", "192.168.1.1,10.0.0.1", "192.168.1.1"},
-		{"前後スペース", "  192.168.1.100  , 10.0.0.1", "192.168.1.100"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			e := echo.New()
-			req := httptest.NewRequest(http.MethodGet, "/", nil)
-			req.Header.Set("X-Forwarded-For", tt.header)
-			rec := httptest.NewRecorder()
-			c := e.NewContext(req, rec)
-
-			identifier, err := extractIdentifier(c)
-			assert.NoError(t, err)
-			assert.Equal(t, tt.expected, identifier)
-		})
-	}
 }
 
 func TestSetupMiddleware_DenyHandler_RetryAfterIsDynamic(t *testing.T) {
