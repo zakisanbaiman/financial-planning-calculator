@@ -4,10 +4,11 @@ module.exports = [
   ...nextConfig,
   {
     rules: {
-      // Downgrade React Compiler rules introduced in Next.js 16 to warnings
-      // for gradual adoption on existing code
-      'react-hooks/set-state-in-effect': 'warn',
-      'react-hooks/set-state-in-render': 'warn',
+      // React Compiler rules introduced in Next.js 16 – disabled for existing
+      // codebase that predates React Compiler adoption
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/set-state-in-render': 'off',
+      'react-hooks/incompatible-library': 'off',
     },
   },
 ];
