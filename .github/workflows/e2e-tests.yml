@@ -10,7 +10,7 @@ jobs:
   e2e-tests:
     name: Run E2E Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     permissions:
       contents: read
@@ -80,9 +80,10 @@ jobs:
           DB_NAME: financial_planning_test
           DB_SSLMODE: disable
         run: |
-          echo "Database setup - skipping migrations for now"
-          # TODO: Add migration script when available
-          # go run cmd/migrate/main.go
+          echo "Running database migrations..."
+          go run cmd/migrate/main.go -command=up
+          echo "Seeding test data..."
+          go run cmd/seed/main.go
 
       - name: Build backend
         working-directory: ./backend
