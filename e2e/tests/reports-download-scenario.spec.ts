@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { generateTestUserId, setupCompleteFinancialProfile, API_BASE_URL } from './test-utils';
+import { registerAndLoginTestUser, setupCompleteFinancialProfile, authHeaders, API_BASE_URL, TestAuthCredentials } from './test-utils';
 
 /**
  * E2E Test: Reports Download Scenario
@@ -10,12 +10,19 @@ import { generateTestUserId, setupCompleteFinancialProfile, API_BASE_URL } from 
  */
 
 test.describe('Reports Download Scenario', () => {
+  let auth: TestAuthCredentials;
+
+  test.beforeEach(async ({ request }) => {
+    auth = await registerAndLoginTestUser(request);
+    await setupCompleteFinancialProfile(request, auth.userId, auth.token);
+  });
+
   test('Scenario: Export report and download PDF via token', async ({ request }) => {
-    const userId = generateTestUserId();
-    await setupCompleteFinancialProfile(request, userId);
+    const userId = auth.userId;
 
     // Step 1: Export the report to get a download token
     const exportResponse = await request.post(`${API_BASE_URL}/api/reports/export`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
         report_type: 'financial_summary',
@@ -41,10 +48,7 @@ test.describe('Reports Download Scenario', () => {
     const downloadResponse = await request.get(
       `${API_BASE_URL}/api/reports/download/${token}`,
       {
-        headers: {
-          // 認証ヘッダー（実装時に認証情報を付与する）
-          'X-User-ID': userId,
-        },
+        headers: authHeaders(auth.token),
       }
     );
 
@@ -60,10 +64,10 @@ test.describe('Reports Download Scenario', () => {
   });
 
   test('Scenario: Quick download via GET /reports/pdf endpoint', async ({ request }) => {
-    const userId = generateTestUserId();
-    await setupCompleteFinancialProfile(request, userId);
+    const userId = auth.userId;
 
     const pdfResponse = await request.get(`${API_BASE_URL}/api/reports/pdf`, {
+      headers: authHeaders(auth.token),
       params: {
         user_id: userId,
         report_type: 'comprehensive',
@@ -78,10 +82,10 @@ test.describe('Reports Download Scenario', () => {
   });
 
   test('Scenario: Export financial_summary report and verify response fields', async ({ request }) => {
-    const userId = generateTestUserId();
-    await setupCompleteFinancialProfile(request, userId);
+    const userId = auth.userId;
 
     const exportResponse = await request.post(`${API_BASE_URL}/api/reports/export`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
         report_type: 'financial_summary',
@@ -106,15 +110,14 @@ test.describe('Reports Download Scenario', () => {
   });
 
   test('Scenario: Authorization check - another user cannot download token', async ({ request }) => {
-    const ownerUserId = generateTestUserId();
-    const attackerUserId = generateTestUserId();
-
-    await setupCompleteFinancialProfile(request, ownerUserId);
+    const ownerAuth = auth;
+    const attackerAuth = await registerAndLoginTestUser(request);
 
     // オーナーがエクスポートしてトークンを取得
     const exportResponse = await request.post(`${API_BASE_URL}/api/reports/export`, {
+      headers: authHeaders(ownerAuth.token),
       data: {
-        user_id: ownerUserId,
+        user_id: ownerAuth.userId,
         report_type: 'financial_summary',
         format: 'pdf',
         report_data: {},
@@ -131,10 +134,7 @@ test.describe('Reports Download Scenario', () => {
     const unauthorizedResponse = await request.get(
       `${API_BASE_URL}/api/reports/download/${token}`,
       {
-        headers: {
-          // 攻撃者のユーザーIDを送信
-          'X-User-ID': attackerUserId,
-        },
+        headers: authHeaders(attackerAuth.token),
       }
     );
 
@@ -146,9 +146,7 @@ test.describe('Reports Download Scenario', () => {
     const response = await request.get(
       `${API_BASE_URL}/api/reports/download/invalid-nonexistent-token-xyz`,
       {
-        headers: {
-          'X-User-ID': generateTestUserId(),
-        },
+        headers: authHeaders(auth.token),
       }
     );
 
@@ -158,15 +156,12 @@ test.describe('Reports Download Scenario', () => {
   test('Scenario: Download with expired token returns 410', async ({ request }) => {
     // このテストは実際に期限切れトークンを作る代わりに、
     // 期限切れを示す特定のトークン形式でAPIに問い合わせる
-    // 実装側でテスト用に期限切れ状態をシミュレートできるようにすること
     const expiredToken = 'expired-test-token-for-e2e';
 
     const response = await request.get(
       `${API_BASE_URL}/api/reports/download/${expiredToken}`,
       {
-        headers: {
-          'X-User-ID': generateTestUserId(),
-        },
+        headers: authHeaders(auth.token),
       }
     );
 
@@ -175,8 +170,7 @@ test.describe('Reports Download Scenario', () => {
   });
 
   test('Scenario: Export all report types successfully', async ({ request }) => {
-    const userId = generateTestUserId();
-    await setupCompleteFinancialProfile(request, userId);
+    const userId = auth.userId;
 
     const reportTypes = [
       'financial_summary',
@@ -187,6 +181,7 @@ test.describe('Reports Download Scenario', () => {
 
     for (const reportType of reportTypes) {
       const exportResponse = await request.post(`${API_BASE_URL}/api/reports/export`, {
+        headers: authHeaders(auth.token),
         data: {
           user_id: userId,
           report_type: reportType,
@@ -203,6 +198,7 @@ test.describe('Reports Download Scenario', () => {
 
   test('Scenario: Error - Export without user_id returns 400', async ({ request }) => {
     const response = await request.post(`${API_BASE_URL}/api/reports/export`, {
+      headers: authHeaders(auth.token),
       data: {
         report_type: 'financial_summary',
         format: 'pdf',
@@ -214,9 +210,10 @@ test.describe('Reports Download Scenario', () => {
   });
 
   test('Scenario: Error - Export with invalid report_type returns 400', async ({ request }) => {
-    const userId = generateTestUserId();
+    const userId = auth.userId;
 
     const response = await request.post(`${API_BASE_URL}/api/reports/export`, {
+      headers: authHeaders(auth.token),
       data: {
         user_id: userId,
         report_type: 'invalid_report_type',
