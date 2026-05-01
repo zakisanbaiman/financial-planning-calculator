@@ -31,6 +31,10 @@ test.describe('Reports Download Scenario', () => {
       },
     });
 
+    if (!exportResponse.ok()) {
+      const errBody = await exportResponse.text().catch(() => '(unreadable)');
+      console.error(`Export failed: status=${exportResponse.status()} body=${errBody}`);
+    }
     expect(exportResponse.ok()).toBeTruthy();
     const exportData = await exportResponse.json();
     expect(exportData.download_url).toBeDefined();
