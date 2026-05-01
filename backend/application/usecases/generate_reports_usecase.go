@@ -1088,6 +1088,7 @@ func (uc *generateReportsUseCaseImpl) generateActionPlan(
 }
 
 // ExportReportToPDF はレポートをPDF形式でエクスポートする
+// ReportTypeに応じてDBからデータを取得してレポートを生成し、PDFとして保存する
 func (uc *generateReportsUseCaseImpl) ExportReportToPDF(
 	ctx context.Context,
 	input ExportReportInput,
@@ -1099,13 +1100,50 @@ func (uc *generateReportsUseCaseImpl) ExportReportToPDF(
 		return nil, fmt.Errorf("ファイルストレージが設定されていません")
 	}
 
-	// PDFを生成
-	pdfContent, err := uc.pdfGenerator.Generate(input.ReportType, input.ReportData)
+	// ReportTypeに応じてDBからレポートデータを生成する
+	var pdfContent []byte
+	var err error
+
+	switch input.ReportType {
+	case "financial_summary":
+		output, genErr := uc.GenerateFinancialSummaryReport(ctx, FinancialSummaryReportInput{UserID: input.UserID})
+		if genErr != nil {
+			return nil, fmt.Errorf("財務サマリーレポートの生成に失敗しました: %w", genErr)
+		}
+		pdfContent, err = uc.pdfGenerator.Generate(input.ReportType, output.Report)
+	case "asset_projection":
+		output, genErr := uc.GenerateAssetProjectionReport(ctx, AssetProjectionReportInput{UserID: input.UserID, Years: 10})
+		if genErr != nil {
+			return nil, fmt.Errorf("資産推移レポートの生成に失敗しました: %w", genErr)
+		}
+		pdfContent, err = uc.pdfGenerator.Generate(input.ReportType, output.Report)
+	case "goals_progress":
+		output, genErr := uc.GenerateGoalsProgressReport(ctx, GoalsProgressReportInput{UserID: input.UserID})
+		if genErr != nil {
+			return nil, fmt.Errorf("目標進捗レポートの生成に失敗しました: %w", genErr)
+		}
+		pdfContent, err = uc.pdfGenerator.Generate(input.ReportType, output.Report)
+	case "retirement_plan":
+		output, genErr := uc.GenerateRetirementPlanReport(ctx, RetirementPlanReportInput{UserID: input.UserID})
+		if genErr != nil {
+			return nil, fmt.Errorf("退職計画レポートの生成に失敗しました: %w", genErr)
+		}
+		pdfContent, err = uc.pdfGenerator.Generate(input.ReportType, output.Report)
+	case "comprehensive":
+		output, genErr := uc.GenerateComprehensiveReport(ctx, ComprehensiveReportInput{UserID: input.UserID, Years: 10})
+		if genErr != nil {
+			return nil, fmt.Errorf("包括的レポートの生成に失敗しました: %w", genErr)
+		}
+		pdfContent, err = uc.pdfGenerator.Generate(input.ReportType, output.Report)
+	default:
+		return nil, fmt.Errorf("サポートされていないレポートタイプです: %s", input.ReportType)
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("PDFの生成に失敗しました: %w", err)
 	}
 
-	// ファイル名を生成: {userID}_{reportType}_{timestamp}.pdf
+	// ファイル名を生成
 	fileName := fmt.Sprintf("%s_%s_%s.pdf", string(input.UserID), input.ReportType, time.Now().Format("20060102_150405"))
 	fileSize := int64(len(pdfContent))
 
