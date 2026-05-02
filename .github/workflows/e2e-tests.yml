@@ -109,7 +109,7 @@ jobs:
       - name: Start frontend server
         working-directory: ./frontend
         env:
-          NEXT_PUBLIC_API_URL: http://localhost:8080/api
+          NEXT_PUBLIC_API_URL: http://localhost:8080
           NODE_ENV: production
         run: |
           npm run build
