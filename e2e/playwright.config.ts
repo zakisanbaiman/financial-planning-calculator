@@ -12,10 +12,10 @@ export default defineConfig({
   timeout: 60 * 1000,
 
   // Test execution settings
-  fullyParallel: false,
+  fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 4 : undefined,
 
   testMatch: '**/*.spec.ts',
 
@@ -57,7 +57,7 @@ export default defineConfig({
   // Run local dev server before starting tests
   webServer: [
     {
-      command: 'cd ../frontend && npm run dev',
+      command: 'cd ../frontend && NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8080} npm run dev',
       url: 'http://localhost:3000',
       reuseExistingServer: true,
       timeout: 120 * 1000,
