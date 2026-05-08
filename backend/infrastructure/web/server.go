@@ -134,16 +134,22 @@ func NewControllers(deps *ServerDependencies) (*Controllers, error) {
 	llmClient := llm.NewGroqClient(deps.ServerConfig.GroqAPIKey, deps.ServerConfig.GroqModel)
 	botUseCase := application.NewBotUseCase(faqLoader, llmClient)
 
+	csvFinancialDataUseCase := usecases.NewCSVFinancialDataUseCase(
+		deps.FinancialPlanRepo,
+		manageFinancialDataUseCase,
+	)
+
 	// Create controllers
 	return &Controllers{
-		Auth:          controllers.NewAuthController(authUseCase, deps.ServerConfig),
-		TwoFactor:     controllers.NewTwoFactorController(authUseCase, deps.ServerConfig),
-		WebAuthn:      controllers.NewWebAuthnController(webAuthnUseCase),
-		FinancialData: controllers.NewFinancialDataController(manageFinancialDataUseCase),
-		Calculations:  controllers.NewCalculationsController(calculateProjectionUseCase),
-		Goals:         controllers.NewGoalsController(manageGoalsUseCase),
-		Reports:       controllers.NewReportsController(generateReportsUseCase, tempFileStorage),
-		Bot:           controllers.NewBotController(botUseCase),
+		Auth:             controllers.NewAuthController(authUseCase, deps.ServerConfig),
+		TwoFactor:        controllers.NewTwoFactorController(authUseCase, deps.ServerConfig),
+		WebAuthn:         controllers.NewWebAuthnController(webAuthnUseCase),
+		FinancialData:    controllers.NewFinancialDataController(manageFinancialDataUseCase),
+		CSVFinancialData: controllers.NewCSVFinancialDataController(csvFinancialDataUseCase),
+		Calculations:     controllers.NewCalculationsController(calculateProjectionUseCase),
+		Goals:            controllers.NewGoalsController(manageGoalsUseCase),
+		Reports:          controllers.NewReportsController(generateReportsUseCase, tempFileStorage),
+		Bot:              controllers.NewBotController(botUseCase),
 	}, nil
 }
 

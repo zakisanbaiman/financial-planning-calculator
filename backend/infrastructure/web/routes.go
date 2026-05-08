@@ -11,14 +11,15 @@ import (
 
 // Controllers holds all controller instances
 type Controllers struct {
-	Auth          *controllers.AuthController
-	TwoFactor     *controllers.TwoFactorController
-	WebAuthn      *controllers.WebAuthnController
-	FinancialData *controllers.FinancialDataController
-	Calculations  *controllers.CalculationsController
-	Goals         *controllers.GoalsController
-	Reports       *controllers.ReportsController
-	Bot           *controllers.BotController
+	Auth             *controllers.AuthController
+	TwoFactor        *controllers.TwoFactorController
+	WebAuthn         *controllers.WebAuthnController
+	FinancialData    *controllers.FinancialDataController
+	CSVFinancialData *controllers.CSVFinancialDataController
+	Calculations     *controllers.CalculationsController
+	Goals            *controllers.GoalsController
+	Reports          *controllers.ReportsController
+	Bot              *controllers.BotController
 }
 
 // SetupRoutes configures all routes based on OpenAPI specification
@@ -80,7 +81,7 @@ func SetupRoutes(e *echo.Echo, controllers *Controllers, deps *ServerDependencie
 	setup2FARoutes(protected, controllers.TwoFactor, authRateLimiter)
 
 	// 財務データ管理エンドポイント
-	setupFinancialDataRoutes(protected, controllers.FinancialData)
+	setupFinancialDataRoutes(protected, controllers.FinancialData, controllers.CSVFinancialData)
 
 	// レポート生成エンドポイント
 	setupReportRoutes(protected, controllers.Reports)
@@ -147,7 +148,7 @@ func setupPasskeyRoutes(api *echo.Group, protected *echo.Group, controller *cont
 }
 
 // setupFinancialDataRoutes sets up financial data management routes
-func setupFinancialDataRoutes(api *echo.Group, controller *controllers.FinancialDataController) {
+func setupFinancialDataRoutes(api *echo.Group, controller *controllers.FinancialDataController, csvController *controllers.CSVFinancialDataController) {
 	financialData := api.Group("/financial-data")
 
 	financialData.POST("", controller.CreateFinancialData)                        // POST /api/financial-data
@@ -156,6 +157,10 @@ func setupFinancialDataRoutes(api *echo.Group, controller *controllers.Financial
 	financialData.PUT("/:user_id/retirement", controller.UpdateRetirementData)    // PUT /api/financial-data/:user_id/retirement
 	financialData.PUT("/:user_id/emergency-fund", controller.UpdateEmergencyFund) // PUT /api/financial-data/:user_id/emergency-fund
 	financialData.DELETE("/:user_id", controller.DeleteFinancialData)             // DELETE /api/financial-data/:user_id
+
+	// CSV インポート・エクスポート
+	financialData.GET("/csv", csvController.DownloadCSV)          // GET /api/financial-data/csv
+	financialData.POST("/csv/import", csvController.ImportCSV)    // POST /api/financial-data/csv/import
 }
 
 // setupCalculationRoutes sets up calculation routes

@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useFinancialData } from '@/lib/contexts/FinancialDataContext';
 import { useUser } from '@/lib/hooks/useUser';
 import FinancialInputForm from '@/components/FinancialInputForm';
 import InvestmentSettingsForm from '@/components/InvestmentSettingsForm';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { financialDataAPI } from '@/lib/api-client';
+import { generateCSVFromProfile, downloadCSVLocally } from '@/lib/utils/csvExport';
 import type { FinancialProfile } from '@/types/api';
 import type { InvestmentSettings } from '@/components/InvestmentSettingsForm';
 
@@ -14,6 +16,9 @@ export default function FinancialDataPage() {
   const { financialData, loading, error, fetchFinancialData, updateProfile } = useFinancialData();
   const [activeTab, setActiveTab] = useState<'basic' | 'investment'>('basic');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [csvLoading, setCsvLoading] = useState(false);
+  const [csvError, setCsvError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (userId) {
@@ -49,6 +54,57 @@ export default function FinancialDataPage() {
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       // エラーは context で処理済み
+    }
+  };
+
+  // バックエンド経由でCSVをダウンロードする（GETで直接 text/csv を返す）
+  const handleCSVDownloadFromBackend = async () => {
+    if (!userId) return;
+    setCsvLoading(true);
+    setCsvError(null);
+    try {
+      const blob = await financialDataAPI.downloadCSV(userId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'financial_data.csv';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setCsvError(err instanceof Error ? err.message : 'CSVダウンロードに失敗しました');
+    } finally {
+      setCsvLoading(false);
+    }
+  };
+
+  // フロントエンドのみでCSVを生成してダウンロードする（Blob API）
+  const handleCSVDownloadLocal = () => {
+    if (!profile) return;
+    const csvContent = generateCSVFromProfile(profile);
+    downloadCSVLocally(csvContent, 'financial_data_local.csv');
+  };
+
+  // CSVファイルをアップロードして財務データを更新する
+  const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !userId) return;
+
+    setCsvLoading(true);
+    setCsvError(null);
+    try {
+      await financialDataAPI.importCSV(userId, file);
+      await fetchFinancialData(userId);
+      setSuccessMessage('CSVから財務データをインポートしました');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err) {
+      setCsvError(err instanceof Error ? err.message : 'CSVインポートに失敗しました');
+    } finally {
+      setCsvLoading(false);
+      // ファイル入力をリセットして同じファイルの再選択を可能にする
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -231,6 +287,59 @@ export default function FinancialDataPage() {
           </div>
         </div>
       )}
+
+      {/* CSV Import/Export */}
+      <div className="mt-8">
+        <div className="card">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">CSVエクスポート・インポート</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            財務データをCSVファイルとして書き出し・読み込みできます。<br />
+            「バックエンド」はGoサーバーでCSVを生成、「ローカル生成」はブラウザのみで生成します。
+          </p>
+
+          <div className="flex flex-wrap gap-3">
+            {/* バックエンド経由ダウンロード */}
+            <button
+              onClick={handleCSVDownloadFromBackend}
+              disabled={csvLoading || !userId || !profile}
+              className="btn-primary px-4 py-2 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {csvLoading ? 'ダウンロード中...' : 'CSVダウンロード（バックエンド）'}
+            </button>
+
+            {/* フロントエンド直接生成（Blob API 学習用） */}
+            <button
+              onClick={handleCSVDownloadLocal}
+              disabled={!profile}
+              className="px-4 py-2 rounded-lg font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              CSVダウンロード（ローカル生成）
+            </button>
+
+            {/* アップロード */}
+            <label className={`px-4 py-2 rounded-lg font-medium cursor-pointer ${csvLoading ? 'opacity-50 cursor-not-allowed' : 'bg-success-100 dark:bg-success-900 text-success-700 dark:text-success-300 hover:bg-success-200 dark:hover:bg-success-800'}`}>
+              {csvLoading ? 'インポート中...' : 'CSVアップロード'}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleCSVUpload}
+                disabled={csvLoading || !userId}
+                className="hidden"
+              />
+            </label>
+          </div>
+
+          {csvError && (
+            <p className="mt-3 text-sm text-error-600 dark:text-error-400">{csvError}</p>
+          )}
+
+          <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs text-gray-500 dark:text-gray-400">
+            <p className="font-medium mb-1">CSVフォーマット（マルチセクション形式）</p>
+            <pre className="whitespace-pre-wrap font-mono">{`# SECTION: PROFILE\nfield,value\nmonthly_income,300000\n...\n\n# SECTION: EXPENSES\ncategory,amount,description\n生活費,100000,\n...\n\n# SECTION: SAVINGS\ntype,amount,description\ndeposit,500000,普通預金`}</pre>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
