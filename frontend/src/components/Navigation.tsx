@@ -14,13 +14,13 @@ const Navigation = () => {
   const { isGuestMode, exitGuestMode } = useGuestMode();
 
   const navItems = [
-    { href: '/', label: 'Home' },
-    { href: '/dashboard', label: 'Dashboard' },
-    { href: '/financial-data', label: 'Profile' },
-    { href: '/goals', label: 'Goals' },
-    { href: '/calculations', label: 'Calculator' },
-    { href: '/reports', label: 'Reports' },
-    ...(isAuthenticated ? [{ href: '/bot', label: 'Bot' }] : []),
+    { href: '/', label: 'ホーム' },
+    { href: '/dashboard', label: 'ダッシュボード' },
+    { href: '/financial-data', label: 'プロフィール' },
+    { href: '/goals', label: '目標' },
+    { href: '/calculations', label: '計算機' },
+    { href: '/reports', label: 'レポート' },
+    ...(isAuthenticated ? [{ href: '/bot', label: 'ボット' }] : []),
   ];
 
   return (

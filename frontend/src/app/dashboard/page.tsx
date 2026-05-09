@@ -138,7 +138,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="mb-12">
         <p className="font-body text-sm font-semibold tracking-editorial uppercase text-accent-600 dark:text-accent-400 mb-2">
-          Overview
+          概要
         </p>
         <h1 className="font-display text-4xl md:text-5xl font-semibold text-ink-900 dark:text-ink-100">
           ダッシュボード
@@ -463,7 +463,7 @@ export default function DashboardPage() {
           <div className="flex justify-between items-end mb-8">
             <div>
               <p className="font-body text-sm font-semibold tracking-editorial uppercase text-accent-600 dark:text-accent-400 mb-2">
-                Progress
+                進捗
               </p>
               <h2 className="font-display text-3xl font-semibold text-ink-900 dark:text-ink-100">目標進捗ダッシュボード</h2>
             </div>
