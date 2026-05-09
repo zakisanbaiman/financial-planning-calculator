@@ -45,12 +45,12 @@ describe('Navigation', () => {
 
     it('ナビゲーションリンクが表示される', () => {
       renderNavigation();
-      expect(screen.getAllByText('Home').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('Dashboard').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('Profile').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('Goals').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('Calculator').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('Reports').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('ホーム').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('ダッシュボード').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('プロフィール').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('目標').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('計算機').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('レポート').length).toBeGreaterThanOrEqual(1);
     });
 
     it('ヘルプボタンが表示される', () => {
