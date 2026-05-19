@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/financial-planning-calculator/backend/application/usecases"
 	"github.com/financial-planning-calculator/backend/domain/entities"
@@ -485,8 +486,51 @@ func (ctrl *ReportsController) DownloadReport(c echo.Context) error {
 		})
 	}
 
-	// PDFファイルをストリーミングレスポンスとして返す
-	c.Response().Header().Set("Content-Type", "application/pdf")
+	contentType := "application/pdf"
+	if strings.HasSuffix(fileName, ".csv") {
+		contentType = "text/csv; charset=utf-8"
+	}
 	c.Response().Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, fileName))
-	return c.Blob(http.StatusOK, "application/pdf", data)
+	return c.Blob(http.StatusOK, contentType, data)
+}
+
+// DownloadFinancialSummaryCSV は財務サマリーをCSVとして直接ダウンロードする
+// @Summary 財務サマリーCSVダウンロード
+// @Description 認証済みユーザーの財務サマリーをCSVファイルとして直接返します
+// @Tags reports
+// @Produce text/csv
+// @Success 200 {file} binary "CSVファイル"
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /reports/financial-summary/csv [get]
+func (ctrl *ReportsController) DownloadFinancialSummaryCSV(c echo.Context) error {
+	userID, ok := c.Get("user_id").(string)
+	if !ok || userID == "" {
+		return c.JSON(http.StatusUnauthorized, ErrorResponse{
+			Error: "認証が必要です",
+		})
+	}
+
+	output, err := ctrl.useCase.GenerateFinancialSummaryReport(
+		c.Request().Context(),
+		usecases.FinancialSummaryReportInput{UserID: entities.UserID(userID)},
+	)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Error:   "財務サマリーの取得に失敗しました",
+			Details: err.Error(),
+		})
+	}
+
+	csvData, err := usecases.GenerateFinancialSummaryCSVData(output.Report)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Error:   "CSVの生成に失敗しました",
+			Details: err.Error(),
+		})
+	}
+
+	fileName := fmt.Sprintf("financial_summary_%s.csv", strconv.FormatInt(time.Now().Unix(), 10))
+	c.Response().Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, fileName))
+	return c.Blob(http.StatusOK, "text/csv; charset=utf-8", csvData)
 }

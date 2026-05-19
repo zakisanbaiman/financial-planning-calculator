@@ -1,8 +1,11 @@
 package usecases
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/financial-planning-calculator/backend/domain/aggregates"
@@ -1087,20 +1090,26 @@ func (uc *generateReportsUseCaseImpl) generateActionPlan(
 	}
 }
 
-// ExportReportToPDF はレポートをPDF形式でエクスポートする
-// ReportTypeに応じてDBからデータを取得してレポートを生成し、PDFとして保存する
+// ExportReportToPDF はレポートをPDF/CSV形式でエクスポートする
+// ReportTypeに応じてDBからデータを取得してレポートを生成し、指定フォーマットで保存する
 func (uc *generateReportsUseCaseImpl) ExportReportToPDF(
 	ctx context.Context,
 	input ExportReportInput,
 ) (*ExportReportOutput, error) {
-	if uc.pdfGenerator == nil {
-		return nil, fmt.Errorf("PDFジェネレーターが設定されていません")
-	}
 	if uc.fileStorage == nil {
 		return nil, fmt.Errorf("ファイルストレージが設定されていません")
 	}
 
-	// ReportTypeに応じてDBからレポートデータを生成する
+	// CSVフォーマットの場合は専用処理
+	if input.Format == "csv" {
+		return uc.exportAsCSV(ctx, input)
+	}
+
+	// PDF/その他フォーマット: DBからレポートデータを生成してPDF化
+	if uc.pdfGenerator == nil {
+		return nil, fmt.Errorf("PDFジェネレーターが設定されていません")
+	}
+
 	var pdfContent []byte
 	var err error
 
@@ -1143,11 +1152,9 @@ func (uc *generateReportsUseCaseImpl) ExportReportToPDF(
 		return nil, fmt.Errorf("PDFの生成に失敗しました: %w", err)
 	}
 
-	// ファイル名を生成
 	fileName := fmt.Sprintf("%s_%s_%s.pdf", string(input.UserID), input.ReportType, time.Now().Format("20060102_150405"))
 	fileSize := int64(len(pdfContent))
 
-	// ファイルを保存してトークンと有効期限を取得
 	token, expiresAt, err := uc.fileStorage.SaveFile(fileName, pdfContent)
 	if err != nil {
 		return nil, fmt.Errorf("ファイルの保存に失敗しました: %w", err)
@@ -1159,5 +1166,68 @@ func (uc *generateReportsUseCaseImpl) ExportReportToPDF(
 		DownloadToken: token,
 		ExpiresAt:     expiresAt.Format(time.RFC3339),
 	}, nil
+}
+
+// exportAsCSV はCSVフォーマットでレポートをエクスポートする（financial_summaryのみ対応）
+func (uc *generateReportsUseCaseImpl) exportAsCSV(ctx context.Context, input ExportReportInput) (*ExportReportOutput, error) {
+	if input.ReportType != "financial_summary" {
+		return nil, fmt.Errorf("CSVエクスポートは financial_summary のみ対応しています（got: %s）", input.ReportType)
+	}
+
+	output, err := uc.GenerateFinancialSummaryReport(ctx, FinancialSummaryReportInput{UserID: input.UserID})
+	if err != nil {
+		return nil, fmt.Errorf("財務サマリーレポートの生成に失敗しました: %w", err)
+	}
+
+	csvData, err := GenerateFinancialSummaryCSVData(output.Report)
+	if err != nil {
+		return nil, fmt.Errorf("CSVの生成に失敗しました: %w", err)
+	}
+
+	fileName := fmt.Sprintf("%s_%s_%s.csv", string(input.UserID), input.ReportType, time.Now().Format("20060102_150405"))
+	token, expiresAt, err := uc.fileStorage.SaveFile(fileName, csvData)
+	if err != nil {
+		return nil, fmt.Errorf("ファイルの保存に失敗しました: %w", err)
+	}
+
+	return &ExportReportOutput{
+		FileName:      fileName,
+		FileSize:      int64(len(csvData)),
+		DownloadToken: token,
+		ExpiresAt:     expiresAt.Format(time.RFC3339),
+	}, nil
+}
+
+// GenerateFinancialSummaryCSVData は FinancialSummaryReport をBOM付きUTF-8のCSVバイト列に変換する
+func GenerateFinancialSummaryCSVData(report FinancialSummaryReport) ([]byte, error) {
+	var buf bytes.Buffer
+	w := csv.NewWriter(&buf)
+
+	// BOM付きUTF-8（Excelでの文字化け防止）
+	buf.WriteString("\xEF\xBB\xBF")
+
+	_ = w.Write([]string{"セクション", "項目", "値", "単位"})
+	_ = w.Write([]string{"財務健全性", "総合スコア", strconv.Itoa(report.FinancialHealth.OverallScore), "点"})
+	_ = w.Write([]string{"財務健全性", "スコアレベル", report.FinancialHealth.ScoreLevel, ""})
+	_ = w.Write([]string{"財務健全性", "貯蓄率", strconv.FormatFloat(report.FinancialHealth.SavingsRate, 'f', 2, 64), "%"})
+	_ = w.Write([]string{"財務健全性", "負債比率", strconv.FormatFloat(report.FinancialHealth.DebtToIncomeRatio, 'f', 2, 64), "%"})
+	_ = w.Write([]string{"財務健全性", "緊急資金比率", strconv.FormatFloat(report.FinancialHealth.EmergencyFundRatio, 'f', 2, 64), "ヶ月"})
+	_ = w.Write([]string{"現在の状況", "月収", strconv.FormatFloat(report.CurrentSituation.MonthlyIncome, 'f', 0, 64), "円"})
+	_ = w.Write([]string{"現在の状況", "月間支出", strconv.FormatFloat(report.CurrentSituation.MonthlyExpenses, 'f', 0, 64), "円"})
+	_ = w.Write([]string{"現在の状況", "純貯蓄", strconv.FormatFloat(report.CurrentSituation.NetSavings, 'f', 0, 64), "円"})
+	_ = w.Write([]string{"現在の状況", "総資産", strconv.FormatFloat(report.CurrentSituation.TotalAssets, 'f', 0, 64), "円"})
+	_ = w.Write([]string{"現在の状況", "投資利回り", strconv.FormatFloat(report.CurrentSituation.InvestmentReturn, 'f', 2, 64), "%"})
+	_ = w.Write([]string{"現在の状況", "インフレ率", strconv.FormatFloat(report.CurrentSituation.InflationRate, 'f', 2, 64), "%"})
+
+	for _, m := range report.KeyMetrics {
+		_ = w.Write([]string{"主要指標", m.Name, strconv.FormatFloat(m.Value, 'f', 2, 64), m.Unit})
+	}
+
+	w.Flush()
+	if err := w.Error(); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
 
