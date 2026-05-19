@@ -29,7 +29,7 @@ A modern web application to visualize your financial future and plan for retirem
 |------|------|
 | フロントエンド | Next.js 14（App Router）、TypeScript、Railway にデプロイ |
 | バックエンド | Go / Echo Framework、Railway にデプロイ |
-| DB | PostgreSQL（Railway マネージド） |
+| DB | PostgreSQL（Neon サーバーレス） |
 | テストカバレッジ | フロントエンド コンポーネント 80%超（Jest） |
 | CI | Lint・Unit Test・E2E（Playwright）を GitHub Actions で自動実行 |
 | 認証 | JWT ベース、ゲストモードあり |
@@ -40,21 +40,21 @@ This application helps users visualize their financial future and plan for retir
 
 ## 🚀 デプロイ
 
-main ブランチにマージされると、Render.com に自動デプロイされます。
+main ブランチにマージされると、Railway に自動デプロイされます。
 
-- **プラットフォーム**: Render.com（無料プラン）
+- **プラットフォーム**: Railway（Hobby プラン）
 - **自動デプロイ**: main ブランチへのマージ時
-- **選択的ビルド**: 変更されたファイルに応じて Backend/Frontend を個別にデプロイ
-- **詳細**: [デプロイフロードキュメント](./docs/DEPLOYMENT_FLOW.md)
+- **データベース**: Neon（サーバーレス PostgreSQL）
+- **移行経緯**: [ADR-003: Render.com から Railway + Neon への移行](./docs/adr/003-migrate-to-railway-neon.md)
 
-### 🤖 AI連携によるエラー検知・自動修正
+### サービス構成
 
-Render.comへのデプロイ時のエラーを自動検知し、AIアシスタント（Claude、Copilot、Cursor）が修正を支援します。
-
-- **MCP (Model Context Protocol)連携**: AIアシスタントがRender.comのデプロイ状態を直接監視
-- **自動エラー検知**: デプロイログから一般的なエラーパターンを自動検出
-- **PRへの自動通知**: エラー発生時にPRへコメントを追加
-- **詳細**: [MCP セットアップガイド](./docs/MCP_SETUP.md) | [クイックリファレンス](./docs/MCP_QUICK_REFERENCE.md)
+| サービス | Railway サービス名 | URL |
+|---|---|---|
+| Frontend | `financial-planning-frontend` | https://financial-planning-frontend-production.up.railway.app |
+| Backend | `financial-planning-backend` | Railway 内部ネットワーク |
+| Redis | `Redis-62U3` | Railway 内部ネットワーク |
+| PostgreSQL | — | Neon（外部サービス） |
 
 ## 技術スタック
 
