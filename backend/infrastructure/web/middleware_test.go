@@ -1,9 +1,12 @@
 package web
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -90,6 +93,92 @@ func TestSetupMiddleware_RateLimiter(t *testing.T) {
 	})
 }
 
+func TestNewIdentifierExtractor(t *testing.T) {
+	tests := []struct {
+		name              string
+		trustedProxyCount int
+		xForwardedFor     string
+		xRealIP           string
+		remoteAddr        string
+		want              string
+	}{
+		{
+			name:              "TRUSTED_PROXY_COUNT=1: 右から1つ除外して最右を使用",
+			trustedProxyCount: 1,
+			xForwardedFor:     "203.0.113.5, 10.0.0.1, 54.0.0.1",
+			want:              "10.0.0.1",
+		},
+		{
+			name:              "TRUSTED_PROXY_COUNT=1: XFFが2エントリ（クライアント+LB）",
+			trustedProxyCount: 1,
+			xForwardedFor:     "203.0.113.5, 54.0.0.1",
+			want:              "203.0.113.5",
+		},
+		{
+			name:              "TRUSTED_PROXY_COUNT=0: 最左IPを使用（ローカル開発互換）",
+			trustedProxyCount: 0,
+			xForwardedFor:     "203.0.113.5, 10.0.0.1, 54.0.0.1",
+			want:              "203.0.113.5",
+		},
+		{
+			name:              "TRUSTED_PROXY_COUNT=1: XFFが単一エントリ（プロキシ数超過）",
+			trustedProxyCount: 1,
+			xForwardedFor:     "203.0.113.5",
+			want:              "203.0.113.5", // targetIdx<0 → 0に補正
+		},
+		{
+			name:              "TRUSTED_PROXY_COUNT=2: 右から2つ除外",
+			trustedProxyCount: 2,
+			xForwardedFor:     "203.0.113.5, 10.0.0.1, 54.0.0.1",
+			want:              "203.0.113.5",
+		},
+		{
+			name:              "XFFなし: X-Real-IPにフォールバック",
+			trustedProxyCount: 1,
+			xRealIP:           "203.0.113.5",
+			remoteAddr:        "127.0.0.1:12345",
+			want:              "203.0.113.5",
+		},
+		{
+			name:              "XFF・X-Real-IPなし: RemoteAddrにフォールバック",
+			trustedProxyCount: 1,
+			remoteAddr:        "203.0.113.5:12345",
+			want:              "203.0.113.5",
+		},
+		{
+			name:              "攻撃シナリオ: 攻撃者が先頭にIPを偽装してもTRUSTED_PROXY_COUNT=1で無効化",
+			trustedProxyCount: 1,
+			// 攻撃者が1.2.3.4を偽装、Railway LBが54.0.0.1を追記
+			xForwardedFor: "1.2.3.4, 203.0.113.5, 54.0.0.1",
+			want:          "203.0.113.5", // 本物のクライアントIP
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := echo.New()
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			if tt.xForwardedFor != "" {
+				req.Header.Set("X-Forwarded-For", tt.xForwardedFor)
+			}
+			if tt.xRealIP != "" {
+				req.Header.Set("X-Real-IP", tt.xRealIP)
+			}
+			if tt.remoteAddr != "" {
+				req.RemoteAddr = tt.remoteAddr
+			}
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+
+			extractor := newIdentifierExtractor(tt.trustedProxyCount)
+			got, err := extractor(c)
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestSetupMiddleware_RateLimitExceeded(t *testing.T) {
 	e := echo.New()
 	cfg := &config.ServerConfig{
@@ -129,4 +218,46 @@ func TestSetupMiddleware_RateLimitExceeded(t *testing.T) {
 	}
 
 	assert.True(t, rateLimited, "レート制限が機能していません")
+}
+
+func TestSetupMiddleware_DenyHandler_RetryAfterIsDynamic(t *testing.T) {
+	// DenyHandler が "60s" のハードコードではなく動的な値を返すことを検証する。
+	e := echo.New()
+	cfg := &config.ServerConfig{
+		AllowedOrigins: []string{"http://localhost:3000"},
+		CORSMaxAge:     86400,
+		RateLimitRPS:   1,
+		RateLimitBurst: 1,
+		RequestTimeout: 30 * time.Second,
+		MaxRequestSize: "10M",
+	}
+	SetupMiddleware(e, cfg)
+	e.GET("/test", func(c echo.Context) error {
+		return c.String(http.StatusOK, "OK")
+	})
+
+	clientIP := fmt.Sprintf("test-retry-dynamic-%d", time.Now().UnixNano())
+	var retryAfter string
+	for i := 0; i < 10; i++ {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set("X-Forwarded-For", clientIP)
+		rec := httptest.NewRecorder()
+		e.ServeHTTP(rec, req)
+		if rec.Code == http.StatusTooManyRequests {
+			var body map[string]any
+			json.Unmarshal(rec.Body.Bytes(), &body) //nolint:errcheck
+			retryAfter, _ = body["retry_after"].(string)
+			break
+		}
+	}
+
+	assert.NotEmpty(t, retryAfter, "retry_after フィールドが存在しない")
+	// ハードコード "60s" ではないことを確認
+	assert.NotEqual(t, "60s", retryAfter, "retry_after がハードコードされた '60s' のままです")
+	// "<数値>s" 形式で、0以上180秒以下であること（ウィンドウ=3分）
+	secStr := strings.TrimSuffix(retryAfter, "s")
+	secs, err := strconv.Atoi(secStr)
+	assert.NoError(t, err, "retry_after の秒数をパースできない: %s", retryAfter)
+	assert.GreaterOrEqual(t, secs, 0)
+	assert.LessOrEqual(t, secs, 180)
 }

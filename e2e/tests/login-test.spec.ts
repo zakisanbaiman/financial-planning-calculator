@@ -37,9 +37,9 @@ test('ログインフローの確認', async ({ page }) => {
   // ログインボタンをクリック
   await page.click('button[type="submit"]');
   
-  // ダッシュボードへ遷移することを確認
-  await page.waitForURL(/dashboard/, { timeout: 10000 });
+  // ダッシュボードへ遷移することを確認（CI環境の本番ビルドでは遅い場合があるため30秒待つ）
+  await page.waitForURL(/dashboard/, { timeout: 30000 });
   console.log('遷移先URL:', page.url());
-  
+
   await expect(page).toHaveURL(/dashboard/);
 });

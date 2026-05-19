@@ -19,40 +19,40 @@ export default function HomePage() {
 
   const features = [
     {
-      title: 'Financial Profile',
-      description: 'Manage your income, expenses, and savings to build a solid foundation for accurate projections',
+      title: '財務プロフィール',
+      description: '収入・支出・貯蓄を入力して、正確なシミュレーションの土台を構築します',
       href: '/financial-data',
-      label: 'Learn more',
+      label: '詳細を見る',
     },
     {
-      title: 'Asset Projection',
-      description: 'Visualize how your assets will grow over time based on your current savings rate',
+      title: '資産推移予測',
+      description: '現在の貯蓄率をもとに、将来の資産がどう増えるかを可視化します',
       href: '/calculations',
-      label: 'Calculate now',
+      label: '計算する',
     },
     {
-      title: 'Retirement Planning',
-      description: 'Calculate required retirement funds considering pension and expected lifestyle costs',
+      title: '老後計画',
+      description: '年金受給額や想定生活費を考慮して、必要な老後資金を算出します',
       href: '/calculations',
-      label: 'Plan now',
+      label: '計画する',
     },
     {
-      title: 'Emergency Fund',
-      description: 'Calculate and verify the emergency funds needed for unexpected situations',
+      title: '緊急資金',
+      description: '万一の事態に備えた緊急資金の必要額を計算・確認します',
       href: '/calculations',
-      label: 'Check now',
+      label: '確認する',
     },
     {
-      title: 'Goal Tracking',
-      description: 'Set specific financial goals and track progress to stay motivated',
+      title: '目標管理',
+      description: '具体的な財務目標を設定し、達成に向けた進捗をトラッキングします',
       href: '/goals',
-      label: 'Set goals',
+      label: '目標を設定',
     },
     {
-      title: 'Reports',
-      description: 'Generate comprehensive financial reports in PDF format for easy sharing',
+      title: 'レポート',
+      description: '財務状況の総合レポートをPDF形式で生成・共有できます',
       href: '/reports',
-      label: 'Create report',
+      label: 'レポートを作成',
     },
   ];
 
@@ -62,16 +62,16 @@ export default function HomePage() {
       <section className="container mx-auto px-4 pt-20 pb-24">
         <div className="max-w-3xl">
           <p className="font-body text-sm font-semibold tracking-editorial uppercase text-accent-600 dark:text-accent-400 mb-4">
-            Smart Financial Planning
+            スマートな財務計画
           </p>
           <h1 className="font-display text-6xl md:text-7xl lg:text-8xl font-semibold text-ink-900 dark:text-ink-100 leading-[0.95] mb-8">
             FinPlan
           </h1>
           <p className="font-body text-xl md:text-2xl text-ink-500 dark:text-ink-400 leading-relaxed max-w-2xl mb-6 font-light">
-            Smart Financial Planning for Your Future
+            あなたの未来のための財務計画ツール
           </p>
           <p className="font-body text-base md:text-lg text-ink-400 dark:text-ink-500 mb-12 max-w-2xl">
-            Visualize your financial future, plan for retirement, and achieve your goals with confidence
+            将来の資産を可視化し、老後に備え、自信を持って目標を達成しましょう
           </p>
           <div className="flex flex-col sm:flex-row items-start gap-4">
             {isAuthenticated ? (
@@ -79,7 +79,7 @@ export default function HomePage() {
                 href="/dashboard"
                 className="btn-primary inline-flex items-center text-base px-8 py-3"
               >
-                Open Dashboard
+                ダッシュボードを開く
               </Link>
             ) : (
               <>
@@ -87,20 +87,20 @@ export default function HomePage() {
                   onClick={handleGuestStart}
                   className="btn-primary inline-flex items-center text-base px-8 py-3"
                 >
-                  Try as Guest
+                  ゲストとして試す
                 </button>
                 <Link
                   href="/login"
                   className="btn-secondary inline-flex items-center text-base px-8 py-3"
                 >
-                  Sign In / Sign Up
+                  ログイン / 新規登録
                 </Link>
               </>
             )}
           </div>
           {!isAuthenticated && (
             <p className="text-sm text-ink-400 dark:text-ink-500 mt-6 font-body">
-              Guest mode available - Try all features without registration (data saved locally)
+              ゲストモード対応 ― 登録不要で全機能をお試しいただけます（データはローカルに保存）
             </p>
           )}
         </div>
@@ -115,10 +115,10 @@ export default function HomePage() {
       <section className="container mx-auto px-4 py-20">
         <div className="mb-12">
           <p className="font-body text-sm font-semibold tracking-editorial uppercase text-accent-600 dark:text-accent-400 mb-3">
-            Features
+            機能一覧
           </p>
           <h2 className="font-display text-4xl md:text-5xl font-semibold text-ink-900 dark:text-ink-100">
-            What You Can Do
+            できること
           </h2>
         </div>
 
@@ -156,10 +156,10 @@ export default function HomePage() {
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-16">
             <p className="font-body text-sm font-semibold tracking-editorial uppercase text-accent-600 dark:text-accent-400 mb-3">
-              Getting Started
+              はじめ方
             </p>
             <h2 className="font-display text-4xl md:text-5xl font-semibold text-ink-900 dark:text-ink-100">
-              How It Works
+              使い方
             </h2>
           </div>
 
@@ -170,10 +170,10 @@ export default function HomePage() {
               </span>
               <div className="border-t border-ink-200 dark:border-ink-800 pt-4 flex-1">
                 <h3 className="font-display text-2xl font-semibold text-ink-900 dark:text-ink-100 mb-2">
-                  Enter Your Financial Data
+                  財務データを入力する
                 </h3>
                 <p className="font-body text-ink-500 dark:text-ink-400 leading-relaxed">
-                  Input your current income, expenses, and savings amount
+                  現在の収入・支出・貯蓄額を入力してください
                 </p>
               </div>
             </div>
@@ -183,10 +183,10 @@ export default function HomePage() {
               </span>
               <div className="border-t border-ink-200 dark:border-ink-800 pt-4 flex-1">
                 <h3 className="font-display text-2xl font-semibold text-ink-900 dark:text-ink-100 mb-2">
-                  Set Your Goals
+                  目標を設定する
                 </h3>
                 <p className="font-body text-ink-500 dark:text-ink-400 leading-relaxed">
-                  Define the financial goals you want to achieve
+                  達成したい財務目標を定義してください
                 </p>
               </div>
             </div>
@@ -196,10 +196,10 @@ export default function HomePage() {
               </span>
               <div className="border-t border-ink-200 dark:border-ink-800 pt-4 flex-1">
                 <h3 className="font-display text-2xl font-semibold text-ink-900 dark:text-ink-100 mb-2">
-                  Calculate & Visualize
+                  計算して可視化する
                 </h3>
                 <p className="font-body text-ink-500 dark:text-ink-400 leading-relaxed">
-                  Review your future asset projections and required funds
+                  将来の資産推移と必要資金をグラフで確認できます
                 </p>
               </div>
             </div>

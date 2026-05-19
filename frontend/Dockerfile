@@ -1,7 +1,7 @@
 # Frontend Dockerfile with multi-stage build
 
 # Dependencies stage
-FROM node:18-alpine AS deps
+FROM node:20-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -9,7 +9,7 @@ COPY package*.json ./
 RUN npm ci
 
 # Development stage
-FROM node:18-alpine AS development
+FROM node:20-alpine AS development
 WORKDIR /app
 
 # Copy dependencies from deps stage
@@ -29,17 +29,20 @@ EXPOSE 3000
 CMD ["npm", "run", "dev"]
 
 # Builder stage for production
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED 1
 
+ARG NEXT_PUBLIC_GA_ID
+ENV NEXT_PUBLIC_GA_ID=$NEXT_PUBLIC_GA_ID
+
 RUN npm run build
 
 # Production runner stage
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 WORKDIR /app
 
 ENV NODE_ENV production

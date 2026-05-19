@@ -18,6 +18,12 @@ jest.mock('next/font/google', () => ({
   })),
 }));
 
+jest.mock('@next/third-parties/google', () => ({
+  GoogleAnalytics: ({ gaId }: { gaId: string }) => (
+    <script data-testid="google-analytics" data-ga-id={gaId} />
+  ),
+}));
+
 // 子コンポーネントをモック
 jest.mock('@/components/Navigation', () => ({
   __esModule: true,
@@ -49,6 +55,21 @@ const mockSourceSans3 = jest.mocked(Source_Sans_3);
 const mockJetBrainsMono = jest.mocked(JetBrains_Mono);
 
 describe('RootLayout', () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    jest.resetModules();
+    process.env = { ...originalEnv };
+    delete process.env.NEXT_PUBLIC_GA_ID;
+    delete process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+    delete process.env.GA_MEASUREMENT_ID;
+    delete process.env.GA_ID;
+  });
+
+  afterAll(() => {
+    process.env = originalEnv;
+  });
+
   describe('next/font/google の設定', () => {
     // フォント関数はモジュールレベルで一度だけ呼ばれる
     // jest.clearAllMocks()（beforeEach で実行）でリセットされる前に引数をキャプチャする
@@ -146,6 +167,38 @@ describe('RootLayout', () => {
       expect(html).toContain('--font-display');
       expect(html).toContain('--font-body');
       expect(html).toContain('--font-mono');
+    });
+  });
+
+  describe('Google Analytics', () => {
+    it('NEXT_PUBLIC_GA_ID が設定されていると Google Analytics を描画する', () => {
+      process.env.NEXT_PUBLIC_GA_ID = 'G-PRIMARY123';
+
+      render(<RootLayout><div /></RootLayout>);
+
+      expect(screen.getByTestId('google-analytics')).toHaveAttribute('data-ga-id', 'G-PRIMARY123');
+    });
+
+    it('NEXT_PUBLIC_GA_MEASUREMENT_ID にも対応する', () => {
+      process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = 'G-MEASURE123';
+
+      render(<RootLayout><div /></RootLayout>);
+
+      expect(screen.getByTestId('google-analytics')).toHaveAttribute('data-ga-id', 'G-MEASURE123');
+    });
+
+    it('GA_MEASUREMENT_ID にも対応する', () => {
+      process.env.GA_MEASUREMENT_ID = 'G-SERVER123';
+
+      render(<RootLayout><div /></RootLayout>);
+
+      expect(screen.getByTestId('google-analytics')).toHaveAttribute('data-ga-id', 'G-SERVER123');
+    });
+
+    it('GA ID が未設定なら Google Analytics を描画しない', () => {
+      render(<RootLayout><div /></RootLayout>);
+
+      expect(screen.queryByTestId('google-analytics')).not.toBeInTheDocument();
     });
   });
 });

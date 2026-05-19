@@ -192,7 +192,7 @@ export default function SecurityPage() {
             {/* 2段階認証セクション */}
             <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                2段階認証ﾈ2FAﾉ
+                2段階認証（2FA）
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                 Google Authenticator などの認証アプリを使用して、ログイン時に追加のセキュリティコードを要求します。

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/financial-planning-calculator/backend/infrastructure/log"
+	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
 // ErrorTracker はエラー追跡のインターフェース
@@ -48,27 +49,34 @@ func NewDefaultErrorTracker(environment string) *DefaultErrorTracker {
 // CaptureError はエラーを記録します
 func (t *DefaultErrorTracker) CaptureError(ctx context.Context, err error, tags map[string]string) {
 	errCtx := t.buildErrorContext(ctx, tags)
-	
+
 	attrs := []slog.Attr{
 		slog.String("environment", errCtx.Environment),
 		slog.Time("captured_at", errCtx.Timestamp),
 		slog.String("stack_trace", errCtx.StackTrace),
 	}
-	
+
 	// タグを追加
 	for key, value := range errCtx.Tags {
 		attrs = append(attrs, slog.String("tag_"+key, value))
 	}
-	
+
 	// Extraフィールドを追加
 	for key, value := range errCtx.Extra {
 		attrs = append(attrs, slog.Any("extra_"+key, value))
 	}
-	
+
 	log.Error(ctx, "エラーが発生しました", err, attrs...)
-	
-	// Prometheusメトリクスにも記録
+
+	// New Relic にエラーメトリクスを記録
 	RecordError("application_error", "error")
+
+	// New Relic APM にエラーを通知（トランザクションが存在する場合）
+	if app := GetApplication(); app != nil {
+		if txn := newrelic.FromContext(ctx); txn != nil {
+			txn.NoticeError(err)
+		}
+	}
 }
 
 // CaptureMessage はメッセージを記録します

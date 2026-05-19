@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -495,4 +496,39 @@ func (g *Goal) CalculateRequiredMonthlySavings() (valueobjects.Money, error) {
 	requiredMonthlySavings := remainingAmount.Amount() / remainingMonths
 
 	return valueobjects.NewMoneyJPY(requiredMonthlySavings)
+}
+
+// MarshalJSON はGoalをJSONにシリアライズする
+func (g *Goal) MarshalJSON() ([]byte, error) {
+	type goalJSON struct {
+		ID                  string  `json:"id"`
+		UserID              string  `json:"user_id"`
+		GoalType            string  `json:"goal_type"`
+		Title               string  `json:"title"`
+		TargetAmount        float64 `json:"target_amount"`
+		TargetDate          string  `json:"target_date"`
+		CurrentAmount       float64 `json:"current_amount"`
+		MonthlyContribution float64 `json:"monthly_contribution"`
+		IsActive            bool    `json:"is_active"`
+		CreatedAt           string  `json:"created_at"`
+		UpdatedAt           string  `json:"updated_at"`
+	}
+	return json.Marshal(goalJSON{
+		ID:                  string(g.id),
+		UserID:              string(g.userID),
+		GoalType:            string(g.goalType),
+		Title:               g.title,
+		TargetAmount:        g.targetAmount.Amount(),
+		TargetDate:          g.targetDate.Format(time.RFC3339),
+		CurrentAmount:       g.currentAmount.Amount(),
+		MonthlyContribution: g.monthlyContribution.Amount(),
+		IsActive:            g.isActive,
+		CreatedAt:           g.createdAt.Format(time.RFC3339),
+		UpdatedAt:           g.updatedAt.Format(time.RFC3339),
+	})
+}
+
+// MarshalJSON はProgressRateをJSONにシリアライズする
+func (pr ProgressRate) MarshalJSON() ([]byte, error) {
+	return json.Marshal(pr.rate.AsPercentage())
 }

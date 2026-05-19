@@ -217,6 +217,7 @@ make docker-help  # Docker関連のコマンド一覧
 cd frontend
 npm install
 cp .env.example .env.local
+# 必要に応じて NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX を設定
 npm run dev
 ```
 

@@ -1091,6 +1091,7 @@ func (uc *generateReportsUseCaseImpl) generateActionPlan(
 }
 
 // ExportReportToPDF はレポートをPDF/CSV形式でエクスポートする
+// ReportTypeに応じてDBからデータを取得してレポートを生成し、指定フォーマットで保存する
 func (uc *generateReportsUseCaseImpl) ExportReportToPDF(
 	ctx context.Context,
 	input ExportReportInput,
@@ -1099,53 +1100,102 @@ func (uc *generateReportsUseCaseImpl) ExportReportToPDF(
 		return nil, fmt.Errorf("ファイルストレージが設定されていません")
 	}
 
-	var fileContent []byte
-	var fileName string
-	var err error
-
-	switch input.Format {
-	case "csv":
-		fileContent, err = generateFinancialSummaryCSV(input)
-		if err != nil {
-			return nil, fmt.Errorf("CSVの生成に失敗しました: %w", err)
-		}
-		fileName = fmt.Sprintf("%s_%s_%s.csv", string(input.UserID), input.ReportType, time.Now().Format("20060102_150405"))
-	default:
-		if uc.pdfGenerator == nil {
-			return nil, fmt.Errorf("PDFジェネレーターが設定されていません")
-		}
-		fileContent, err = uc.pdfGenerator.Generate(input.ReportType, input.ReportData)
-		if err != nil {
-			return nil, fmt.Errorf("PDFの生成に失敗しました: %w", err)
-		}
-		fileName = fmt.Sprintf("%s_%s_%s.pdf", string(input.UserID), input.ReportType, time.Now().Format("20060102_150405"))
+	// CSVフォーマットの場合は専用処理
+	if input.Format == "csv" {
+		return uc.exportAsCSV(ctx, input)
 	}
 
-	token, expiresAt, err := uc.fileStorage.SaveFile(fileName, fileContent)
+	// PDF/その他フォーマット: DBからレポートデータを生成してPDF化
+	if uc.pdfGenerator == nil {
+		return nil, fmt.Errorf("PDFジェネレーターが設定されていません")
+	}
+
+	var pdfContent []byte
+	var err error
+
+	switch input.ReportType {
+	case "financial_summary":
+		output, genErr := uc.GenerateFinancialSummaryReport(ctx, FinancialSummaryReportInput{UserID: input.UserID})
+		if genErr != nil {
+			return nil, fmt.Errorf("財務サマリーレポートの生成に失敗しました: %w", genErr)
+		}
+		pdfContent, err = uc.pdfGenerator.Generate(input.ReportType, output.Report)
+	case "asset_projection":
+		output, genErr := uc.GenerateAssetProjectionReport(ctx, AssetProjectionReportInput{UserID: input.UserID, Years: 10})
+		if genErr != nil {
+			return nil, fmt.Errorf("資産推移レポートの生成に失敗しました: %w", genErr)
+		}
+		pdfContent, err = uc.pdfGenerator.Generate(input.ReportType, output.Report)
+	case "goals_progress":
+		output, genErr := uc.GenerateGoalsProgressReport(ctx, GoalsProgressReportInput{UserID: input.UserID})
+		if genErr != nil {
+			return nil, fmt.Errorf("目標進捗レポートの生成に失敗しました: %w", genErr)
+		}
+		pdfContent, err = uc.pdfGenerator.Generate(input.ReportType, output.Report)
+	case "retirement_plan":
+		output, genErr := uc.GenerateRetirementPlanReport(ctx, RetirementPlanReportInput{UserID: input.UserID})
+		if genErr != nil {
+			return nil, fmt.Errorf("退職計画レポートの生成に失敗しました: %w", genErr)
+		}
+		pdfContent, err = uc.pdfGenerator.Generate(input.ReportType, output.Report)
+	case "comprehensive":
+		output, genErr := uc.GenerateComprehensiveReport(ctx, ComprehensiveReportInput{UserID: input.UserID, Years: 10})
+		if genErr != nil {
+			return nil, fmt.Errorf("包括的レポートの生成に失敗しました: %w", genErr)
+		}
+		pdfContent, err = uc.pdfGenerator.Generate(input.ReportType, output.Report)
+	default:
+		return nil, fmt.Errorf("サポートされていないレポートタイプです: %s", input.ReportType)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("PDFの生成に失敗しました: %w", err)
+	}
+
+	fileName := fmt.Sprintf("%s_%s_%s.pdf", string(input.UserID), input.ReportType, time.Now().Format("20060102_150405"))
+	fileSize := int64(len(pdfContent))
+
+	token, expiresAt, err := uc.fileStorage.SaveFile(fileName, pdfContent)
 	if err != nil {
 		return nil, fmt.Errorf("ファイルの保存に失敗しました: %w", err)
 	}
 
 	return &ExportReportOutput{
 		FileName:      fileName,
-		FileSize:      int64(len(fileContent)),
+		FileSize:      fileSize,
 		DownloadToken: token,
 		ExpiresAt:     expiresAt.Format(time.RFC3339),
 	}, nil
 }
 
-// generateFinancialSummaryCSV はfinancial_summaryレポートをCSVバイト列に変換する
-func generateFinancialSummaryCSV(input ExportReportInput) ([]byte, error) {
+// exportAsCSV はCSVフォーマットでレポートをエクスポートする（financial_summaryのみ対応）
+func (uc *generateReportsUseCaseImpl) exportAsCSV(ctx context.Context, input ExportReportInput) (*ExportReportOutput, error) {
 	if input.ReportType != "financial_summary" {
 		return nil, fmt.Errorf("CSVエクスポートは financial_summary のみ対応しています（got: %s）", input.ReportType)
 	}
 
-	report, ok := input.ReportData.(FinancialSummaryReport)
-	if !ok {
-		return nil, fmt.Errorf("ReportData が FinancialSummaryReport 型ではありません")
+	output, err := uc.GenerateFinancialSummaryReport(ctx, FinancialSummaryReportInput{UserID: input.UserID})
+	if err != nil {
+		return nil, fmt.Errorf("財務サマリーレポートの生成に失敗しました: %w", err)
 	}
 
-	return GenerateFinancialSummaryCSVData(report)
+	csvData, err := GenerateFinancialSummaryCSVData(output.Report)
+	if err != nil {
+		return nil, fmt.Errorf("CSVの生成に失敗しました: %w", err)
+	}
+
+	fileName := fmt.Sprintf("%s_%s_%s.csv", string(input.UserID), input.ReportType, time.Now().Format("20060102_150405"))
+	token, expiresAt, err := uc.fileStorage.SaveFile(fileName, csvData)
+	if err != nil {
+		return nil, fmt.Errorf("ファイルの保存に失敗しました: %w", err)
+	}
+
+	return &ExportReportOutput{
+		FileName:      fileName,
+		FileSize:      int64(len(csvData)),
+		DownloadToken: token,
+		ExpiresAt:     expiresAt.Format(time.RFC3339),
+	}, nil
 }
 
 // GenerateFinancialSummaryCSVData は FinancialSummaryReport をBOM付きUTF-8のCSVバイト列に変換する

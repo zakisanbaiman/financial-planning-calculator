@@ -4,268 +4,223 @@
 
 ## 概要
 
-本アプリケーションでは、サービス運用性向上のために以下の機能を提供しています：
+本アプリケーションでは **New Relic APM** を使用してサービスを監視しています。
 
-- **Prometheusメトリクス収集**: HTTPリクエスト、データベース、キャッシュなどのパフォーマンスメトリクス
+- **APM（アプリケーションパフォーマンス監視）**: HTTPリクエスト、レスポンスタイム、エラー率
+- **分散トレーシング**: リクエスト内部の処理フローを可視化
+- **カスタムメトリクス**: DB接続数、キャッシュヒット率などのアプリ固有メトリクス
+- **アラート**: 閾値超過時の Slack 通知
 - **構造化ログ**: JSON形式の構造化ログ（slog使用）
-- **エラー追跡**: 詳細なスタックトレースとコンテキスト情報を含むエラー追跡
 
-## 機能
+## セットアップ
 
-### 1. Prometheusメトリクス
+### 1. New Relic アカウント登録
 
-#### 収集されるメトリクス
+1. [New Relic サインアップ](https://newrelic.com/signup)（メールのみ、クレカ不要）
+2. Settings → API Keys → **INGEST - LICENSE** の Key をコピー
 
-| メトリクス名 | 種類 | 説明 | ラベル |
-|------------|------|------|-------|
-| `http_requests_total` | Counter | 総HTTPリクエスト数 | method, endpoint, status |
-| `http_request_duration_seconds` | Histogram | HTTPリクエスト処理時間（秒） | method, endpoint |
-| `http_request_size_bytes` | Histogram | HTTPリクエストサイズ（バイト） | method, endpoint |
-| `http_response_size_bytes` | Histogram | HTTPレスポンスサイズ（バイト） | method, endpoint |
-| `http_active_connections` | Gauge | アクティブなHTTP接続数 | - |
-| `database_query_duration_seconds` | Histogram | データベースクエリ処理時間（秒） | query_type |
-| `database_connections_active` | Gauge | アクティブなDB接続数 | - |
-| `cache_hit_ratio` | Gauge | キャッシュヒット率（0-1） | cache_type |
-| `errors_total` | Counter | エラー総数 | error_type, severity |
-
-#### メトリクスエンドポイント
-
-```
-GET /metrics
-```
-
-このエンドポイントはPrometheus形式でメトリクスを公開します。
-
-#### 設定
-
-`.env`ファイルで以下の設定が可能です：
+### 2. 環境変数の設定
 
 ```env
-# メトリクス収集を有効化（デフォルト: true）
-ENABLE_PROMETHEUS_METRICS=true
-
-# メトリクスエンドポイント（デフォルト: /metrics）
-METRICS_ENDPOINT=/metrics
+# backend/.env
+NEW_RELIC_LICENSE_KEY=your_license_key_here
+NEW_RELIC_APP_NAME=financial-planning-calculator
 ```
 
-#### Prometheusサーバーの設定例
+### 3. アプリケーション起動
 
-```yaml
-# prometheus.yml
-scrape_configs:
-  - job_name: 'financial-planning-calculator'
-    static_configs:
-      - targets: ['localhost:8080']
-    metrics_path: '/metrics'
-    scrape_interval: 15s
+```bash
+docker compose up -d
 ```
 
-### 2. 構造化ログ
+起動後、数分で New Relic にデータが届き始めます。
 
-#### ログレベル
+---
 
-環境変数`LOG_LEVEL`で設定可能：
+## New Relic でのメトリクス確認
 
-- `DEBUG`: デバッグ情報を含むすべてのログ
-- `INFO`: 通常の動作情報（デフォルト）
-- `WARN`: 警告レベルのログ
-- `ERROR`: エラーのみ
+### APM ダッシュボード
+
+**アクセス**: [one.newrelic.com](https://one.newrelic.com) → APM → financial-planning-calculator
+
+| 画面 | 確認できる内容 |
+|------|--------------|
+| Summary | スループット、レスポンスタイム、エラー率のリアルタイム概要 |
+| Transactions | エンドポイント別のパフォーマンス一覧 |
+| Databases | クエリ別の処理時間 |
+| Errors | エラー一覧とスタックトレース |
+| Distributed Tracing | リクエスト内部の処理フロー |
+
+### カスタムメトリクス
+
+以下のカスタムメトリクスが New Relic に送信されます：
+
+| メトリクス名（NRQL） | 説明 |
+|---------------------|------|
+| `Custom/HTTP/Requests/{method}/{path}/{status}` | HTTPリクエスト数 |
+| `Custom/HTTP/Duration/{method}/{path}` | リクエスト処理時間（秒） |
+| `Custom/HTTP/ActiveConnections` | アクティブなHTTP接続数 |
+| `Custom/Database/QueryDuration/{query_type}` | DBクエリ処理時間（秒） |
+| `Custom/Database/ActiveConnections` | アクティブなDB接続数 |
+| `Custom/Cache/HitRatio/{cache_type}` | キャッシュヒット率（0-1） |
+| `Custom/Cache/Hits/{cache_type}` | キャッシュヒット数 |
+| `Custom/Cache/Misses/{cache_type}` | キャッシュミス数 |
+| `Custom/Errors/{error_type}/{severity}` | エラー数 |
+
+### NRQL クエリ例
+
+```sql
+-- エラー率（直近5分）
+SELECT filter(count(*), WHERE numeric(httpResponseCode) >= 500) / count(*) * 100 AS 'Error Rate %'
+FROM Transaction WHERE appName = 'financial-planning-calculator' SINCE 5 minutes ago
+
+-- P99 レスポンスタイム
+SELECT percentile(duration, 99) AS 'P99 Response Time (s)'
+FROM Transaction WHERE appName = 'financial-planning-calculator' SINCE 30 minutes ago TIMESERIES
+
+-- エンドポイント別スループット
+SELECT rate(count(*), 1 minute) AS 'Requests/min'
+FROM Transaction WHERE appName = 'financial-planning-calculator'
+FACET request.uri SINCE 30 minutes ago LIMIT 10
+```
+
+---
+
+## アラート設定
+
+アラートは New Relic の **Alert Policies** で設定します。詳細な設定手順と対処方法は [RUNBOOK.md](RUNBOOK.md) を参照してください。
+
+### アラートポリシー作成手順
+
+1. [New Relic](https://one.newrelic.com) にログイン
+2. **Alerts** → **Alert Policies** → **New alert policy**
+3. ポリシー名: `financial-planning-calculator-alerts`
+4. 通知先に Slack を追加:
+   - Notification channels → Add notification channel → Slack
+   - Webhook URL を設定
+
+### 設定するアラート
+
+| アラート名 | 重篤度 | 条件 |
+|-----------|--------|------|
+| HighErrorRate | Critical | エラーレート > 5% が5分以上 |
+| SlowResponseTime | Warning | P99 > 2秒 |
+| ServiceDown | Critical | データが1分以上届かない |
+| DatabaseConnectionHigh | Warning | DB接続数 > 80 |
+| HighMemoryUsage | Warning | メモリ > 500MB が5分以上 |
+
+---
+
+## 構造化ログ
+
+### ログレベル設定
 
 ```env
 # .env
-LOG_LEVEL=INFO
+LOG_LEVEL=INFO  # DEBUG / INFO / WARN / ERROR
 ```
 
-#### ログ形式
+### ログ形式
 
-すべてのログはJSON形式で出力されます：
+すべてのログは JSON 形式で出力されます：
 
 ```json
 {
   "time": "2026-02-11T10:00:00Z",
   "level": "ERROR",
-  "source": {
-    "function": "main.handler",
-    "file": "/app/main.go",
-    "line": 42
-  },
   "msg": "エラーが発生しました",
   "request_id": "abc123",
   "user_id": "user456",
   "error": "database connection failed",
-  "error_type": "DatabaseError",
-  "stack_trace": "...",
-  "timestamp": "2026-02-11T10:00:00Z"
+  "stack_trace": "..."
 }
 ```
 
-#### ログコンテキスト
+New Relic は Go エージェントのログ転送機能（`ConfigAppLogForwardingEnabled(true)`）を通じてこれらのログを自動収集します。
 
-以下のコンテキスト情報が自動的に付与されます：
+---
 
-- `request_id`: リクエストID（X-Request-IDヘッダー）
-- `user_id`: ユーザーID（認証済みの場合）
-- `operation`: 操作名（ユースケース層で設定）
+## エラー追跡
 
-### 3. エラー追跡
-
-#### ErrorTrackerインターフェース
-
-エラー追跡は`ErrorTracker`インターフェースを通じて行われます：
-
-```go
-type ErrorTracker interface {
-    CaptureError(ctx context.Context, err error, tags map[string]string)
-    CaptureMessage(ctx context.Context, message string, level string, tags map[string]string)
-    SetUser(ctx context.Context, userID string, email string)
-    Close()
-}
-```
-
-#### 使用例
+### ErrorTracker インターフェース
 
 ```go
 import "github.com/financial-planning-calculator/backend/infrastructure/monitoring"
 
-// エラーをキャプチャ
-ctx := log.WithRequestID(r.Context(), requestID)
-ctx = log.WithUserID(ctx, userID)
-
+// エラーをキャプチャ（New Relic APM に通知）
 tags := map[string]string{
     "component": "payment",
-    "severity": "high",
+    "severity":  "high",
 }
 monitoring.CaptureError(ctx, err, tags)
 
 // メッセージをキャプチャ
-monitoring.CaptureMessage(ctx, "処理が完了しました", "info", tags)
+monitoring.CaptureMessage(ctx, "処理完了", "info", tags)
 ```
 
-#### 拡張性
+エラーは New Relic の **Errors** セクションでスタックトレース付きで確認できます。
 
-現在はログベースの実装（`DefaultErrorTracker`）を使用していますが、将来的にSentry等の外部サービスと統合可能な設計になっています。
+---
 
-```env
-# .env
-ENABLE_ERROR_TRACKING=true
-ERROR_TRACKING_ENVIRONMENT=production
+## ヘルスチェック
+
+```bash
+# シンプルなヘルスチェック
+GET /health
+
+# 詳細なヘルスチェック（DB接続など）
+GET /health/detailed
+
+# 準備状態チェック
+GET /ready
 ```
 
-## 運用
+---
 
-### ヘルスチェック
-
-アプリケーションのヘルスチェックは以下のエンドポイントで確認できます：
-
-```
-GET /health          # シンプルなヘルスチェック
-GET /health/detailed # 詳細なヘルスチェック（DB接続など）
-GET /ready           # 準備状態チェック
-```
-
-### パフォーマンスプロファイリング
-
-開発環境ではpprofサーバーが有効化されます：
+## パフォーマンスプロファイリング（開発環境）
 
 ```env
 ENABLE_PPROF=true
 PPROF_PORT=6060
 ```
 
-アクセス方法：
 ```bash
-# CPUプロファイル
-go tool pprof http://localhost:6060/debug/pprof/profile
-
 # メモリプロファイル
 go tool pprof http://localhost:6060/debug/pprof/heap
 
-# ゴルーチン
-go tool pprof http://localhost:6060/debug/pprof/goroutine
+# CPU プロファイル
+go tool pprof http://localhost:6060/debug/pprof/profile
 ```
 
-### ログ集約
-
-構造化ログ（JSON形式）のため、以下のツールと統合が容易です：
-
-- **Fluentd/Fluent Bit**: ログ収集・転送
-- **Elasticsearch**: ログ保存・検索
-- **Kibana**: ログ可視化
-- **Loki**: Grafanaとの統合
-
-Docker環境での例：
-
-```yaml
-# docker-compose.yml
-services:
-  app:
-    logging:
-      driver: "fluentd"
-      options:
-        fluentd-address: localhost:24224
-        tag: financial-planning-calculator
-```
-
-### Grafanaダッシュボード
-
-Prometheusメトリクスを可視化するためのGrafanaダッシュボード例：
-
-1. **HTTPリクエスト統計**
-   - リクエスト数（rate）
-   - エラー率
-   - レスポンスタイム（p50, p95, p99）
-
-2. **データベース統計**
-   - クエリ処理時間
-   - アクティブ接続数
-
-3. **キャッシュ統計**
-   - ヒット率
-   - ミス率
-
-4. **エラー統計**
-   - エラー発生率
-   - エラー種別
+---
 
 ## トラブルシューティング
 
-### メトリクスが表示されない
+### New Relic にデータが届かない
 
-1. Prometheusが初期化されているか確認：
+1. License Key が正しいか確認:
    ```bash
-   curl http://localhost:8080/metrics
+   docker exec financial_planning_backend env | grep NEW_RELIC
    ```
-
-2. アプリケーションログでエラーを確認：
+2. 起動ログで New Relic の初期化状態を確認:
    ```bash
-   docker logs financial-planning-calculator-backend
+   docker logs financial_planning_backend | grep "New Relic"
+   # ✅ New Relic エージェントを初期化しました → 正常
+   # ⚠️ New Relic 初期化失敗 → License Key を確認
    ```
+3. New Relic にデータが届くまで数分かかる場合があります
 
 ### ログが出力されない
 
-1. ログレベルを確認：
-   ```env
-   LOG_LEVEL=DEBUG  # より詳細なログを出力
-   ```
+```env
+LOG_LEVEL=DEBUG  # より詳細なログを出力
+```
 
-2. ログ形式が正しいか確認（JSON形式であるべき）
-
-### エラーが追跡されない
-
-1. エラートラッキングが有効化されているか確認：
-   ```env
-   ENABLE_ERROR_TRACKING=true
-   ```
-
-2. コンテキストが正しく設定されているか確認：
-   ```go
-   ctx = log.WithRequestID(ctx, requestID)
-   ctx = log.WithUserID(ctx, userID)
-   ```
+---
 
 ## 参考資料
 
-- [Prometheus公式ドキュメント](https://prometheus.io/docs/introduction/overview/)
-- [Grafana公式ドキュメント](https://grafana.com/docs/)
-- [Go slogパッケージ](https://pkg.go.dev/log/slog)
-- [Prometheus Go Client](https://github.com/prometheus/client_golang)
+- [New Relic Go エージェント](https://docs.newrelic.com/docs/apm/agents/go-agent/get-started/introduction-new-relic-go/)
+- [New Relic NRQL リファレンス](https://docs.newrelic.com/docs/query-your-data/nrql-new-relic-query-language/get-started/nrql-syntax-clauses-functions/)
+- [Go slog パッケージ](https://pkg.go.dev/log/slog)
+- [アラート Runbook](RUNBOOK.md)

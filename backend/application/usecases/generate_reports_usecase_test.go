@@ -308,6 +308,9 @@ func TestGenerateReportsUseCase_ExportReportToPDF(t *testing.T) {
 		mockPlanRepo := new(MockFinancialPlanRepository)
 		mockGoalRepo := new(MockGoalRepository)
 
+		plan := newTestFinancialPlan(entities.UserID("user-001"))
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
+
 		pdfContent := []byte("<html>financial summary pdf</html>")
 		expectedToken := "test-download-token-xyz"
 
@@ -349,6 +352,9 @@ func TestGenerateReportsUseCase_ExportReportToPDF(t *testing.T) {
 		mockPlanRepo := new(MockFinancialPlanRepository)
 		mockGoalRepo := new(MockGoalRepository)
 
+		plan := newTestFinancialPlan(entities.UserID("user-001"))
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
+
 		pdfGen := &mockReportPDFGenerator{
 			generateFunc: func(reportType string, reportData interface{}) ([]byte, error) {
 				return nil, errors.New("PDF生成エンジンエラー")
@@ -371,6 +377,9 @@ func TestGenerateReportsUseCase_ExportReportToPDF(t *testing.T) {
 	t.Run("異常系: ストレージ保存失敗時にエラーが返る", func(t *testing.T) {
 		mockPlanRepo := new(MockFinancialPlanRepository)
 		mockGoalRepo := new(MockGoalRepository)
+
+		plan := newTestFinancialPlan(entities.UserID("user-001"))
+		mockPlanRepo.On("FindByUserID", mock_anything(), entities.UserID("user-001")).Return(plan, nil)
 
 		pdfGen := &mockReportPDFGenerator{
 			generateFunc: func(reportType string, reportData interface{}) ([]byte, error) {

@@ -164,6 +164,13 @@ export default function CalculationsPage() {
         </div>
       </div>
 
+      {/* Sample banner */}
+      <div className="mb-6 px-3 py-2 border-l-2 border-accent-500 bg-accent-50 dark:bg-accent-900/20">
+        <p className="font-body text-xs text-ink-600 dark:text-ink-400">
+          以下はサンプルデータによる試算例です（資産300万円・月12万円積立・利回り5%・インフレ2%）。実際の数値で計算するには上の各計算機をご利用ください。
+        </p>
+      </div>
+
       {/* Sample Calculation Results */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
         {/* Asset Projection Chart */}

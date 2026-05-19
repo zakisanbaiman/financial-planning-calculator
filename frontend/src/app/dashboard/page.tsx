@@ -138,7 +138,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="mb-12">
         <p className="font-body text-sm font-semibold tracking-editorial uppercase text-accent-600 dark:text-accent-400 mb-2">
-          Overview
+          概要
         </p>
         <h1 className="font-display text-4xl md:text-5xl font-semibold text-ink-900 dark:text-ink-100">
           ダッシュボード
@@ -214,6 +214,14 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 space-y-8">
           {/* Asset Projection Chart */}
           <div className="card">
+            {!financialStats.hasData && (
+              <div className="mb-4 px-3 py-2 border-l-2 border-accent-500 bg-accent-50 dark:bg-accent-900/20">
+                <p className="font-body text-xs text-ink-600 dark:text-ink-400">
+                  サンプルデータ表示中 — 初期値（資産300万円・月12万円積立）で試算しています。
+                  <a href="/financial-data" className="ml-1 font-semibold underline hover:text-accent-700 dark:hover:text-accent-300">財務データを入力</a>すると実際の数値に切り替わります。
+                </p>
+              </div>
+            )}
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-display text-2xl font-semibold text-ink-900 dark:text-ink-100">資産推移予測</h2>
               <div className="flex items-center gap-4">
@@ -455,7 +463,7 @@ export default function DashboardPage() {
           <div className="flex justify-between items-end mb-8">
             <div>
               <p className="font-body text-sm font-semibold tracking-editorial uppercase text-accent-600 dark:text-accent-400 mb-2">
-                Progress
+                進捗
               </p>
               <h2 className="font-display text-3xl font-semibold text-ink-900 dark:text-ink-100">目標進捗ダッシュボード</h2>
             </div>

@@ -17,6 +17,7 @@ type ServerConfig struct {
 	RateLimitBurst      int
 	AuthRateLimitRPS    int
 	AuthRateLimitBurst  int
+	TrustedProxyCount   int // 信頼済みプロキシ段数（右からN個のIPを除外して識別子を取得）
 	RequestTimeout      time.Duration
 	MaxRequestSize      string
 	EnableGzip          bool
@@ -63,6 +64,9 @@ type ServerConfig struct {
 	GroqAPIKey string // GROQ_API_KEY
 	GroqModel  string // GROQ_MODEL (例: "llama3-8b-8192")
 	FAQDir     string // FAQ_DIR (例: "docs/faq")
+	// New Relic APM
+	NewRelicLicenseKey string // NEW_RELIC_LICENSE_KEY
+	NewRelicAppName    string // NEW_RELIC_APP_NAME
 }
 
 // LoadServerConfig loads server configuration from environment variables
@@ -75,7 +79,8 @@ func LoadServerConfig() *ServerConfig {
 		RateLimitRPS:        getEnvInt("RATE_LIMIT_RPS", 100),
 		RateLimitBurst:      getEnvInt("RATE_LIMIT_BURST", 50),
 		AuthRateLimitRPS:    getEnvInt("AUTH_RATE_LIMIT_RPS", 10),
-		AuthRateLimitBurst:  getEnvInt("AUTH_RATE_LIMIT_BURST", 5),
+		AuthRateLimitBurst:  getEnvInt("AUTH_RATE_LIMIT_BURST", 10),
+		TrustedProxyCount:   getEnvInt("TRUSTED_PROXY_COUNT", 1),
 		RequestTimeout:      getEnvDuration("REQUEST_TIMEOUT", 30*time.Second),
 		MaxRequestSize:      getEnv("MAX_REQUEST_SIZE", "10M"),
 		EnableGzip:          getEnvBool("ENABLE_GZIP", true),
@@ -124,6 +129,9 @@ func LoadServerConfig() *ServerConfig {
 		GroqAPIKey: getEnv("GROQ_API_KEY", ""),
 		GroqModel:  getEnv("GROQ_MODEL", "llama3-8b-8192"),
 		FAQDir:     getEnv("FAQ_DIR", "docs/faq"),
+		// New Relic APM
+		NewRelicLicenseKey: getEnv("NEW_RELIC_LICENSE_KEY", ""),
+		NewRelicAppName:    getEnv("NEW_RELIC_APP_NAME", "financial-planning-calculator"),
 	}
 
 	return config

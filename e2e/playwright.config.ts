@@ -2,26 +2,22 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * E2E Test Configuration for Financial Planning Calculator
- * 
+ *
  * See https://playwright.dev/docs/test-configuration
- * 
- * CI mode: Only runs health-check tests on Chromium for faster feedback
- * Local mode: Full test suite available
  */
 export default defineConfig({
   testDir: './tests',
 
   // Maximum time one test can run
-  timeout: 30 * 1000,
+  timeout: 60 * 1000,
 
   // Test execution settings
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 4 : undefined,
 
-  // In CI, only run health-check tests
-  testMatch: process.env.CI ? 'health-check.spec.ts' : '**/*.spec.ts',
+  testMatch: '**/*.spec.ts',
 
   // Reporter configuration
   reporter: [
@@ -61,7 +57,7 @@ export default defineConfig({
   // Run local dev server before starting tests
   webServer: [
     {
-      command: 'cd ../frontend && npm run dev',
+      command: 'cd ../frontend && NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8080} npm run dev',
       url: 'http://localhost:3000',
       reuseExistingServer: true,
       timeout: 120 * 1000,

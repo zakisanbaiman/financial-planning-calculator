@@ -191,6 +191,36 @@ export const financialDataAPI = {
       method: 'DELETE',
     });
   },
+
+  // CSVダウンロード（バックエンド経由 — GETで直接 text/csv を返す）
+  downloadCSV: async (userId: string): Promise<Blob> => {
+    const url = `${API_BASE_URL}/financial-data/csv?user_id=${encodeURIComponent(userId)}`;
+    const response = await fetch(url, { credentials: 'include' });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new APIError(errorData.message || `HTTP ${response.status}`, response.status, errorData);
+    }
+    return response.blob();
+  },
+
+  // CSVインポート（multipart/form-data）
+  importCSV: async (userId: string, file: File): Promise<FinancialData> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('user_id', userId);
+    // Content-Type は FormData を body に渡すと boundary 付きで自動設定されるため指定しない
+    const url = `${API_BASE_URL}/financial-data/csv/import`;
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new APIError(errorData.message || `HTTP ${response.status}`, response.status, errorData);
+    }
+    return response.json();
+  },
 };
 
 // 計算API
