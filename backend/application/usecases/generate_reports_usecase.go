@@ -1145,21 +1145,23 @@ func generateFinancialSummaryCSV(input ExportReportInput) ([]byte, error) {
 		return nil, fmt.Errorf("ReportData が FinancialSummaryReport 型ではありません")
 	}
 
+	return GenerateFinancialSummaryCSVData(report)
+}
+
+// GenerateFinancialSummaryCSVData は FinancialSummaryReport をBOM付きUTF-8のCSVバイト列に変換する
+func GenerateFinancialSummaryCSVData(report FinancialSummaryReport) ([]byte, error) {
 	var buf bytes.Buffer
 	w := csv.NewWriter(&buf)
 
 	// BOM付きUTF-8（Excelでの文字化け防止）
 	buf.WriteString("\xEF\xBB\xBF")
 
-	// 財務健全性セクション
 	_ = w.Write([]string{"セクション", "項目", "値", "単位"})
 	_ = w.Write([]string{"財務健全性", "総合スコア", strconv.Itoa(report.FinancialHealth.OverallScore), "点"})
 	_ = w.Write([]string{"財務健全性", "スコアレベル", report.FinancialHealth.ScoreLevel, ""})
 	_ = w.Write([]string{"財務健全性", "貯蓄率", strconv.FormatFloat(report.FinancialHealth.SavingsRate, 'f', 2, 64), "%"})
 	_ = w.Write([]string{"財務健全性", "負債比率", strconv.FormatFloat(report.FinancialHealth.DebtToIncomeRatio, 'f', 2, 64), "%"})
 	_ = w.Write([]string{"財務健全性", "緊急資金比率", strconv.FormatFloat(report.FinancialHealth.EmergencyFundRatio, 'f', 2, 64), "ヶ月"})
-
-	// 現在の状況セクション
 	_ = w.Write([]string{"現在の状況", "月収", strconv.FormatFloat(report.CurrentSituation.MonthlyIncome, 'f', 0, 64), "円"})
 	_ = w.Write([]string{"現在の状況", "月間支出", strconv.FormatFloat(report.CurrentSituation.MonthlyExpenses, 'f', 0, 64), "円"})
 	_ = w.Write([]string{"現在の状況", "純貯蓄", strconv.FormatFloat(report.CurrentSituation.NetSavings, 'f', 0, 64), "円"})
@@ -1167,7 +1169,6 @@ func generateFinancialSummaryCSV(input ExportReportInput) ([]byte, error) {
 	_ = w.Write([]string{"現在の状況", "投資利回り", strconv.FormatFloat(report.CurrentSituation.InvestmentReturn, 'f', 2, 64), "%"})
 	_ = w.Write([]string{"現在の状況", "インフレ率", strconv.FormatFloat(report.CurrentSituation.InflationRate, 'f', 2, 64), "%"})
 
-	// 主要指標セクション
 	for _, m := range report.KeyMetrics {
 		_ = w.Write([]string{"主要指標", m.Name, strconv.FormatFloat(m.Value, 'f', 2, 64), m.Unit})
 	}
