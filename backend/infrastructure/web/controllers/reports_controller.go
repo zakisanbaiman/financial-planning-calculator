@@ -485,8 +485,10 @@ func (ctrl *ReportsController) DownloadReport(c echo.Context) error {
 		})
 	}
 
-	// PDFファイルをストリーミングレスポンスとして返す
-	c.Response().Header().Set("Content-Type", "application/pdf")
+	contentType := "application/pdf"
+	if strings.HasSuffix(fileName, ".csv") {
+		contentType = "text/csv; charset=utf-8"
+	}
 	c.Response().Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, fileName))
-	return c.Blob(http.StatusOK, "application/pdf", data)
+	return c.Blob(http.StatusOK, contentType, data)
 }
