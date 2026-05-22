@@ -123,6 +123,37 @@ export default function ReportsPage() {
     }
   };
 
+  const handleDownloadCSV = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/reports/financial-summary/csv`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'CSVのダウンロードに失敗しました');
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `financial_summary_${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error('CSVダウンロードエラー:', err);
+      setError(err.message || 'CSVのダウンロードに失敗しました');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleQuickDownload = async (reportType: string) => {
     setLoading(true);
     setError(null);
@@ -240,6 +271,11 @@ export default function ReportsPage() {
         {/* Report Content Preview */}
         <div className="lg:col-span-2">
           <div className="card">
+            <div className="mb-4 px-3 py-2 border-l-2 border-accent-500 bg-accent-50 dark:bg-accent-900/20">
+              <p className="font-body text-xs text-ink-600 dark:text-ink-400">
+                プレビューはサンプルデータで表示されています。PDF生成時はあなたの実際のデータが使用されます。
+              </p>
+            </div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">レポートプレビュー</h2>
               <div className="flex space-x-2">
@@ -421,6 +457,14 @@ export default function ReportsPage() {
               >
                 <p className="text-sm font-medium text-gray-900 dark:text-white">💰 財務サマリー</p>
                 <p className="text-xs text-gray-600 dark:text-gray-300">現在の財務状況の概要</p>
+              </button>
+              <button
+                className="w-full p-3 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/40 rounded text-left transition-colors"
+                onClick={handleDownloadCSV}
+                disabled={loading}
+              >
+                <p className="text-sm font-medium text-green-800 dark:text-green-300">📥 財務サマリー CSV</p>
+                <p className="text-xs text-green-700 dark:text-green-400">Excelで開けるCSV形式でダウンロード</p>
               </button>
               <button
                 className="w-full p-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 rounded text-left transition-colors"
