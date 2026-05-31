@@ -1,13 +1,197 @@
 package controllers
 
 import (
+	"bytes"
+	"encoding/csv"
+	"fmt"
+	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/financial-planning-calculator/backend/application/usecases"
 	"github.com/financial-planning-calculator/backend/domain/entities"
 	"github.com/labstack/echo/v4"
 )
+
+// csvImportData はCSVからパースした財務データ
+type csvImportData struct {
+	MonthlyIncome              *float64
+	InvestmentReturn           *float64
+	InflationRate              *float64
+	RetirementAge              *int
+	MonthlyRetirementExpenses  *float64
+	PensionAmount              *float64
+	EmergencyFundTargetMonths  *int
+	EmergencyFundCurrentAmount *float64
+}
+
+// csvImportError はCSVパース時の行レベルエラー
+type csvImportError struct {
+	Row     int    `json:"row"`
+	Field   string `json:"field"`
+	Value   string `json:"value"`
+	Message string `json:"message"`
+}
+
+// parseFinancialDataCSV はCSVデータをパースして財務インポートデータを返す
+func parseFinancialDataCSV(r io.Reader) (*csvImportData, []csvImportError) {
+	raw, err := io.ReadAll(r)
+	if err != nil {
+		return nil, []csvImportError{{Row: 0, Field: "", Value: "", Message: "ファイルの読み込みに失敗しました"}}
+	}
+	// BOM除去
+	raw = bytes.TrimPrefix(raw, []byte{0xEF, 0xBB, 0xBF})
+
+	reader := csv.NewReader(bytes.NewReader(raw))
+	reader.FieldsPerRecord = -1
+
+	// ヘッダー行を読んでカラムインデックスを特定
+	header, err := reader.Read()
+	if err != nil {
+		return nil, []csvImportError{{Row: 1, Field: "", Value: "", Message: "ヘッダー行の読み込みに失敗しました"}}
+	}
+	itemIdx, valueIdx := -1, -1
+	for i, col := range header {
+		switch strings.TrimSpace(col) {
+		case "項目":
+			itemIdx = i
+		case "値":
+			valueIdx = i
+		}
+	}
+	if itemIdx < 0 {
+		return nil, []csvImportError{{Row: 1, Field: "", Value: "", Message: "ヘッダーに「項目」列が見つかりません"}}
+	}
+	if valueIdx < 0 {
+		return nil, []csvImportError{{Row: 1, Field: "", Value: "", Message: "ヘッダーに「値」列が見つかりません"}}
+	}
+
+	data := &csvImportData{}
+	var errs []csvImportError
+	rowNum := 1 // ヘッダーが1行目
+
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		rowNum++
+		if err != nil {
+			errs = append(errs, csvImportError{Row: rowNum, Field: "", Value: "", Message: fmt.Sprintf("行の読み込みに失敗しました: %s", err.Error())})
+			continue
+		}
+		if itemIdx >= len(record) || valueIdx >= len(record) {
+			continue
+		}
+		itemName := strings.TrimSpace(record[itemIdx])
+		rawValue := strings.TrimSpace(record[valueIdx])
+		if rawValue == "" {
+			continue
+		}
+
+		switch itemName {
+		case "月収":
+			v, e := strconv.ParseFloat(rawValue, 64)
+			if e != nil {
+				errs = append(errs, csvImportError{Row: rowNum, Field: itemName, Value: rawValue, Message: "数値に変換できません"})
+				continue
+			}
+			if v <= 0 {
+				errs = append(errs, csvImportError{Row: rowNum, Field: itemName, Value: rawValue, Message: "月収は0より大きい値を入力してください"})
+				continue
+			}
+			data.MonthlyIncome = &v
+
+		case "投資リターン":
+			v, e := strconv.ParseFloat(rawValue, 64)
+			if e != nil {
+				errs = append(errs, csvImportError{Row: rowNum, Field: itemName, Value: rawValue, Message: "数値に変換できません"})
+				continue
+			}
+			if v < 0 || v > 100 {
+				errs = append(errs, csvImportError{Row: rowNum, Field: itemName, Value: rawValue, Message: "投資リターンは0%から100%の範囲で入力してください"})
+				continue
+			}
+			data.InvestmentReturn = &v
+
+		case "インフレ率":
+			v, e := strconv.ParseFloat(rawValue, 64)
+			if e != nil {
+				errs = append(errs, csvImportError{Row: rowNum, Field: itemName, Value: rawValue, Message: "数値に変換できません"})
+				continue
+			}
+			if v < 0 || v > 50 {
+				errs = append(errs, csvImportError{Row: rowNum, Field: itemName, Value: rawValue, Message: "インフレ率は0%から50%の範囲で入力してください"})
+				continue
+			}
+			data.InflationRate = &v
+
+		case "退職年齢":
+			v, e := strconv.Atoi(rawValue)
+			if e != nil {
+				errs = append(errs, csvImportError{Row: rowNum, Field: itemName, Value: rawValue, Message: "整数に変換できません"})
+				continue
+			}
+			if v < 50 || v > 100 {
+				errs = append(errs, csvImportError{Row: rowNum, Field: itemName, Value: rawValue, Message: "退職年齢は50歳から100歳の範囲で入力してください"})
+				continue
+			}
+			data.RetirementAge = &v
+
+		case "老後月間生活費":
+			v, e := strconv.ParseFloat(rawValue, 64)
+			if e != nil {
+				errs = append(errs, csvImportError{Row: rowNum, Field: itemName, Value: rawValue, Message: "数値に変換できません"})
+				continue
+			}
+			if v <= 0 {
+				errs = append(errs, csvImportError{Row: rowNum, Field: itemName, Value: rawValue, Message: "老後月間生活費は0より大きい値を入力してください"})
+				continue
+			}
+			data.MonthlyRetirementExpenses = &v
+
+		case "年金受給額":
+			v, e := strconv.ParseFloat(rawValue, 64)
+			if e != nil {
+				errs = append(errs, csvImportError{Row: rowNum, Field: itemName, Value: rawValue, Message: "数値に変換できません"})
+				continue
+			}
+			if v < 0 {
+				errs = append(errs, csvImportError{Row: rowNum, Field: itemName, Value: rawValue, Message: "年金受給額は0以上の値を入力してください"})
+				continue
+			}
+			data.PensionAmount = &v
+
+		case "緊急資金目標月数":
+			v, e := strconv.Atoi(rawValue)
+			if e != nil {
+				errs = append(errs, csvImportError{Row: rowNum, Field: itemName, Value: rawValue, Message: "整数に変換できません"})
+				continue
+			}
+			if v < 1 || v > 24 {
+				errs = append(errs, csvImportError{Row: rowNum, Field: itemName, Value: rawValue, Message: "緊急資金目標月数は1ヶ月から24ヶ月の範囲で入力してください"})
+				continue
+			}
+			data.EmergencyFundTargetMonths = &v
+
+		case "現在の緊急資金":
+			v, e := strconv.ParseFloat(rawValue, 64)
+			if e != nil {
+				errs = append(errs, csvImportError{Row: rowNum, Field: itemName, Value: rawValue, Message: "数値に変換できません"})
+				continue
+			}
+			if v < 0 {
+				errs = append(errs, csvImportError{Row: rowNum, Field: itemName, Value: rawValue, Message: "現在の緊急資金は0以上の値を入力してください"})
+				continue
+			}
+			data.EmergencyFundCurrentAmount = &v
+		}
+		// 上記以外の項目名（総合スコア、月間支出など）は無視
+	}
+
+	return data, errs
+}
 
 // FinancialDataController は財務データ管理のコントローラー
 type FinancialDataController struct {
@@ -697,4 +881,128 @@ func convertSavingsItems(items []SavingsItemRequest) []usecases.SavingsItem {
 		}
 	}
 	return result
+}
+
+// ImportFinancialDataFromCSV はCSVファイルから財務データをインポートする
+// @Summary 財務データCSVインポート
+// @Description CSVファイルをアップロードして財務データを一括登録・更新します
+// @Tags financial-data
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "CSVファイル（最大1MB）"
+// @Success 200 {object} usecases.FinancialDataResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /financial-data/import/csv [post]
+func (c *FinancialDataController) ImportFinancialDataFromCSV(ctx echo.Context) error {
+	userID, ok := ctx.Get("user_id").(string)
+	if !ok || userID == "" {
+		return ctx.JSON(http.StatusUnauthorized, NewErrorResponse(ctx, ErrorCodeUnauthorized, "ユーザー情報が取得できません", nil))
+	}
+
+	fileHeader, err := ctx.FormFile("file")
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "ファイルが見つかりません", err.Error()))
+	}
+	if fileHeader.Size > 1<<20 {
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "ファイルサイズが1MBを超えています", nil))
+	}
+
+	f, err := fileHeader.Open()
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "ファイルのオープンに失敗しました", err.Error()))
+	}
+	defer f.Close()
+
+	data, csvErrs := parseFinancialDataCSV(f)
+	if len(csvErrs) > 0 {
+		return ctx.JSON(http.StatusBadRequest, map[string]interface{}{
+			"error":   "CSVのパースに失敗しました",
+			"code":    ErrorCodeBadRequest,
+			"details": csvErrs,
+		})
+	}
+
+	// 必須フィールドの確認
+	if data.MonthlyIncome == nil {
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "必須項目「月収」がCSVに含まれていません", nil))
+	}
+	if data.InvestmentReturn == nil {
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "必須項目「投資リターン」がCSVに含まれていません", nil))
+	}
+	if data.InflationRate == nil {
+		return ctx.JSON(http.StatusBadRequest, NewErrorResponse(ctx, ErrorCodeBadRequest, "必須項目「インフレ率」がCSVに含まれていません", nil))
+	}
+
+	reqCtx := GetRequestContextWithUserID(ctx, userID)
+
+	// プロファイル更新（データがなければ新規作成にフォールバック）
+	profileInput := usecases.UpdateFinancialProfileInput{
+		UserID:           entities.UserID(userID),
+		MonthlyIncome:    *data.MonthlyIncome,
+		MonthlyExpenses:  []usecases.ExpenseItem{{Category: "生活費", Amount: 100000}},
+		CurrentSavings:   []usecases.SavingsItem{{Type: "deposit", Amount: 500000}},
+		InvestmentReturn: *data.InvestmentReturn,
+		InflationRate:    *data.InflationRate,
+	}
+
+	_, profileErr := c.useCase.UpdateFinancialProfile(reqCtx, profileInput)
+	if profileErr != nil {
+		if strings.Contains(profileErr.Error(), "財務データが見つかりません") ||
+			strings.Contains(profileErr.Error(), "財務計画の取得に失敗しました") ||
+			strings.Contains(profileErr.Error(), "財務プロファイルの取得に失敗しました") {
+			createInput := usecases.CreateFinancialPlanInput{
+				UserID:                     entities.UserID(userID),
+				MonthlyIncome:              *data.MonthlyIncome,
+				MonthlyExpenses:            []usecases.ExpenseItem{{Category: "生活費", Amount: 100000}},
+				CurrentSavings:             []usecases.SavingsItem{{Type: "deposit", Amount: 500000}},
+				InvestmentReturn:           *data.InvestmentReturn,
+				InflationRate:              *data.InflationRate,
+				RetirementAge:              data.RetirementAge,
+				MonthlyRetirementExpenses:  data.MonthlyRetirementExpenses,
+				PensionAmount:              data.PensionAmount,
+				EmergencyFundTargetMonths:  data.EmergencyFundTargetMonths,
+				EmergencyFundCurrentAmount: data.EmergencyFundCurrentAmount,
+			}
+			if _, err := c.useCase.CreateFinancialPlan(reqCtx, createInput); err != nil {
+				return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
+			}
+		} else {
+			return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, profileErr.Error()))
+		}
+	} else {
+		// プロファイル更新成功後、退職データ・緊急資金データを追加更新
+		if data.RetirementAge != nil && data.MonthlyRetirementExpenses != nil && data.PensionAmount != nil {
+			retireInput := usecases.UpdateRetirementDataInput{
+				UserID:                    entities.UserID(userID),
+				RetirementAge:             *data.RetirementAge,
+				MonthlyRetirementExpenses: *data.MonthlyRetirementExpenses,
+				PensionAmount:             *data.PensionAmount,
+			}
+			if _, err := c.useCase.UpdateRetirementData(reqCtx, retireInput); err != nil {
+				return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, fmt.Sprintf("退職データの更新に失敗しました: %s", err.Error())))
+			}
+		}
+
+		if data.EmergencyFundTargetMonths != nil && data.EmergencyFundCurrentAmount != nil {
+			emergencyInput := usecases.UpdateEmergencyFundInput{
+				UserID:        entities.UserID(userID),
+				TargetMonths:  *data.EmergencyFundTargetMonths,
+				CurrentAmount: *data.EmergencyFundCurrentAmount,
+			}
+			if _, err := c.useCase.UpdateEmergencyFund(reqCtx, emergencyInput); err != nil {
+				return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, fmt.Sprintf("緊急資金設定の更新に失敗しました: %s", err.Error())))
+			}
+		}
+	}
+
+	// 最新データを取得してレスポンス
+	getOutput, err := c.useCase.GetFinancialPlan(reqCtx, usecases.GetFinancialPlanInput{
+		UserID: entities.UserID(userID),
+	})
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, NewInternalServerErrorResponse(ctx, err.Error()))
+	}
+	return ctx.JSON(http.StatusOK, c.convertToFinancialDataResponse(getOutput, userID))
 }
