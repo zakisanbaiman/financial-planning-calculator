@@ -5,8 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/financial-planning-calculator/backend/application/usecases"
@@ -594,6 +597,224 @@ func TestDeleteFinancialData(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expectedStatus, rec.Code)
+		})
+	}
+}
+
+// buildCSVMultipartRequest は multipart/form-data リクエストを構築するヘルパー
+func buildCSVMultipartRequest(csvContent string) (*http.Request, string) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, _ := writer.CreateFormFile("file", "financial_data.csv")
+	_, _ = io.WriteString(part, csvContent)
+	writer.Close()
+	req := httptest.NewRequest(http.MethodPost, "/financial-data/import/csv", body)
+	return req, writer.FormDataContentType()
+}
+
+func TestImportFinancialDataFromCSV(t *testing.T) {
+	const validCSV = "項目,値,単位,説明\n月収,400000,円,\n投資リターン,5.00,%,\nインフレ率,2.00,%,\n"
+	const fullCSV = "項目,値,単位,説明\n月収,400000,円,\n投資リターン,5.00,%,\nインフレ率,2.00,%,\n退職年齢,65,歳,\n老後月間生活費,200000,円,\n年金受給額,100000,円,\n緊急資金目標月数,6,ヶ月,\n現在の緊急資金,500000,円,\n"
+	const withExtraRows = "項目,値,単位,説明\n総合スコア,85,点,良好\n貯蓄率,25.00,%,\n月収,400000,円,\n投資リターン,5.00,%,\nインフレ率,2.00,%,\n"
+
+	emptyGetOutput := &usecases.GetFinancialPlanOutput{Plan: nil}
+	profileOutput := &usecases.UpdateFinancialProfileOutput{FinancialDataResponse: &usecases.FinancialDataResponse{UserID: "user-123"}}
+	retirementOutput := &usecases.UpdateRetirementDataOutput{FinancialDataResponse: &usecases.FinancialDataResponse{UserID: "user-123"}}
+	emergencyOutput := &usecases.UpdateEmergencyFundOutput{FinancialDataResponse: &usecases.FinancialDataResponse{UserID: "user-123"}}
+
+	tests := []struct {
+		name           string
+		userID         string
+		csvContent     string
+		mockSetup      func(*MockManageFinancialDataUseCase)
+		expectedStatus int
+	}{
+		{
+			name:       "正常: 必須項目のみ・UpdateProfile成功",
+			userID:     "user-123",
+			csvContent: validCSV,
+			mockSetup: func(m *MockManageFinancialDataUseCase) {
+				m.On("UpdateFinancialProfile", mock.Anything, mock.Anything).Return(profileOutput, nil)
+				m.On("GetFinancialPlan", mock.Anything, mock.Anything).Return(emptyGetOutput, nil)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:       "正常: 全項目CSV・UpdateProfile後に退職・緊急資金も更新",
+			userID:     "user-123",
+			csvContent: fullCSV,
+			mockSetup: func(m *MockManageFinancialDataUseCase) {
+				m.On("UpdateFinancialProfile", mock.Anything, mock.Anything).Return(profileOutput, nil)
+				m.On("UpdateRetirementData", mock.Anything, mock.Anything).Return(retirementOutput, nil)
+				m.On("UpdateEmergencyFund", mock.Anything, mock.Anything).Return(emergencyOutput, nil)
+				m.On("GetFinancialPlan", mock.Anything, mock.Anything).Return(emptyGetOutput, nil)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:       "正常: UpdateProfile not-found → Createにフォールバック",
+			userID:     "user-123",
+			csvContent: validCSV,
+			mockSetup: func(m *MockManageFinancialDataUseCase) {
+				m.On("UpdateFinancialProfile", mock.Anything, mock.Anything).Return(nil, errors.New("財務計画の取得に失敗しました"))
+				m.On("CreateFinancialPlan", mock.Anything, mock.Anything).Return(&usecases.CreateFinancialPlanOutput{}, nil)
+				m.On("GetFinancialPlan", mock.Anything, mock.Anything).Return(emptyGetOutput, nil)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:       "正常: BOM付きCSV",
+			userID:     "user-123",
+			csvContent: "\xEF\xBB\xBF" + validCSV,
+			mockSetup: func(m *MockManageFinancialDataUseCase) {
+				m.On("UpdateFinancialProfile", mock.Anything, mock.Anything).Return(profileOutput, nil)
+				m.On("GetFinancialPlan", mock.Anything, mock.Anything).Return(emptyGetOutput, nil)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:       "正常: ダウンロードCSVそのまま（余分な行あり）",
+			userID:     "user-123",
+			csvContent: withExtraRows,
+			mockSetup: func(m *MockManageFinancialDataUseCase) {
+				m.On("UpdateFinancialProfile", mock.Anything, mock.Anything).Return(profileOutput, nil)
+				m.On("GetFinancialPlan", mock.Anything, mock.Anything).Return(emptyGetOutput, nil)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:           "エラー: UserID未取得（認証なし）",
+			userID:         "",
+			csvContent:     validCSV,
+			mockSetup:      func(m *MockManageFinancialDataUseCase) {},
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:           "エラー: ヘッダー行不正（項目列なし）",
+			userID:         "user-123",
+			csvContent:     "name,value\n月収,400000\n",
+			mockSetup:      func(m *MockManageFinancialDataUseCase) {},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "エラー: 必須フィールド欠如（月収なし）",
+			userID:         "user-123",
+			csvContent:     "項目,値\n投資リターン,5.00\nインフレ率,2.00\n",
+			mockSetup:      func(m *MockManageFinancialDataUseCase) {},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "エラー: 値のパースエラー（月収にabc）",
+			userID:         "user-123",
+			csvContent:     "項目,値\n月収,abc\n投資リターン,5.00\nインフレ率,2.00\n",
+			mockSetup:      func(m *MockManageFinancialDataUseCase) {},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "エラー: 範囲外バリデーション（投資リターン101%）",
+			userID:         "user-123",
+			csvContent:     "項目,値\n月収,400000\n投資リターン,101\nインフレ率,2.00\n",
+			mockSetup:      func(m *MockManageFinancialDataUseCase) {},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "エラー: UseCase内部エラー",
+			userID:     "user-123",
+			csvContent: validCSV,
+			mockSetup: func(m *MockManageFinancialDataUseCase) {
+				m.On("UpdateFinancialProfile", mock.Anything, mock.Anything).Return(nil, errors.New("DB接続エラー"))
+			},
+			expectedStatus: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := newFinancialDataEcho()
+			mockUseCase := new(MockManageFinancialDataUseCase)
+			tt.mockSetup(mockUseCase)
+			controller := NewFinancialDataController(mockUseCase)
+
+			req, contentType := buildCSVMultipartRequest(tt.csvContent)
+			req.Header.Set(echo.HeaderContentType, contentType)
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+			if tt.userID != "" {
+				c.Set("user_id", tt.userID)
+			}
+
+			err := controller.ImportFinancialDataFromCSV(c)
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedStatus, rec.Code)
+			mockUseCase.AssertExpectations(t)
+		})
+	}
+}
+
+// TestParseFinancialDataCSV はCSVパース関数の単体テスト
+func TestParseFinancialDataCSV(t *testing.T) {
+	tests := []struct {
+		name        string
+		csv         string
+		expectNil   bool
+		expectErr   bool
+		checkField  func(*csvImportData) bool
+		errContains string
+	}{
+		{
+			name:      "正常: 全項目パース",
+			csv:       "項目,値,単位,説明\n月収,400000,円,\n投資リターン,5.00,%,\nインフレ率,2.00,%,\n退職年齢,65,歳,\n老後月間生活費,200000,円,\n年金受給額,100000,円,\n緊急資金目標月数,6,ヶ月,\n現在の緊急資金,500000,円,\n",
+			expectErr: false,
+			checkField: func(d *csvImportData) bool {
+				return d.MonthlyIncome != nil && *d.MonthlyIncome == 400000 &&
+					d.InvestmentReturn != nil && *d.InvestmentReturn == 5.00 &&
+					d.RetirementAge != nil && *d.RetirementAge == 65
+			},
+		},
+		{
+			name:        "エラー: 投資リターン101%（範囲外）",
+			csv:         "項目,値\n月収,400000\n投資リターン,101\nインフレ率,2.00\n",
+			expectErr:   true,
+			errContains: "投資リターン",
+		},
+		{
+			name:        "エラー: 退職年齢49歳（範囲外）",
+			csv:         "項目,値\n月収,400000\n投資リターン,5\nインフレ率,2\n退職年齢,49\n",
+			expectErr:   true,
+			errContains: "退職年齢",
+		},
+		{
+			name:      "正常: 値が空の行はスキップ",
+			csv:       "項目,値\n月収,\n投資リターン,5\nインフレ率,2\n",
+			expectErr: false,
+			checkField: func(d *csvImportData) bool {
+				return d.MonthlyIncome == nil && d.InvestmentReturn != nil
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, errs := parseFinancialDataCSV(strings.NewReader(tt.csv))
+			if tt.expectErr {
+				assert.NotEmpty(t, errs)
+				if tt.errContains != "" {
+					found := false
+					for _, e := range errs {
+						if e.Field == tt.errContains {
+							found = true
+							break
+						}
+					}
+					assert.True(t, found, "エラーに「%s」フィールドが含まれるべき", tt.errContains)
+				}
+			} else {
+				assert.Empty(t, errs)
+				if tt.checkField != nil {
+					assert.True(t, tt.checkField(data))
+				}
+			}
 		})
 	}
 }

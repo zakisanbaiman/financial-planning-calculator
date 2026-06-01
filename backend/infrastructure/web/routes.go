@@ -153,6 +153,7 @@ func setupFinancialDataRoutes(api *echo.Group, controller *controllers.Financial
 
 	financialData.POST("", controller.CreateFinancialData)                        // POST /api/financial-data
 	financialData.GET("", controller.GetFinancialData)                            // GET /api/financial-data
+	financialData.POST("/import/csv", controller.ImportFinancialDataFromCSV)      // POST /api/financial-data/import/csv
 	financialData.PUT("/:user_id/profile", controller.UpdateFinancialProfile)     // PUT /api/financial-data/:user_id/profile
 	financialData.PUT("/:user_id/retirement", controller.UpdateRetirementData)    // PUT /api/financial-data/:user_id/retirement
 	financialData.PUT("/:user_id/emergency-fund", controller.UpdateEmergencyFund) // PUT /api/financial-data/:user_id/emergency-fund
@@ -198,7 +199,8 @@ func setupBotRoutes(api *echo.Group, controller *controllers.BotController) {
 func setupReportRoutes(api *echo.Group, controller *controllers.ReportsController) {
 	reports := api.Group("/reports")
 
-	reports.POST("/financial-summary", controller.GenerateFinancialSummaryReport) // POST /api/reports/financial-summary
+	reports.POST("/financial-summary", controller.GenerateFinancialSummaryReport)     // POST /api/reports/financial-summary
+	reports.GET("/financial-summary/csv", controller.DownloadFinancialSummaryCSV) // GET /api/reports/financial-summary/csv
 	reports.POST("/asset-projection", controller.GenerateAssetProjectionReport)   // POST /api/reports/asset-projection
 	reports.POST("/goals-progress", controller.GenerateGoalsProgressReport)       // POST /api/reports/goals-progress
 	reports.POST("/retirement-plan", controller.GenerateRetirementPlanReport)     // POST /api/reports/retirement-plan
